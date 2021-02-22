@@ -1,0 +1,4 @@
+dagster
+dagit
+pandas
+basedosdados
