@@ -1,14 +1,13 @@
 from dagster import repository
 import sys
 
-from repositories.capturas.br_rj_gps_brt.pipeline import (
-    hello_world_scheduler,
-)
-from repositories.capturas.br_rj_gps_brt.solids import (
-    hello_world_pipeline,
-)
+import repositories.capturas.br_rj_gps_brt.schedulers
+import repositories.capturas.br_rj_gps_brt.registros
 
 
 @repository
-def hello_world_repository():
-    return [hello_world_pipeline, hello_world_scheduler]
+def capturas():
+    return [
+        repositories.capturas.br_rj_gps_brt.schedulers.br_rj_gps_brt_registros,
+        repositories.capturas.br_rj_gps_brt.registros.br_rj_gps_brt_registros,
+    ]
