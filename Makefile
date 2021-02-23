@@ -15,6 +15,9 @@ update-env:
 attach-kernel:
 	python -m ipykernel install --user --name=$(REPO);
 
+setup-workspace:
+	mkdir data
+
 run-daemon:
 	DAGSTER_HOME=$$(pwd)/.dagster_workspace dagster-daemon run
 
