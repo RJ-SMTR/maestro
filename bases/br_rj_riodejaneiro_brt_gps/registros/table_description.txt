@@ -1,0 +1,56 @@
+Registros de GPS do BRT do município do Rio de Janeiro a cada 30 segundos.
+
+
+Para saber mais acesse:
+Website: https://basedosdados.org/dataset/br-rj-riodejaneiro-brt-gps
+Github: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_brt_gps
+
+Ajude a manter o projeto :)
+Apoia-se: https://apoia.se/basedosdados
+
+Publicado por
+-------------
+Nome: João Carabetta - SMTR-RJ
+Código: https://github.com/RJ-SMTR/maestro/tree/master/bases/br_rj_riodejaneiro_brt_gps/code
+Website: 
+Email: joao.carabetta@gmail.comTratado por
+-----------
+Nome: João Carabetta - SMTR-RJ
+Código: https://github.com/RJ-SMTR/maestro/tree/master/bases/br_rj_riodejaneiro_brt_gps/code
+Website: 
+Email: joao.carabetta@gmail.com
+
+Partições (Filtre a tabela por essas colunas para economizar dinheiro e tempo)
+---------
+- data
+- hora
+
+Nível da Observação (i.e. a granularidade da linha)
+-------------------
+- timestamp_captura
+
+Colunas identificando linhas unicamente
+-------------------
+- timestamp_captura
+- placa
+
+Cobertura Temporal
+------------------
+- 2021
+
+Cobertura Espacial
+------------------
+- brasil
+- RJ
+- Rio de Janeiro
+
+Tratamento
+----------
+Adicionei coluna da hora da captura
+Tranformei a coluna DataHora que era em millis para timestamp
+
+Frequencia de Atualização
+-------------------------
+a cada 30 segundos
+
+

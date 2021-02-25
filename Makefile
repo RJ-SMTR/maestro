@@ -13,13 +13,13 @@ update-env:
 	pip3 install --upgrade -r requirements-dev.txt;
 
 attach-kernel:
-	python -m ipykernel install --user --name=$(REPO);
+	. .$(REPO)/bin/activate; python -m ipykernel install --user --name=$(REPO);
 
 setup-workspace:
 	mkdir data
 
-run-daemon:
-	DAGSTER_HOME=$$(pwd)/.dagster_workspace dagster-daemon run
+run-daemon: 
+	. .$(REPO)/bin/activate; DAGSTER_HOME=$$(pwd)/.dagster_workspace dagster-daemon run
 
-run-dagit:
-	DAGSTER_HOME=$$(pwd)/.dagster_workspace dagit
+run-dagit: setup-workspace
+	. .$(REPO)/bin/activate; DAGSTER_HOME=$$(pwd)/.dagster_workspace dagit
