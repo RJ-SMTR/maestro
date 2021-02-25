@@ -77,7 +77,7 @@ def delete_file(file):
     return Path(file).unlink()
 
 
-def br_rj_riodejaneiro_brt_gps_registros():
+def entrypoint():
 
     file_path, partitions = get_file_path_and_partitions()
 
