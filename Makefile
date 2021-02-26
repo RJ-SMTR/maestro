@@ -21,5 +21,5 @@ setup-workspace:
 run-daemon: 
 	. .$(REPO)/bin/activate; DAGSTER_HOME=$$(pwd)/.dagster_workspace dagster-daemon run
 
-run-dagit: setup-workspace
+run-dagit:
 	. .$(REPO)/bin/activate; DAGSTER_HOME=$$(pwd)/.dagster_workspace dagit
