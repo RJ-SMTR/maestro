@@ -1,11 +1,8 @@
 from dagster import schedule
 import yaml
 from pathlib import Path
+from repositories.helpers.helpers import read_config
 
-def read_config(yaml_file):
-    with open(yaml_file, "r") as load_file:
-        config = yaml.load(load_file, Loader=yaml.FullLoader)
-        return config
 
 @schedule(
     cron_schedule="* * * * *",
