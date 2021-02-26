@@ -1,13 +1,9 @@
 from dagster import repository
-import sys
-
-import repositories.capturas.br_rj_riodejaneiro_brt_gps.schedulers
-import repositories.capturas.br_rj_riodejaneiro_brt_gps.registros
+from repositories.helpers.helpers import load_repository
+from pathlib import Path
 
 
 @repository
 def capturas():
-    return [
-        repositories.capturas.br_rj_riodejaneiro_brt_gps.schedulers.br_rj_riodejaneiro_brt_gps_registros,
-        repositories.capturas.br_rj_riodejaneiro_brt_gps.registros.br_rj_riodejaneiro_brt_gps_registros,
-    ]
+    repository_list = load_repository(Path(__file__).parent / "repository.yaml")
+    return repository_list

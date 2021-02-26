@@ -1,4 +1,0 @@
-solids:
-  get_raw:
-    inputs:
-      url: http://webapibrt.rio.rj.gov.br/api/v1/brt

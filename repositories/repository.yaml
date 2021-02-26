@@ -1,0 +1,15 @@
+schedules:
+- module: repositories.capturas.br_rj_riodejaneiro_brt_gps.schedules
+  objects:
+  - br_rj_riodejaneiro_brt_gps_registros
+- module: repositories.capturas.br_rj_riodejaneiro_brt_gps.test_schedules
+  objects:
+  - test_scheduler
+pipelines:
+- module: repositories.capturas.br_rj_riodejaneiro_brt_gps.registros
+  objects:
+  - br_rj_riodejaneiro_brt_gps_registros
+  - br_rj_riodejaneiro_brt_gps_registros_init
+- module: repositories.capturas.br_rj_riodejaneiro_brt_gps.test
+  objects:
+  - test_pipeline

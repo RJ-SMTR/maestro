@@ -1,11 +1,13 @@
 from dagster import (
     solid,
     pipeline,
+    resource,
     Output,
     OutputDefinition,
     InputDefinition,
     ModeDefinition,
     PresetDefinition,
+    Field
 )
 import basedosdados as bd
 
@@ -18,18 +20,32 @@ import os
 import os
 
 
+@resource(
+    {
+        "table_id": Field(str, is_required=True, description="Table used in the pipeline"),
+        "dataset_id": Field(str, is_required=True, description="Dataset used in the pipeline"),
+    }
+)
+def save_config(context):
+    return context.resource_config
+
+
 @solid(
     output_defs=[
         OutputDefinition(name="file_path"),
         OutputDefinition(name="partitions"),
     ],
+    required_resource_keys={"save_config"}
 )
-def get_file_path_and_partitions(context, dataset_id, table_id):
+def get_file_path_and_partitions(context):
+
+    table_id = context.resources.save_config['table_id']
+    dataset_id = context.resources.save_config['dataset_id']
 
     capture_time = datetime.datetime.now()
     date = capture_time.strftime("%Y-%m-%d")
     hour = capture_time.strftime("%H")
-    filename = capture_time.strftime("%Y-%m-%d-%H-%m-%S")
+    filename = capture_time.strftime("%Y-%m-%d-%H-%M-%S")
 
     partitions = f"data={date}/hora={hour}"
 
@@ -37,7 +53,6 @@ def get_file_path_and_partitions(context, dataset_id, table_id):
 
     yield Output(file_path, output_name="file_path")
     yield Output(partitions, output_name="partitions")
-
 
 @solid
 def get_raw(context, url):
@@ -69,6 +84,8 @@ def save_raw_local(context, data, file_path, mode="raw"):
     _file_path = file_path.format(mode=mode, filetype="json")
     Path(_file_path).parent.mkdir(parents=True, exist_ok=True)
     json.dump(data.json(), Path(_file_path).open("w"))
+    
+    return _file_path
 
 
 @solid
@@ -81,30 +98,49 @@ def save_treated_local(context, df, file_path, mode="staging"):
     return _file_path
 
 
-@solid
+@solid(
+    required_resource_keys={"save_config"}
+)
 def upload_to_bigquery(
-    context, file_path, partitions, dataset_id, table_id, mode="staging"
-):
+    context, treated_file_path, raw_file_path, partitions):
 
-    _file_path = file_path.format(mode=mode, filetype="csv")
-
+    table_id = context.resources.save_config['table_id']
+    dataset_id = context.resources.save_config['dataset_id']
+    
     st = bd.Storage(dataset_id=dataset_id, table_id=table_id)
-    st.upload(_file_path, partitions=partitions, mode="staging")
+    
+    st.upload(raw_file_path, partitions=partitions, mode="raw")
+    st.upload(treated_file_path, partitions=partitions, mode="staging")
 
-    delete_file(_file_path)
+    delete_file(raw_file_path)
+    delete_file(treated_file_path)
 
+@solid(
+    required_resource_keys={"save_config"}
+)
+def create_table_bq(context, file_path):
+    
+    table_id = context.resources.save_config['table_id']
+    dataset_id = context.resources.save_config['dataset_id']
+
+    tb = bd.Table(dataset_id=dataset_id, table_id=table_id)
+    
+    tb.create(path=Path(file_path).parent.parent.parent, 
+              partitioned=True, 
+              if_table_exists='replace', 
+              if_storage_data_exists='replace',
+              if_table_config_exists='pass')
+    
+    tb.publish()
 
 def delete_file(file):
 
     return Path(file).unlink()
 
 
-local_mode = ModeDefinition(name="local")
-
-
 @pipeline(
-    # ordered so the local is first and therefore the default
-    mode_defs=[local_mode]
+    mode_defs=[
+        ModeDefinition("br_rj_riodejaneiro_brt_gps_registros", resource_defs={"save_config": save_config}),]
 )
 def br_rj_riodejaneiro_brt_gps_registros():
 
@@ -112,10 +148,30 @@ def br_rj_riodejaneiro_brt_gps_registros():
 
     data = get_raw()
 
-    save_raw_local(data, file_path)
+    raw_file_path = save_raw_local(data, file_path)
 
     treated_data = pre_treatment(data)
 
     treated_file_path = save_treated_local(treated_data, file_path)
 
-    upload_to_bigquery(treated_file_path, partitions)
+    upload_to_bigquery(treated_file_path, raw_file_path, partitions)
+    
+@pipeline(
+    preset_defs=[PresetDefinition.from_files('init', config_files=[str(Path(__file__).parent / 'registros.yaml')],
+                                             mode="br_rj_riodejaneiro_brt_gps_registros")],
+    mode_defs=[
+        ModeDefinition("br_rj_riodejaneiro_brt_gps_registros", resource_defs={"save_config": save_config}),]
+)
+def br_rj_riodejaneiro_brt_gps_registros_init():
+    
+    file_path, partitions = get_file_path_and_partitions()
+
+    data = get_raw()
+
+    raw_file_path = save_raw_local(data, file_path)
+
+    treated_data = pre_treatment(data)
+
+    treated_file_path = save_treated_local(treated_data, file_path)
+    
+    create_table_bq(treated_file_path)
