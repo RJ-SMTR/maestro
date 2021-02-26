@@ -4,7 +4,7 @@ solids:
       url: 
         value: http://webapibrt.rio.rj.gov.br/api/v1/brt
 resources:
-  save_config:
+  basedosdados_config:
     config:
       table_id: registros
       dataset_id: br_rj_riodejaneiro_brt_gps 

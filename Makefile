@@ -2,6 +2,9 @@
 
 REPO=$(shell basename $(CURDIR))
 
+setup-os:
+	sudo apt-get install git gcc libpq-dev  python-dev  python-pip python3-dev python3-pip python3-venv python3-wheel -y
+
 create-env:
 	python3 -m venv .$(REPO);
 	. .$(REPO)/bin/activate; \

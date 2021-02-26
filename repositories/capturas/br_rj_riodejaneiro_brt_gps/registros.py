@@ -26,7 +26,7 @@ import os
         "dataset_id": Field(str, is_required=True, description="Dataset used in the pipeline"),
     }
 )
-def save_config(context):
+def basedosdados_config(context):
     return context.resource_config
 
 
@@ -35,12 +35,12 @@ def save_config(context):
         OutputDefinition(name="file_path"),
         OutputDefinition(name="partitions"),
     ],
-    required_resource_keys={"save_config"}
+    required_resource_keys={"basedosdados_config"}
 )
 def get_file_path_and_partitions(context):
 
-    table_id = context.resources.save_config['table_id']
-    dataset_id = context.resources.save_config['dataset_id']
+    table_id = context.resources.basedosdados_config['table_id']
+    dataset_id = context.resources.basedosdados_config['dataset_id']
 
     capture_time = datetime.datetime.now()
     date = capture_time.strftime("%Y-%m-%d")
@@ -99,13 +99,13 @@ def save_treated_local(context, df, file_path, mode="staging"):
 
 
 @solid(
-    required_resource_keys={"save_config"}
+    required_resource_keys={"basedosdados_config"}
 )
 def upload_to_bigquery(
     context, treated_file_path, raw_file_path, partitions):
 
-    table_id = context.resources.save_config['table_id']
-    dataset_id = context.resources.save_config['dataset_id']
+    table_id = context.resources.basedosdados_config['table_id']
+    dataset_id = context.resources.basedosdados_config['dataset_id']
     
     st = bd.Storage(dataset_id=dataset_id, table_id=table_id)
     
@@ -116,12 +116,12 @@ def upload_to_bigquery(
     delete_file(treated_file_path)
 
 @solid(
-    required_resource_keys={"save_config"}
+    required_resource_keys={"basedosdados_config"}
 )
 def create_table_bq(context, file_path):
     
-    table_id = context.resources.save_config['table_id']
-    dataset_id = context.resources.save_config['dataset_id']
+    table_id = context.resources.basedosdados_config['table_id']
+    dataset_id = context.resources.basedosdados_config['dataset_id']
 
     tb = bd.Table(dataset_id=dataset_id, table_id=table_id)
     
@@ -140,7 +140,7 @@ def delete_file(file):
 
 @pipeline(
     mode_defs=[
-        ModeDefinition("br_rj_riodejaneiro_brt_gps_registros", resource_defs={"save_config": save_config}),]
+        ModeDefinition("dev", resource_defs={"basedosdados_config": basedosdados_config}),]
 )
 def br_rj_riodejaneiro_brt_gps_registros():
 
@@ -158,9 +158,9 @@ def br_rj_riodejaneiro_brt_gps_registros():
     
 @pipeline(
     preset_defs=[PresetDefinition.from_files('init', config_files=[str(Path(__file__).parent / 'registros.yaml')],
-                                             mode="br_rj_riodejaneiro_brt_gps_registros")],
+                                             mode="dev")],
     mode_defs=[
-        ModeDefinition("br_rj_riodejaneiro_brt_gps_registros", resource_defs={"save_config": save_config}),]
+        ModeDefinition("dev", resource_defs={"basedosdados_config": basedosdados_config}),]
 )
 def br_rj_riodejaneiro_brt_gps_registros_init():
     

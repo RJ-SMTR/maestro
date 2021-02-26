@@ -8,7 +8,7 @@ from repositories.helpers.helpers import read_config
     cron_schedule="* * * * *",
     pipeline_name="br_rj_riodejaneiro_brt_gps_registros",
     name="br_rj_riodejaneiro_brt_gps_registros",
-    mode="br_rj_riodejaneiro_brt_gps_registros"
+    mode="dev"
 )
 def br_rj_riodejaneiro_brt_gps_registros(date):
 
