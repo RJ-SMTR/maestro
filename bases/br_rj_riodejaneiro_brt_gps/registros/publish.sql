@@ -19,7 +19,7 @@ TIPOS:
 
 */
 
-CREATE VIEW rj-smtr-dev.br_rj_riodejaneiro_brt_gps.registros AS
+CREATE VIEW rj-smtr.br_rj_riodejaneiro_brt_gps.registros AS
 SELECT 
 SAFE_CAST(codigo AS STRING) codigo,
 SAFE_CAST(placa AS STRING) placa,
@@ -34,4 +34,4 @@ SAFE_CAST(trajeto AS STRING) trajeto,
 SAFE_CAST(timestamp_captura AS TIMESTAMP) timestamp_captura,
 SAFE_CAST(data AS DATE) data,
 SAFE_CAST(hora AS INT64) hora
-from rj-smtr-dev.br_rj_riodejaneiro_brt_gps_staging.registros as t
+from rj-smtr-staging.br_rj_riodejaneiro_brt_gps_staging.registros as t
