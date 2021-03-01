@@ -131,3 +131,4 @@ dmypy.json
 .maestro
 .dagster_workspace
 data/
+notebooks/
