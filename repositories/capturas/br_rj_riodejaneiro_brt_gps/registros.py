@@ -93,7 +93,7 @@ def pre_treatment(context, data):
     timestamp_captura = pd.to_datetime(pendulum.now(timezone).isoformat())
     df["timestamp_captura"] = timestamp_captura
     df["dataHora"] = df["dataHora"].apply(
-        lambda ms: pd.to_datetime(pendulum.from_timestamp(ms / 1000.0, timezone))
+        lambda ms: pd.to_datetime(pendulum.from_timestamp(ms / 1000.0, timezone).isoformat())
     )
 
     return df
