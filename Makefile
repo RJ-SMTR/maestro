@@ -7,6 +7,16 @@ setup-os:
 
 create-env:
 	python3 -m venv .$(REPO);
+
+# Needed when installing on a new machine on Google Cloud
+install-grpcio:
+	. .$(REPO)/bin/activate; \
+			pip3 install --upgrade wheel; \
+			pip3 install --upgrade pip; \
+			python3 -m pip install --upgrade setuptools; \
+			pip3 install --no-cache-dir  --force-reinstall -Iv grpcio;
+
+install-env:
 	. .$(REPO)/bin/activate; \
 			pip3 install --upgrade  -r requirements-dev.txt; \
 			python setup.py develop;
