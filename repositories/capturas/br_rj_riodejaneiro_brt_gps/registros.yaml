@@ -8,3 +8,6 @@ resources:
     config:
       table_id: registros
       dataset_id: br_rj_riodejaneiro_brt_gps 
+  timezone_config:
+    config:
+      timezone: "" 

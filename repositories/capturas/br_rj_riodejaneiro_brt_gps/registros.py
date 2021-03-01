@@ -13,10 +13,9 @@ import basedosdados as bd
 
 import requests
 import json
-import datetime
+import pendulum
 import pandas as pd
 from pathlib import Path
-import os
 import os
 
 
@@ -33,20 +32,31 @@ import os
 def basedosdados_config(context):
     return context.resource_config
 
+@resource(
+    {
+        "timezone": Field(
+            str, is_required=True, description="Run timezone"
+        ),
+    }
+)
+def timezone_config(context):
+    return context.resource_config
+
 
 @solid(
     output_defs=[
         OutputDefinition(name="file_path"),
         OutputDefinition(name="partitions"),
     ],
-    required_resource_keys={"basedosdados_config"},
+    required_resource_keys={"basedosdados_config", "timezone_config"},
 )
 def get_file_path_and_partitions(context):
 
-    table_id = context.resources.basedosdados_config["table_id"]
-    dataset_id = context.resources.basedosdados_config["dataset_id"]
+    table_id = context.resources.basedosdados_config['table_id']
+    dataset_id = context.resources.basedosdados_config['dataset_id']
+    timezone = context.resources.timezone_config["timezone"]
 
-    capture_time = datetime.datetime.now()
+    capture_time = pendulum.now(timezone)
     date = capture_time.strftime("%Y-%m-%d")
     hour = capture_time.strftime("%H")
     filename = capture_time.strftime("%Y-%m-%d-%H-%M-%S")
@@ -54,6 +64,7 @@ def get_file_path_and_partitions(context):
     partitions = f"data={date}/hora={hour}"
 
     file_path = f"{os.getcwd()}/data/{{mode}}/{dataset_id}/{table_id}/{partitions}/{filename}.{{filetype}}"
+    context.log.info(f"creating file path {file_path}")
 
     yield Output(file_path, output_name="file_path")
     yield Output(partitions, output_name="partitions")
@@ -67,17 +78,22 @@ def get_raw(context, url):
     if data.ok:
         return data
     else:
-        raise Exception("Requests failed with error {data.status_code}")
+        raise Exception(f"Requests failed with error {data.status_code}")
 
 
-@solid
+@solid(
+    required_resource_keys={"basedosdados_config", "timezone_config"},
+)
 def pre_treatment(context, data):
+
+    timezone = context.resources.timezone_config["timezone"]
 
     data = data.json()
     df = pd.DataFrame(data["veiculos"])
-    df["timestamp_captura"] = datetime.datetime.now()
+    timestamp_captura = pd.to_datetime(pendulum.now(timezone).isoformat())
+    df["timestamp_captura"] = timestamp_captura
     df["dataHora"] = df["dataHora"].apply(
-        lambda ms: datetime.datetime.fromtimestamp(ms / 1000.0)
+        lambda ms: pd.to_datetime(pendulum.from_timestamp(ms / 1000.0, timezone))
     )
 
     return df
@@ -145,7 +161,7 @@ def delete_file(file):
 @pipeline(
     mode_defs=[
         ModeDefinition(
-            "dev", resource_defs={"basedosdados_config": basedosdados_config}
+            "dev", resource_defs={"basedosdados_config": basedosdados_config, "timezone_config": timezone_config}
         ),
     ]
 )
@@ -174,7 +190,7 @@ def br_rj_riodejaneiro_brt_gps_registros():
     ],
     mode_defs=[
         ModeDefinition(
-            "dev", resource_defs={"basedosdados_config": basedosdados_config}
+            "dev", resource_defs={"basedosdados_config": basedosdados_config, "timezone_config": timezone_config}
         ),
     ],
 )
