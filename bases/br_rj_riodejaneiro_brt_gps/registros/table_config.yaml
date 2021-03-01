@@ -124,8 +124,8 @@ columns: # REQUIRED
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
     -   
-        name: dataHora
-        description: Não sei (???)
+        name: timestamp_gps
+        description: Data e hora da última atualiação do gps
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
