@@ -146,7 +146,7 @@ def create_table_bq(context, file_path):
         path=Path(file_path).parent.parent.parent,
         partitioned=True,
         if_table_exists="replace",
-        if_storage_data_exists="replace",
+        if_storage_data_exists="pass",
         if_table_config_exists="pass",
     )
 
