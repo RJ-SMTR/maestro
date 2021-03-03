@@ -1,15 +1,11 @@
 from dagster import (
     solid,
     pipeline,
-    resource,
     Output,
     OutputDefinition,
-    InputDefinition,
     ModeDefinition,
     PresetDefinition,
-    Field,
 )
-import basedosdados as bd
 
 import requests
 import json
@@ -18,29 +14,13 @@ import pandas as pd
 from pathlib import Path
 import os
 
-
-@resource(
-    {
-        "table_id": Field(
-            str, is_required=True, description="Table used in the pipeline"
-        ),
-        "dataset_id": Field(
-            str, is_required=True, description="Dataset used in the pipeline"
-        ),
-    }
+import basedosdados as bd
+from repositories.capturas.br_rj_riodejaneiro_brt_gps.resources import (
+    basedosdados_config,
+    timezone_config,
+    discord_webhook,
 )
-def basedosdados_config(context):
-    return context.resource_config
-
-@resource(
-    {
-        "timezone": Field(
-            str, is_required=True, description="Run timezone"
-        ),
-    }
-)
-def timezone_config(context):
-    return context.resource_config
+from repositories.helpers.hooks import discord_message_on_failure, discord_message_on_success
 
 
 @solid(
@@ -158,10 +138,14 @@ def delete_file(file):
     return Path(file).unlink()
 
 
+@discord_message_on_failure
+@discord_message_on_success
 @pipeline(
     mode_defs=[
         ModeDefinition(
-            "dev", resource_defs={"basedosdados_config": basedosdados_config, "timezone_config": timezone_config}
+            "dev", resource_defs={"basedosdados_config": basedosdados_config, 
+                                  "timezone_config": timezone_config,
+                                  "discord_webhook": discord_webhook}
         ),
     ]
 )
@@ -180,6 +164,8 @@ def br_rj_riodejaneiro_brt_gps_registros():
     upload_to_bigquery(treated_file_path, raw_file_path, partitions)
 
 
+@discord_message_on_failure
+@discord_message_on_success
 @pipeline(
     preset_defs=[
         PresetDefinition.from_files(
@@ -190,7 +176,9 @@ def br_rj_riodejaneiro_brt_gps_registros():
     ],
     mode_defs=[
         ModeDefinition(
-            "dev", resource_defs={"basedosdados_config": basedosdados_config, "timezone_config": timezone_config}
+            "dev", resource_defs={"basedosdados_config": basedosdados_config, 
+                                  "timezone_config": timezone_config,
+                                  "discord_webhook": discord_webhook}
         ),
     ],
 )
