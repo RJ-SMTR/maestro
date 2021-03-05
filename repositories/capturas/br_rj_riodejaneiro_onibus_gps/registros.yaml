@@ -2,12 +2,12 @@ solids:
   get_raw:
     inputs:
       url: 
-        value: http://webapibrt.rio.rj.gov.br/api/v1/brt
+        value: http://ccomobility.com.br/WebServices/Binder/WSConecta/EnvioInformacoesIplan?guidIdentificacao=994142d7-2223-4044-931e-be3421ea02ff
 resources:
   basedosdados_config:
     config:
       table_id: registros
-      dataset_id: br_rj_riodejaneiro_brt_gps 
+      dataset_id: br_rj_riodejaneiro_onibus_gps 
   timezone_config:
     config:
       timezone: "" 

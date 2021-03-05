@@ -1,0 +1,56 @@
+Registros de GPS dos onibus do município do Rio de Janeiro a cada 1 minuto.
+
+
+Para saber mais acesse:
+Website: https://basedosdados.org/dataset/br-rj-riodejaneiro-onibus-gps
+Github: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_onibus_gps
+
+Ajude a manter o projeto :)
+Apoia-se: https://apoia.se/basedosdados
+
+Publicado por
+-------------
+Nome: João Carabetta - SMTR-RJ
+Código: https://github.com/RJ-SMTR/maestro/tree/master/bases/br_rj_riodejaneiro_onibus_gps/code
+Website: 
+Email: joao.carabetta@gmail.comTratado por
+-----------
+Nome: João Carabetta - SMTR-RJ
+Código: https://github.com/RJ-SMTR/maestro/tree/master/bases/br_rj_riodejaneiro_onibus_gps/code
+Website: 
+Email: joao.carabetta@gmail.com
+
+Partições (Filtre a tabela por essas colunas para economizar dinheiro e tempo)
+---------
+- data
+- hora
+
+Nível da Observação (i.e. a granularidade da linha)
+-------------------
+- timestamp_captura
+
+Colunas identificando linhas unicamente
+-------------------
+- timestamp_captura
+- ordem
+
+Cobertura Temporal
+------------------
+- 2021
+
+Cobertura Espacial
+------------------
+- brasil
+- RJ
+- Rio de Janeiro
+
+Tratamento
+----------
+Adicionei coluna da hora da captura
+Transformei a coluna datahora que era em millis para timestamp, consertando o timezone
+
+Frequencia de Atualização
+-------------------------
+a cada 1 minuto
+
+

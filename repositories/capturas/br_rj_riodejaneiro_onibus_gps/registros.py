@@ -28,16 +28,17 @@ from repositories.capturas.solids import (
 @solid(
     required_resource_keys={"basedosdados_config", "timezone_config"},
 )
-def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data):
+def pre_treatment_br_rj_riodejaneiro_onibus_gps(context, data):
 
     timezone = context.resources.timezone_config["timezone"]
 
     data = data.json()
-    df = pd.DataFrame(data["veiculos"])
+    df = pd.DataFrame(data)
     timestamp_captura = pd.to_datetime(pendulum.now(timezone).isoformat())
     df["timestamp_captura"] = timestamp_captura
-    df["dataHora"] = df["dataHora"].apply(
-        lambda ms: pd.to_datetime(pendulum.from_timestamp(ms / 1000.0, timezone).isoformat())
+    # Remove timezone and force it to be config timezone
+    df["datahora"] = df["datahora"].astype(float).apply(
+        lambda ms: pd.to_datetime(pendulum.from_timestamp(ms / 1000.0).replace(tzinfo=None).set(tz=timezone).isoformat())
     )
 
     return df
@@ -54,7 +55,7 @@ def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data):
         ),
     ]
 )
-def br_rj_riodejaneiro_brt_gps_registros():
+def br_rj_riodejaneiro_onibus_gps_registros():
 
     file_path, partitions = get_file_path_and_partitions()
 
@@ -62,11 +63,11 @@ def br_rj_riodejaneiro_brt_gps_registros():
 
     raw_file_path = save_raw_local(data, file_path)
 
-    treated_data = pre_treatment_br_rj_riodejaneiro_brt_gps(data)
+    treated_data = pre_treatment_br_rj_riodejaneiro_onibus_gps(data)
 
     treated_file_path = save_treated_local(treated_data, file_path)
 
-    upload_to_bigquery(treated_file_path, raw_file_path, partitions)
+    # upload_to_bigquery(treated_file_path, raw_file_path, partitions)
 
 
 @discord_message_on_failure
@@ -87,7 +88,7 @@ def br_rj_riodejaneiro_brt_gps_registros():
         ),
     ],
 )
-def br_rj_riodejaneiro_brt_gps_registros_init():
+def br_rj_riodejaneiro_onibus_gps_registros_init():
 
     file_path, partitions = get_file_path_and_partitions()
 
@@ -95,7 +96,7 @@ def br_rj_riodejaneiro_brt_gps_registros_init():
 
     raw_file_path = save_raw_local(data, file_path)
 
-    treated_data = pre_treatment_br_rj_riodejaneiro_brt_gps(data)
+    treated_data = pre_treatment_br_rj_riodejaneiro_onibus_gps(data)
 
     treated_file_path = save_treated_local(treated_data, file_path)
 
