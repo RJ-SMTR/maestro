@@ -2,44 +2,45 @@ source_bucket_name: rj-smtr-dev
 project_id_staging: rj-smtr-dev
 project_id_prod: rj-smtr-dev
 table_id: registros # AUTO GENERATED
-dataset_id: br_rj_riodejaneiro_brt_gps # AUTO GENERATED
+dataset_id: br_rj_riodejaneiro_onibus_gps # AUTO GENERATED
 
-url_ckan: https://basedosdados.org/dataset/br-rj-riodejaneiro-brt-gps # AUTO GENERATED
-url_github: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_brt_gps # AUTO GENERATED
+url_ckan: https://basedosdados.org/dataset/br-rj-riodejaneiro-onibus-gps # AUTO GENERATED
+url_github: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_onibus_gps # AUTO GENERATED
 
-version: 0.1 # REQUIRED
+version: <vA.B> # REQUIRED
 
-last_updated: 2021-02-24 # AUTO GENERATED
+last_updated: 2021-03-05 # AUTO GENERATED
 
 # Descreva a tabela. Essas são as primeiras frases que um usuário vai ver.
 # Você não precisa ser muito conciso. Sinta-se a vontade para dar exemplos de
 # como usar os dados.
 # Se souber, liste também aplicações: pesquisa, apps, etc. que usem os dados.
 description: |  # REQUIRED
-    Registros de GPS do BRT do município do Rio de Janeiro a cada 30 segundos.
+    <descrição>
 
 # Quem está completando esse arquivo config?
 published_by:
-    name: João Carabetta - SMTR-RJ  # REQUIRED
-    code_url: https://github.com/RJ-SMTR/maestro/tree/master/bases/br_rj_riodejaneiro_brt_gps/code # REQUIRED
-    email: joao.carabetta@gmail.com
+    name: <nome [você]>  # REQUIRED
+    code_url: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_onibus_gps/code # REQUIRED
+    website: <website>
+    email: <email>
 
 # Qual organização/departamento/pessoa tratou os dados?
 # As vezes há um ponto intermediário entre os dados originais e subir na Base dos Dados.
 # Se essa pessoa é você, preencha abaixo com suas informações.
 treated_by:
-    name: João Carabetta - SMTR-RJ
-    code_url: https://github.com/RJ-SMTR/maestro/tree/master/bases/br_rj_riodejaneiro_brt_gps/code # REQUIRED
-    email: joao.carabetta@gmail.com
+    name: <nome>
+    code_url: <onde encontrar código de tratamento>
+    website: <onde encontrar os dados tratados>
+    email: <email>
 
 # Se houve passos de tratamento, limpeza e manipulação de dados, descreva-os aqui.
 treatment_description: | 
-    Adicionei coluna da hora da captura
-    Tranformei a coluna DataHora que era em millis para timestamp
+    <CEPESP fez X. Eu fiz K>
 
 # Com qual frequência a base é atualizada?
 # Opções: hora | dia | semana | mes | 1 ano | 2 anos | 5 anos | 10 anos | unico | recorrente
-data_update_frequency: a cada 30 segundos # REQUIRED 
+data_update_frequency: <frequência> # REQUIRED 
 
 # Nível da observação (qual é a granularidade de cada linha na tabela)
 # Escolha todas as opções necessárias.
@@ -48,14 +49,15 @@ data_update_frequency: a cada 30 segundos # REQUIRED
 #   - em portugues (ou seja, não use os nomes de colunas abaixo)
 # Exemplos: pais, estado, municipio, cidade, hora, dia, semana, mes, ano, etc.
 observation_level: #REQUIRED
-    - timestamp_captura
+    - <primeira coluna>
+    - <segunda coluna>
 
 # Quais colunas identificam uma linha unicamente?
 # Preencha com os nomes de colunas. Ex: id_municipio, ano.
 # Pode ser vazio pois certas tabelas não possuem identificadores.
 primary_keys:
-    - timestamp_captura
-    - placa
+    - <primeira coluna>
+    - <segunda coluna>
 
 # Qual é a cobertura espacial da tabela?
 # Regras:
@@ -67,14 +69,16 @@ primary_keys:
 # Exemplo 2: tabela que cubra países inteiros na América Latina
 #   - brasil, argentina, peru, equador
 coverage_geo:
-    - brasil
-    - RJ
-    - Rio de Janeiro
+    - <admin0 - pais>
+    - <admin1 - estados/regioes/etc>
+    - <admin2 - municipios/counties/etc>
+    - <admin3 - distritos/subdistritos/etc>
 
 # Qual é a cobertura temporal (em anos) da tabela?
 # Opções: ..., 1990, 1991, ..., 1999, 2000, 2001, ..., 2019, 2020, ...
 coverage_time:
-    - 2021
+    - <ano 1>
+    - <ano 2>
 
 # Liste as colunas da tabela que representam partições.
 # Não esqueça de deletar essas colunas nas tabelas .csv na hora de subir para o BigQuery.
@@ -95,78 +99,55 @@ partitions: # REQUIRED
 columns: # REQUIRED
   
     -   
-        name: codigo
-        description: Identificador único do registro do GPS para o veículo
-        is_in_staging: True # Bool [True, False], whether the column is in the staging table
-        is_partition: False # Bool [True, False], whether the column is a partition.
-  
-    -   
-        name: placa
-        description: Placa do veículo
-        is_in_staging: True # Bool [True, False], whether the column is in the staging table
-        is_partition: False # Bool [True, False], whether the column is a partition.
-  
-    -   
-        name: linha
-        description: Linha que o veículo está transitando no momento
+        name: ordem
+        description: <descrição da coluna>
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
     -   
         name: latitude
-        description: Latitude do veículo
+        description: <descrição da coluna>
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
     -   
         name: longitude
-        description: Longitude do veículo
+        description: <descrição da coluna>
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
+  
     -   
-        name: timestamp_gps
-        description: Data e hora da última atualização do gps
+        name: datahora
+        description: <descrição da coluna>
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
     -   
         name: velocidade
-        description: Velocidade do veículo no momento
+        description: <descrição da coluna>
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
     -   
-        name: id_migracao_trajeto
-        description: Não sei (???)
-        is_in_staging: True # Bool [True, False], whether the column is in the staging table
-        is_partition: False # Bool [True, False], whether the column is a partition.
-  
-    -   
-        name: sentido
-        description: Sentido do veículo na linha
-        is_in_staging: True # Bool [True, False], whether the column is in the staging table
-        is_partition: False # Bool [True, False], whether the column is a partition.
-  
-    -   
-        name: trajeto
-        description: Trajeto do veículo
+        name: linha
+        description: <descrição da coluna>
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
     -   
         name: timestamp_captura
-        description: Data e hora de captura do registro
+        description: <descrição da coluna>
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
     -   
         name: data
-        description: Data da captura em YYYY-MM-DD
+        description: <descrição da coluna>
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: True # Bool [True, False], whether the column is a partition.
   
     -   
         name: hora
-        description: Hora da captura
+        description: <descrição da coluna>
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: True # Bool [True, False], whether the column is a partition.

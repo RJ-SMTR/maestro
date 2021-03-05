@@ -8,19 +8,21 @@ url_github: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodeja
 # Quais as principais fontes de dados?
 # Há links para FAQs e explicações?
 description: | # REQUIRED
-    Dados de GPS dos onibus da cidade do Rio de Janeiro
+    <descrição>
 
 # Qual organização disponibiliza os dados originais?
 # Opções: escolher dessa lista -> https://basedosdados.org/api/3/action/organization_list
-organization: Município do Rio de Janeiro  # REQUIRED
+organization: <organização> # REQUIRED
 
 # Qual departamento/grupo/pessoa mantém os dados originais?
 author:
-    name: ??
+    name: <nome>
+    email: <email>
 
 # Onde encontrar os dados originais e mais informações?
 website:
-    - http://ccomobility.com.br/WebServices/Binder/WSConecta/EnvioInformacoesIplan?guidIdentificacao=994142d7-2223-4044-931e-be3421ea02ff
+    - <website 1>
+    - <website 2>
 
 # Quais grupos caracterizam a base?
 # Opções: escolher dessa lista -> https://basedosdados.org/api/3/action/group_list
