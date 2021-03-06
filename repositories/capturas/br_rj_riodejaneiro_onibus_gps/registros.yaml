@@ -13,5 +13,5 @@ resources:
       timezone: "" 
   discord_webhook:
     config:
-      url: https://discord.com/api/webhooks/816785532327690280/HvAhSg6o4CA_90lCPMuLc5zc6WH_s__2WHdEdLLmYo5fDFcuwAjkTX80FhtxdsToTH4M
+      url: https://discord.com/api/webhooks/817570923762024448/YM1-bD53vWulgR9WL2OVoFtLzcK2GcWZdVEwQpgaBM3SW-pfPIppt9VD7h8qwwpjoVDO
       success_cron: "00 08 * * *"
