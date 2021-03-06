@@ -2,6 +2,9 @@ schedules:
 - module: repositories.capturas.schedules
   objects:
   - br_rj_riodejaneiro_brt_gps_registros
+- module: repositories.capturas.schedules
+  objects:
+  - br_rj_riodejaneiro_onibus_gps_registros
 - module: repositories.capturas.test_schedules
   objects:
   - test_scheduler
