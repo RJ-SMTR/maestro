@@ -19,7 +19,7 @@ TIPOS:
 
 */
 
-CREATE VIEW rj-smtr-dev.br_rj_riodejaneiro_onibus_gps.registros AS
+CREATE VIEW rj-smtr.br_rj_riodejaneiro_onibus_gps.registros AS
 SELECT 
 SAFE_CAST(ordem AS STRING) ordem,
 SAFE_CAST(latitude AS STRING) latitude,
@@ -30,4 +30,4 @@ SAFE_CAST(linha AS STRING) linha,
 SAFE_CAST(DATETIME(TIMESTAMP(timestamp_captura), "America/Sao_Paulo") AS DATETIME) timestamp_captura,
 SAFE_CAST(data AS DATE) data,
 SAFE_CAST(hora AS INT64) hora
-from rj-smtr-dev.br_rj_riodejaneiro_onibus_gps_staging.registros as t
+from rj-smtr-staging.br_rj_riodejaneiro_onibus_gps_staging.registros as t
