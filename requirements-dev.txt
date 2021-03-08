@@ -3,3 +3,4 @@ dagit
 pandas
 alembic
 basedosdados
+dagster-postgres
