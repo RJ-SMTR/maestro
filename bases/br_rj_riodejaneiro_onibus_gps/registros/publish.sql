@@ -22,8 +22,8 @@ TIPOS:
 CREATE VIEW rj-smtr.br_rj_riodejaneiro_onibus_gps.registros AS
 SELECT 
 SAFE_CAST(ordem AS STRING) ordem,
-SAFE_CAST(latitude AS FLOAT64) latitude,
-SAFE_CAST(longitude AS FLOAT64) longitude,
+SAFE_CAST(REPLACE(latitude, ',', '.') AS FLOAT64) latitude,
+SAFE_CAST(REPLACE(longitude, ',', '.') AS FLOAT64) longitude,
 SAFE_CAST(DATETIME(TIMESTAMP(timestamp_gps), "America/Sao_Paulo") AS DATETIME) timestamp_gps,
 SAFE_CAST(velocidade AS INT64) velocidade,
 SAFE_CAST(linha AS STRING) linha,

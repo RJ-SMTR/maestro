@@ -132,3 +132,4 @@ dmypy.json
 .dagster_workspace
 data/
 notebooks/
+logs/
