@@ -130,6 +130,7 @@ dmypy.json
 
 .maestro
 .dagster_workspace
+.basedosdados
 data/
 notebooks/
 logs/
