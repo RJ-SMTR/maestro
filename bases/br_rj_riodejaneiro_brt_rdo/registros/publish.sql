@@ -19,7 +19,7 @@ TIPOS:
 
 */
 
-CREATE VIEW rj-smtr-dev.br_rj_riodejaneiro_brt_rdo.registros AS
+CREATE VIEW rj-smtr.br_rj_riodejaneiro_brt_rdo.registros AS
 SELECT 
 SAFE_CAST(operadora AS STRING) operadora,
 SAFE_CAST(linha AS STRING) linha,
@@ -60,4 +60,4 @@ SAFE_CAST(tipo_informacao AS STRING) tipo_informacao,
 SAFE_CAST(DATETIME(TIMESTAMP(timestamp_captura), "America/Sao_Paulo") AS DATETIME) timestamp_captura,
 SAFE_CAST(year AS INT64) year,
 SAFE_CAST(month AS INT64) month
-from rj-smtr-dev.br_rj_riodejaneiro_brt_rdo_staging.registros as t
+from rj-smtr-staging.br_rj_riodejaneiro_brt_rdo_staging.registros as t

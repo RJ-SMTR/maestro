@@ -132,5 +132,4 @@ dmypy.json
 .dagster_workspace
 .basedosdados
 data/
-notebooks/
 logs/

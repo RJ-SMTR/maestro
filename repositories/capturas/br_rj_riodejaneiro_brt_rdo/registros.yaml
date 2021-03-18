@@ -5,7 +5,7 @@ resources:
       dataset_id: br_rj_riodejaneiro_brt_rdo 
   storage_config:
     config:
-      bucket_name: rj-smtr-dev
+      bucket_name: rj-smtr
       bucket_path: raw/br_rj_riodejaneiro_brt_rdo/registros/year=2021/month=03/RDO012021_v1.xlsx
   timezone_config:
     config:
