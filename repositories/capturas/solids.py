@@ -80,8 +80,8 @@ def upload_to_bigquery(context, treated_file_path, raw_file_path, partitions):
 
     st = bd.Storage(dataset_id=dataset_id, table_id=table_id)
 
-    st.upload(raw_file_path, partitions=partitions, mode="raw")
-    st.upload(treated_file_path, partitions=partitions, mode="staging")
+    st.upload(raw_file_path, partitions=partitions, mode="raw", if_exists='pass')
+    st.upload(treated_file_path, partitions=partitions, mode="staging", if_exists='replace')
 
     delete_file(raw_file_path)
     delete_file(treated_file_path)
