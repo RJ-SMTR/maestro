@@ -23,6 +23,7 @@ services:
       - dagster_network
     volumes:
       - /home/${USER}/.basedosdados_dagster:/root/.basedosdados
+      - /home/${USER}/maestro/repositories:/opt/dagster/app/repositories
 
 
   # This service runs dagit, which loads the pipelines from the user code container.

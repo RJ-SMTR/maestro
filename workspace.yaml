@@ -2,4 +2,4 @@ load_from:
   - grpc_server:
       host: dagster_pipelines
       port: 4000
-      location_name: "example_pipelines"
+      location_name: "capturas"

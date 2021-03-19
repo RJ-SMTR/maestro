@@ -108,4 +108,4 @@ def create_table_bq(context, file_path):
 
 def delete_file(file):
 
-    return Path(file).unlink()
+    return Path(file).unlink(missing_ok=True)

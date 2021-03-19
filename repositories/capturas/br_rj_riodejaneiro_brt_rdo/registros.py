@@ -2,12 +2,10 @@ from dagster import (
     solid,
     pipeline,
     ModeDefinition,
-    PresetDefinition,
     OutputDefinition,
     Output,
-    resource,
-    Field,
     composite_solid,
+    PresetDefinition,
 )
 
 from pathlib import Path
@@ -18,7 +16,6 @@ import pendulum
 from openpyxl import load_workbook
 
 import basedosdados as bd
-from google.cloud import storage
 
 from repositories.capturas.resources import (
     basedosdados_config,
@@ -33,6 +30,7 @@ from repositories.capturas.solids import (
     save_treated_local,
     upload_to_bigquery,
     create_table_bq,
+    delete_file,
 )
 
 ORIGINAL_HEADER = [
@@ -153,31 +151,76 @@ column_mapping = {
 "TIPO DE INFORMAÇÃO": "tipo_informacao",
 }
 
-@resource(
-    {
-        "bucket_name": Field(
-            str, is_required=True, description="Bucket name from Google Cloud Storage"
-        ),
-        "bucket_path": Field(
-            str, is_required=True, description="Path for file stored in GCS"
-        ),
-    }
-)
-def storage_config(context):
-    return context.resource_config
+class StoragePlus(bd.Storage):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
+    def download(
+        self,
+        filename,
+        file_path,
+        partitions,
+        mode="raw",
+        if_exists="raise"
+    ):
+        """ Download a single file from storage from <bucket_name>/<mode>/<dataset_id>/<table_id>/<partitions>/<filename> 
+        
+        There are 2 modes:
+
+        * `raw`: download file from raw mode
+        * `staging`: download file from staging mode
+
+        Args:
+            filename (str): File to download
+
+            mode (str): Folder of which dataset to download [raw|staging]
+
+            partitions (str, pathlib.PosixPath, or dict): Optional.
+                    *If adding a single file*, use this to add it to a specific partition.
+                    * str : `<key>=<value>/<key2>=<value2>`
+                    * dict: `dict(key=value, key2=value2)`
+
+            if_exists (str): Optional.
+                What to do if data exists
+                * 'raise' : Raises Conflict exception
+                * 'replace' : Replace table
+                * 'pass' : Do nothing
+        """
+        if (self.dataset_id is None) or (self.table_id is None):
+            raise Exception("You need to pass dataset_id and table_id")
+
+        self._check_mode(mode)
+
+        # Create blob path
+        blob_name = self._build_blob_name(filename, mode, partitions)
+        blob = self.bucket.blob(blob_name)
+
+        # Create local file path
+        _file_path = f"{file_path}/{filename}"
+
+        # Download
+        if (not Path(file_path).is_file()) or (Path(file_path).is_file() and if_exists == 'replace'):
+            print(f"deleting file {file_path}")
+            delete_file(file_path)
+            Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+            blob.download_to_filename(file_path)
+        elif if_exists == "pass":
+            pass
+        else:
+            raise Exception(
+                        f"Data already exists at {_file_path}. "
+                        "Set if_exists to 'replace' to overwrite data"
+                    )
 
 @solid(
     output_defs=[
-        OutputDefinition(name="file_path"),
+        OutputDefinition(name="filename"),
         OutputDefinition(name="filetype"),
+        OutputDefinition(name="file_path"),
         OutputDefinition(name="partitions"),
     ],
-    required_resource_keys={"storage_config"},
 )
-def parse_file_path_and_partitions(context):
-
-    bucket_path = context.resources.storage_config["bucket_path"]
+def parse_file_path_and_partitions(context, bucket_path):
 
     # Parse bucket to get mode, dataset_id, table_id and filename
     path_list = bucket_path.split('/')
@@ -194,26 +237,30 @@ def parse_file_path_and_partitions(context):
     file_path = f"{os.getcwd()}/data/{{mode}}/{dataset_id}/{table_id}/{partitions}/{filename}.{{filetype}}"
     context.log.info(f"creating file path {file_path}")
 
-    yield Output(file_path, output_name="file_path")
+    yield Output(filename, output_name="filename")
     yield Output(filetype, output_name="filetype")
+    yield Output(file_path, output_name="file_path")
     yield Output(partitions, output_name="partitions")
 
 
-@solid(required_resource_keys={"storage_config"})
-def get_file_from_storage(context, file_path, mode='raw', filetype="xlsx"):
+@solid(
+    required_resource_keys={"basedosdados_config"},
+)
+def get_file_from_storage(context, file_path, filename, partitions, mode='raw', filetype="xlsx"):
 
     # Download from storage
-    bucket_name = context.resources.storage_config["bucket_name"]
-    bucket_path = context.resources.storage_config["bucket_path"]
+    table_id = context.resources.basedosdados_config['table_id']
+    dataset_id = context.resources.basedosdados_config['dataset_id']
 
-    storage_client = storage.Client()
-
-    bucket = storage_client.bucket(bucket_name)
-
-    blob = bucket.blob(bucket_path)
     _file_path = file_path.format(mode=mode, filetype=filetype)
-    blob.download_to_filename(_file_path)
 
+    st = StoragePlus(table_id=table_id, dataset_id=dataset_id)
+    context.log.debug(f"File path: {_file_path}")
+    context.log.debug(f"filename: {filename}")
+    context.log.debug(f"partition: {partitions}")
+    context.log.debug(f"mode: {mode}")
+    st.download(filename=filename+"."+filetype, file_path=_file_path, partitions=partitions, mode=mode,
+                if_exists='replace')
     return _file_path
 
 @solid 
@@ -270,20 +317,27 @@ def pre_treatment_br_rj_riodejaneiro_brt_rdo(context, file_path):
 @discord_message_on_failure
 @discord_message_on_success
 @pipeline(
+    preset_defs=[
+        PresetDefinition.from_files(
+            "init",
+            config_files=[str(Path(__file__).parent / "registros.yaml")],
+            mode="dev",
+        )
+    ],
     mode_defs=[
         ModeDefinition(
             "dev", resource_defs={"basedosdados_config": basedosdados_config, 
                                   "timezone_config": timezone_config,
-                                  "discord_webhook": discord_webhook,
-                                  "storage_config": storage_config}
+                                  "discord_webhook": discord_webhook}
         ),
-    ]
+    ],
 )
 def br_rj_riodejaneiro_brt_rdo_registros():
 
-    file_path, filetype, partitions = parse_file_path_and_partitions()
+    filename, filetype, file_path, partitions = parse_file_path_and_partitions()
 
-    raw_file_path = get_file_from_storage(file_path=file_path, filetype=filetype)
+    raw_file_path = get_file_from_storage(file_path=file_path, filename=filename, 
+                                          partitions=partitions, filetype=filetype)
 
     header = get_header()
 

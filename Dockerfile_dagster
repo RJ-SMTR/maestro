@@ -1,17 +1,10 @@
 # Dagster libraries to run both dagit and the dagster-daemon. Does not
 # need to have access to any pipeline code.
 
-FROM python:3.7-slim
+FROM python:3.8-slim
 
-RUN pip install \
-    dagster \
-    dagster-graphql \
-    dagit \
-    dagster-postgres \
-    dagster-docker \
-    pandas \
-    alembic \
-    basedosdados
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
 # Set $DAGSTER_HOME and copy dagster instance and workspace YAML there
 ENV DAGSTER_HOME=/opt/dagster/dagster_home/

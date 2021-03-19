@@ -1,15 +1,10 @@
-FROM python:3.7-slim
+FROM python:3.8-slim
 
 # Checkout and install dagster libraries needed to run the gRPC server
 # exposing your repository to dagit and dagster-daemon, and to load the DagsterInstance
 
-RUN pip install \
-    dagster \
-    dagster-postgres \
-    dagster-docker \
-    pandas \
-    alembic \
-    basedosdados
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
 # Set $DAGSTER_HOME and copy dagster instance there
 
@@ -23,7 +18,6 @@ COPY .dagster_workspace/dagster.yaml $DAGSTER_HOME
 
 WORKDIR /opt/dagster/app
 
-COPY repositories/ /opt/dagster/app/repositories/
 COPY bases/ /opt/dagster/app/bases/
 
 # Run dagster gRPC server on port 4000
