@@ -1,0 +1,52 @@
+Registros de bilhetagem dos ônibus do município do Rio de Janeiro.
+
+
+Para saber mais acesse:
+Website: https://basedosdados.org/dataset/br-rj-riodejaneiro-onibus-rdo
+Github: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_onibus_rdo
+
+Ajude a manter o projeto :)
+Apoia-se: https://apoia.se/basedosdados
+
+Publicado por
+-------------
+Nome: Laura Moraes - SMTR
+Código: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_onibus_rdo/code
+Website: 
+Email: laurinhamoraes@gmail.comTratado por
+-----------
+Nome: Laura Moraes - SMTR
+Código: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_onibus_rdo/code
+Website: 
+Email: laurinhamoraes@gmail.com
+
+Partições (Filtre a tabela por essas colunas para economizar dinheiro e tempo)
+---------
+- year
+- month
+
+Nível da Observação (i.e. a granularidade da linha)
+-------------------
+- timestamp_captura
+
+Cobertura Temporal
+------------------
+- 2021
+
+Cobertura Espacial
+------------------
+- brasil
+- RJ
+- Rio de Janeiro
+
+Tratamento
+----------
+Reordenei e renomeei os headers
+Dividi valores tarifarios por 100 para ficar na ordem de reais
+Adicionei coluna da hora da captura
+
+Frequencia de Atualização
+-------------------------
+mes
+
+

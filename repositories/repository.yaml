@@ -15,3 +15,8 @@ pipelines:
 - module: repositories.capturas.br_rj_riodejaneiro_brt_rdo.registros
   objects:
   - br_rj_riodejaneiro_brt_rdo_registros
+  - br_rj_riodejaneiro_brt_rdo_registros_init
+- module: repositories.capturas.br_rj_riodejaneiro_onibus_rdo.registros
+  objects:
+  - br_rj_riodejaneiro_onibus_rdo_registros
+  - br_rj_riodejaneiro_onibus_rdo_registros_init

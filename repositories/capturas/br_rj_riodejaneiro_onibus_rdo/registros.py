@@ -32,42 +32,41 @@ from repositories.capturas.solids import (
 )
 
 ORIGINAL_HEADER = [
-"TERMO",
-"LINHA",
-"SERVIÇO",
-"TERMO SERVIÇO",
-"TIPO DE VEICULO",
-"DATA ANO",
-"DATA MÊS",
-"DATA DIA",
-"TARIFA CÓDIGO",
-"TARIFA VALOR",
-"FROTA DETERMINADA",
-"FROTA LICENCIADA",
-"FROTA OPERANTE",
-"VIAGEM REALIZADA",
-"KM",
-"GRATUIDADE IDOSO",
-"GRATUIDADE ESPECIAL",
-"GRATUIDADE ESTUDANTE FEDERAL",
-"GRATUIDADE ESTUDANTE ESTADUAL",
-"GRATUIDADE ESTUDANTE MUNICIPAL",
-"GRATUIDADE RODOVIARIO",
-"GRATUIDADE TOTAL",
-"BUC 1ª PERNA",
-"BUC 2ª PERNA",
-"BUC RECEITA",
-"BUC SUPERVIA 1ª PERNA",
-"BUC SUPERVIA 2ª PERNA",
-"BUC SUPERVIA RECEITA",
-"VT PASSAGEIRO TRANSPORTADO",
-"VT RECEITA",
-"ESPECIE PASSAGEIRO TRANSPORTADO",
-"ESPECIE RECEITA",
-"TOTAL PASSAGEIRO TRANSPORTADO",
-"TOTAL RECEITA",
-"TIPO DE INFORMAÇÃO",
-"UNIVERSITARIO",
+"Termo",
+"Linha",
+"TPSERV",
+"ORD_SERV",
+"TPVEIC",
+"ANO",
+"MÊS",
+"DIA",
+"TARIDET",
+"TARIFPRA",
+"FROTDET",
+"FROTLIC",
+"FROTOPE",
+"NUMVIG",
+"KMCOB",
+"IDOSO",
+"PNE",
+"ESTU",
+"ESTE",
+"ESTM",
+"FUNCEMP",
+"TOTGRAT",
+"BUC",
+"BUCINT",
+"RECBUC",
+"BUCS",
+"BUCSINT",
+"RECBUCS",
+"BUTMET",
+"RECVT",
+"TOTPASPAG",
+"RECPASPAG",
+"TOTPAS",
+"RECTOTAL",
+"PASLVRUNI",
 ]
 
 ORDERED_HEADER = [
@@ -111,60 +110,71 @@ ORDERED_HEADER = [
 
 
 column_mapping = {
-"TERMO": "operadora",
-"LINHA": "linha",
-"SERVIÇO": "servico_tipo",
-"TERMO SERVIÇO": "servico_termo",
-"TIPO DE VEICULO": "tipo_veiculo",
-"DATA ANO": "data_ano",
-"DATA MÊS": "data_mes",
-"DATA DIA": "data_dia",
-"TARIFA CÓDIGO": "tarifa_codigo",
-"TARIFA VALOR": "tarifa_valor",
-"FROTA DETERMINADA": "frota_determinada",
-"FROTA LICENCIADA": "frota_licenciada",
-"FROTA OPERANTE": "frota_operante",
-"VIAGEM REALIZADA": "viagem_realizada",
-"KM": "km",
-"GRATUIDADE IDOSO": "gratuidade_idoso",
-"GRATUIDADE ESPECIAL": "gratuidade_especial",
-"GRATUIDADE ESTUDANTE FEDERAL": "gratuidade_estudande_federal",
-"GRATUIDADE ESTUDANTE ESTADUAL": "gratuidade_estudande_estadual",
-"GRATUIDADE ESTUDANTE MUNICIPAL": "gratuidade_estudante_municipal",
-"GRATUIDADE RODOVIARIO": "gratuidade_rodoviario",
-"UNIVERSITARIO": "universitario",
-"GRATUIDADE TOTAL": "gratuidade_total",
-"BUC 1ª PERNA": "buc_1a_perna",
-"BUC 2ª PERNA": "buc_2a_perna",
-"BUC RECEITA": "buc_receita",
-"BUC SUPERVIA 1ª PERNA": "buc_supervia_1a_perna",
-"BUC SUPERVIA 2ª PERNA": "buc_supervia_2a_perna",
-"BUC SUPERVIA RECEITA": "buc_supervia_receita",
-"VT PASSAGEIRO TRANSPORTADO": "perna_unica_e_outros_transportado",
-"VT RECEITA": "perna_unica_e_outros_receita",
-"ESPECIE PASSAGEIRO TRANSPORTADO": "especie_passageiro_transportado",
-"ESPECIE RECEITA": "especie_receita",
-"TOTAL PASSAGEIRO TRANSPORTADO": "total_passageiro_transportado",
-"TOTAL RECEITA": "total_receita",
-"TIPO DE INFORMAÇÃO": "tipo_informacao",
+"Termo": "operadora",
+"Linha": "linha",
+"TPSERV": "serviço_tipo",
+"ORD_SERV": "serviço_termo",
+"TPVEIC": "tipo_veículo",
+"ANO": "data_ano",
+"MÊS": "data_mês",
+"DIA": "data_dia",
+"TARIDET": "tarifa_código",
+"TARIFPRA": "tarifa_valor",
+"FROTDET": "frota_determinada",
+"FROTLIC": "frota_licenciada",
+"FROTOPE": "frota_operante",
+"NUMVIG": "viagem_realizada",
+"KMCOB": "km",
+"IDOSO": "gratuidade_idoso",
+"PNE": "gratuidade_especial",
+"ESTU": "gratuidade_estudande_federal",
+"ESTE": "gratuidade_estudande_estadual",
+"ESTM": "gratuidade_estudante_municipal",
+"FUNCEMP": "gratuidade_rodoviário",
+"PASLVRUNI": "universitário",
+"TOTGRAT": "gratuidade_total",
+"BUC": "buc_1ª_perna",
+"BUCINT": "buc_2ª_perna",
+"RECBUC": "buc_receita",
+"BUCS": "buc_supervia_1ª_perna",
+"BUCSINT": "buc_supervia_2ª_perna",
+"RECBUCS": "buc_supervia_receita",
+"BUTMET": "perna_unica_e_outros_transportado",
+"RECVT": "perna_unica_e_outros_receita",
+"TOTPASPAG": "espécie_passageiro_transportado",
+"RECPASPAG": "espécie_receita",
+"TOTPAS": "total_passageiro_transportado",
+"RECTOTAL": "total_receita",
 }
+
+cols_to_divide = [
+    "tarifa_valor",
+    "buc_receita",
+    "buc_supervia_receita",
+    "perna_unica_e_outros_receita",
+    "especie_receita",
+    "total_receita"
+]
 
 
 @solid(
     required_resource_keys={"basedosdados_config", "timezone_config"},
 )
-def pre_treatment_br_rj_riodejaneiro_brt_rdo(context, file_path):
+def pre_treatment_br_rj_riodejaneiro_onibus_rdo(context, file_path):
 
     timezone = context.resources.timezone_config["timezone"]
 
     # Rearrange columns
-    df = pd.read_csv(file_path, delimiter=";")
+    df = pd.read_excel(file_path, engine='openpyxl')
     df.columns = ORIGINAL_HEADER
     df.rename(columns = column_mapping, inplace = True)
     df = df.reindex(columns = ORDERED_HEADER)
     timestamp_captura = pd.to_datetime(pendulum.now(timezone).isoformat())
     df["timestamp_captura"] = timestamp_captura
     context.log.debug(", ".join(list(df.columns)))
+
+    # Divide money columns by 100
+    df[cols_to_divide] = df[cols_to_divide].apply(lambda x: x/100, axis=1)
 
     return df
 
@@ -188,14 +198,14 @@ def pre_treatment_br_rj_riodejaneiro_brt_rdo(context, file_path):
         ),
     ],
 )
-def br_rj_riodejaneiro_brt_rdo_registros():
+def br_rj_riodejaneiro_onibus_rdo_registros():
 
     filename, filetype, file_path, partitions = parse_file_path_and_partitions()
 
     raw_file_path = get_file_from_storage(file_path=file_path, filename=filename, 
                                           partitions=partitions, filetype=filetype)
 
-    treated_data = pre_treatment_br_rj_riodejaneiro_brt_rdo(raw_file_path)
+    treated_data = pre_treatment_br_rj_riodejaneiro_onibus_rdo(raw_file_path)
 
     treated_file_path = save_treated_local(treated_data, file_path)
 
@@ -220,14 +230,14 @@ def br_rj_riodejaneiro_brt_rdo_registros():
         ),
     ],
 )
-def br_rj_riodejaneiro_brt_rdo_registros_init():
+def br_rj_riodejaneiro_onibus_rdo_registros_init():
 
     filename, filetype, file_path, partitions = parse_file_path_and_partitions()
 
     raw_file_path = get_file_from_storage(file_path=file_path, filename=filename, 
                                           partitions=partitions, filetype=filetype)
 
-    treated_data = pre_treatment_br_rj_riodejaneiro_brt_rdo(raw_file_path)
+    treated_data = pre_treatment_br_rj_riodejaneiro_onibus_rdo(raw_file_path)
 
     treated_file_path = save_treated_local(treated_data, file_path)
 

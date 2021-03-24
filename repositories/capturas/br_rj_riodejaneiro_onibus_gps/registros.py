@@ -67,7 +67,7 @@ def br_rj_riodejaneiro_onibus_gps_registros():
 
     treated_file_path = save_treated_local(treated_data, file_path)
 
-    upload_to_bigquery(treated_file_path, raw_file_path, partitions)
+    upload_to_bigquery([raw_file_path, treated_file_path], partitions)
 
 
 @discord_message_on_failure

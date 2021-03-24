@@ -2,26 +2,26 @@ source_bucket_name: rj-smtr-dev
 project_id_staging: rj-smtr-dev
 project_id_prod: rj-smtr-dev
 table_id: registros # AUTO GENERATED
-dataset_id: br_rj_riodejaneiro_brt_rdo # AUTO GENERATED
+dataset_id: br_rj_riodejaneiro_onibus_rdo # AUTO GENERATED
 
-url_ckan: https://basedosdados.org/dataset/br-rj-riodejaneiro-brt-rdo # AUTO GENERATED
-url_github: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_brt_rdo # AUTO GENERATED
+url_ckan: https://basedosdados.org/dataset/br-rj-riodejaneiro-onibus-rdo # AUTO GENERATED
+url_github: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_onibus_rdo # AUTO GENERATED
 
 version: 0.1 # REQUIRED
 
-last_updated: 2021-03-18 # AUTO GENERATED
+last_updated: 2021-03-24 # AUTO GENERATED
 
 # Descreva a tabela. Essas são as primeiras frases que um usuário vai ver.
 # Você não precisa ser muito conciso. Sinta-se a vontade para dar exemplos de
 # como usar os dados.
 # Se souber, liste também aplicações: pesquisa, apps, etc. que usem os dados.
 description: |  # REQUIRED
-    Registros de bilhetagem do BRT do município do Rio de Janeiro.
+    Registros de bilhetagem dos ônibus do município do Rio de Janeiro.
 
 # Quem está completando esse arquivo config?
 published_by:
     name: Laura Moraes - SMTR  # REQUIRED
-    code_url: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_brt_rdo/code # REQUIRED
+    code_url: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_onibus_rdo/code # REQUIRED
     email: laurinhamoraes@gmail.com
 
 # Qual organização/departamento/pessoa tratou os dados?
@@ -35,6 +35,7 @@ treated_by:
 # Se houve passos de tratamento, limpeza e manipulação de dados, descreva-os aqui.
 treatment_description: | 
     Reordenei e renomeei os headers
+    Dividi valores tarifarios por 100 para ficar na ordem de reais
     Adicionei coluna da hora da captura
 
 # Com qual frequência a base é atualizada?
