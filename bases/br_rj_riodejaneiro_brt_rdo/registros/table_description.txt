@@ -1,4 +1,4 @@
-<descrição>
+Registros de bilhetagem do BRT do município do Rio de Janeiro.
 
 
 Para saber mais acesse:
@@ -10,16 +10,42 @@ Apoia-se: https://apoia.se/basedosdados
 
 Publicado por
 -------------
-Nome: <nome [você]>
-Código: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_brt_rdo/codeTratado por
+Nome: Laura Moraes - SMTR
+Código: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_brt_rdo/code
+Website: 
+Email: laurinhamoraes@gmail.comTratado por
 -----------
-Nome: <nome>
+Nome: Laura Moraes - SMTR
+Código: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_onibus_rdo/code
+Website: 
+Email: laurinhamoraes@gmail.com
 
 Partições (Filtre a tabela por essas colunas para economizar dinheiro e tempo)
 ---------
 - year
 - month
 
+Nível da Observação (i.e. a granularidade da linha)
+-------------------
+- timestamp_captura
 
+Cobertura Temporal
+------------------
+- 2021
+
+Cobertura Espacial
+------------------
+- brasil
+- RJ
+- Rio de Janeiro
+
+Tratamento
+----------
+Reordenei e renomeei os headers
+Adicionei coluna da hora da captura
+
+Frequencia de Atualização
+-------------------------
+mes
 
 

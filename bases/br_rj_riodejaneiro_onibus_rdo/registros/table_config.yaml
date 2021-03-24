@@ -198,13 +198,13 @@ columns: # REQUIRED
         is_partition: False # Bool [True, False], whether the column is a partition.
   
     -   
-        name: gratuidade_estudande_federal
+        name: gratuidade_estudante_federal
         description: Quantidade de passageiros de gratuidade do tipo “Estudante Federal”.
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
     -   
-        name: gratuidade_estudande_estadual
+        name: gratuidade_estudante_estadual
         description: Quantidade de passageiros de gratuidade do tipo “Estudante Estadual”.
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
