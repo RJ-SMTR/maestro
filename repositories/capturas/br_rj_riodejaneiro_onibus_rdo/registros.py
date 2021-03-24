@@ -148,6 +148,7 @@ column_mapping = {
 }
 
 cols_to_divide = [
+    "km",
     "tarifa_valor",
     "buc_receita",
     "buc_supervia_receita",
