@@ -1,5 +1,7 @@
 load_from:
-  - grpc_server:
-      host: dagster_pipelines
-      port: 4000
-      location_name: "capturas"
+  # - grpc_server:
+  #     host: dagster_pipelines
+  #     port: 4000
+  #     location_name: "capturas"
+  - python_file: 
+      relative_path: repositories/repository.py
