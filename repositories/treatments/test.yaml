@@ -1,0 +1,6 @@
+solids:
+  jinja2_render:
+    config:
+      template: Hello {{ name }} 
+      context:
+        name: João

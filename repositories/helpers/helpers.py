@@ -33,13 +33,22 @@ def load_module(obj_type: str, module: str, function_list: list):
         for func in function_list:
             try:
                 imported_func = getattr(imported, func)
+
+                logger.info(type(imported_func))
+                logger.info(imported_func)
+                logger.info(imported_func.__class__.__name__)
+                if imported_func.__class__.__name__ == "function":
+                    imported_func = imported_func()
                 repository_list.append(imported_func)
                 logger.info(f"Imported {obj_type} {func}")
-            except Exception:
+            except Exception as err:
                 logger.info(f"Could not import {obj_type} {func}")
+                traceback.print_tb(err.__traceback__)
+                print(err)
 
     except Exception as err:
         logger.info(f"Could not import module {module}")
         traceback.print_tb(err.__traceback__)
+        print(err)
 
     return repository_list

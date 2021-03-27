@@ -1,0 +1,35 @@
+pipeline:
+  name: some_example
+  description: blah blah blah
+  steps:
+
+    - uses_solid: render_and_create_view
+      name: first_query
+      config:
+          dataset_id: teste_dataset
+          table_id: v1
+          sql_filepath: repositories/treatments/sql/example.sql
+          sql_context:
+            name: basedosdados
+
+    - uses_solid: render_and_create_view
+      name: second_query
+      depends_on:
+        _: first_query
+      config:
+          dataset_id: teste_dataset
+          table_id: v2
+          sql_filepath: repositories/treatments/sql/example.sql
+          sql_context:
+            name: basedosdados
+
+    - uses_solid: render_and_create_view
+      name: third_query
+      depends_on:
+        _: first_query
+      config:
+          dataset_id: teste_dataset
+          table_id: v3
+          sql_filepath: repositories/treatments/sql/example.sql
+          sql_context:
+            name: basedosdados
