@@ -14,7 +14,7 @@ from jinja2 import Template
     output_defs=[OutputDefinition(str)],
     config_schema={"filepath": str, "context": Field(dict, is_required=True)},
 )
-def jinja2_render(context):
+def render(context):
 
     result = Template(open(context.solid_config["filepath"], "r").read()).render(
         context.solid_config["context"]

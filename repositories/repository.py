@@ -12,8 +12,8 @@ def capturas():
 
 
 @repository
-def treatments():
+def examples():
     repository_list = load_repository(
-        Path(__file__).parent / "repository.yaml", "treatments"
+        Path(__file__).parent / "repository.yaml", "examples"
     )
     return repository_list

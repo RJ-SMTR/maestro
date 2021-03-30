@@ -10,7 +10,7 @@ from dagster import (
 from google.cloud import bigquery
 from google.api_core.exceptions import Conflict
 
-from repositories.libraries.jinja2.render import jinja2_render
+from repositories.libraries.jinja2.solids import render
 
 
 @solid(
@@ -50,7 +50,7 @@ def config_mapping_fn(config):
                 "table_id": config["table_id"],
             }
         },
-        "jinja2_render": {
+        "render": {
             "config": {
                 "context": config["sql_context"],
                 "filepath": config["sql_filepath"],
@@ -71,5 +71,5 @@ def config_mapping_fn(config):
 )
 def render_and_create_view(_):
 
-    sql = jinja2_render(_)
+    sql = render(_)
     return create_view(sql)

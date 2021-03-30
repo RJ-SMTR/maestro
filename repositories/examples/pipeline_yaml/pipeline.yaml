@@ -1,0 +1,91 @@
+# This is a template on how to structure pipelines using a YAML file.
+# This file only works if it is used with `pipeline.py` that is in the 
+# same folder.
+pipeline:
+  name: pipeline_yaml
+  description: This is the description
+  tags:
+    a: tag
+  presets:
+      # List all presets. 
+      # Available parameters:
+      # - name (required)
+      # - mode 
+      # - tags
+    - name: default
+      mode: default
+      tags:
+        a: tag
+    - name: save_to_test_dataset
+      mode: default
+  steps:
+    # Write down the DAG here. 
+    # Each step references a solid, assigns an alias to it, sets up its predecesors
+    # and its configuration.
+    #
+    # Parameters
+    # -----------
+    # uses_solid:
+    #    path to solid to be used. Use complete path, ex:
+    #    `repositories.libraries.basedosdados.solids.render_and_create_view`
+    #
+    # alias:
+    #    how the solid will be known and referenced.
+    #    
+    # depends_on:
+    #    which steps the current step depends on. 
+    #    the call structure is: `<solid_input>: <posterior_step>`
+    #    ex: `onions_df: collect_onions`
+    # 
+    # config:
+    #    solid configuration for each preset.
+    #    the call structure is: 
+    #        <preset_name>:
+    #             <solid_config>: <parameter> 
+    - uses_solid: repositories.libraries.basedosdados.solids.render_and_create_view
+      alias: first_query
+      config:
+        default: # preset name
+          dataset_id: outro_dataset
+          table_id: v1
+          sql_filepath: repositories/examples/sql/example.sql
+          sql_context:
+            name: basedosdados  
+        save_to_test_dataset:  # preset name
+          dataset_id: teste_dataset
+          table_id: v1
+          sql_filepath: repositories/examples/sql/example.sql
+          sql_context:
+            name: basedosdados
+
+    - uses_solid: repositories.libraries.basedosdados.solids.render_and_create_view
+      alias: second_query
+      depends_on:
+        _: first_query
+      config:
+        default:
+          dataset_id: outro_dataset
+          table_id: v1
+          sql_filepath: repositories/examples/sql/example.sql
+          sql_context:
+            name: basedosdados  
+        save_to_test_dataset:
+          dataset_id: teste_dataset
+          table_id: v2
+          sql_filepath: repositories/examples/sql/example.sql
+          sql_context:
+            name: basedosdados
+
+    - uses_solid: repositories.libraries.jinja2.solids.render
+      alias: third_query
+      depends_on:
+        _: first_query
+      config:
+        default:
+          filepath: repositories/examples/sql/example.sql
+          context:
+            name: basedosdados 
+        save_to_test_dataset:
+          filepath: repositories/examples/sql/example.sql
+          context:
+            name: basedosdados
