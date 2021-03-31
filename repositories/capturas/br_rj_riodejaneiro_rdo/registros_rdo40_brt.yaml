@@ -1,0 +1,138 @@
+resources:
+  basedosdados_config:
+    config:
+      table_id: registros
+      dataset_id: br_rj_riodejaneiro_brt_rdo 
+  timezone_config:
+    config:
+      timezone: "America/Sao_Paulo" 
+  discord_webhook:
+    config:
+      url: https://discord.com/api/webhooks/816785532327690280/HvAhSg6o4CA_90lCPMuLc5zc6WH_s__2WHdEdLLmYo5fDFcuwAjkTX80FhtxdsToTH4M
+      success_cron: "* * * * *"
+solids:
+  parse_file_path_and_partitions:
+    inputs:
+      bucket_path: 
+        value: raw/br_rj_riodejaneiro_brt_rdo/registros/year=2021/month=03/RDO012021.csv
+  upload_to_bigquery:
+    inputs:
+      modes:
+        value:
+          - staging
+  get_headers:
+    inputs:
+      original_header:
+        value:
+          - "TERMO"
+          - "LINHA"
+          - "SERVICO"
+          - "TERMO SERVICO"
+          - "TIPO DE VEICULO"
+          - "DATA ANO"
+          - "DATA MES"
+          - "DATA DIA"
+          - "TARIFA CODIGO"
+          - "TARIFA VALOR"
+          - "FROTA DETERMINADA"
+          - "FROTA LICENCIADA"
+          - "FROTA OPERANTE"
+          - "VIAGEM REALIZADA"
+          - "KM"
+          - "GRATUIDADE IDOSO"
+          - "GRATUIDADE ESPECIAL"
+          - "GRATUIDADE ESTUDANTE FEDERAL"
+          - "GRATUIDADE ESTUDANTE ESTADUAL"
+          - "GRATUIDADE ESTUDANTE MUNICIPAL"
+          - "GRATUIDADE RODOVIARIO"
+          - "GRATUIDADE TOTAL"
+          - "BUC 1a PERNA"
+          - "BUC 2a PERNA"
+          - "BUC RECEITA"
+          - "BUC SUPERVIA 1a PERNA"
+          - "BUC SUPERVIA 2a PERNA"
+          - "BUC SUPERVIA RECEITA"
+          - "VT PASSAGEIRO TRANSPORTADO"
+          - "VT RECEITA"
+          - "ESPECIE PASSAGEIRO TRANSPORTADO"
+          - "ESPECIE RECEITA"
+          - "TOTAL PASSAGEIRO TRANSPORTADO"
+          - "TOTAL RECEITA"
+          - "TIPO DE INFORMACAO"
+          - "UNIVERSITARIO"
+      column_mapping:
+        value:
+            "TERMO": "operadora"
+            "LINHA": "linha"
+            "SERVICO": "servico_tipo"
+            "TERMO SERVICO": "servico_termo"
+            "TIPO DE VEICULO": "tipo_veiculo"
+            "DATA ANO": "data_ano"
+            "DATA MES": "data_mes"
+            "DATA DIA": "data_dia"
+            "TARIFA CODIGO": "tarifa_codigo"
+            "TARIFA VALOR": "tarifa_valor"
+            "FROTA DETERMINADA": "frota_determinada"
+            "FROTA LICENCIADA": "frota_licenciada"
+            "FROTA OPERANTE": "frota_operante"
+            "VIAGEM REALIZADA": "viagem_realizada"
+            "KM": "km"
+            "GRATUIDADE IDOSO": "gratuidade_idoso"
+            "GRATUIDADE ESPECIAL": "gratuidade_especial"
+            "GRATUIDADE ESTUDANTE FEDERAL": "gratuidade_estudante_federal"
+            "GRATUIDADE ESTUDANTE ESTADUAL": "gratuidade_estudante_estadual"
+            "GRATUIDADE ESTUDANTE MUNICIPAL": "gratuidade_estudante_municipal"
+            "GRATUIDADE RODOVIARIO": "gratuidade_rodoviario"
+            "UNIVERSITARIO": "universitario"
+            "GRATUIDADE TOTAL": "gratuidade_total"
+            "BUC 1a PERNA": "buc_1a_perna"
+            "BUC 2a PERNA": "buc_2a_perna"
+            "BUC RECEITA": "buc_receita"
+            "BUC SUPERVIA 1a PERNA": "buc_supervia_1a_perna"
+            "BUC SUPERVIA 2a PERNA": "buc_supervia_2a_perna"
+            "BUC SUPERVIA RECEITA": "buc_supervia_receita"
+            "VT PASSAGEIRO TRANSPORTADO": "perna_unica_e_outros_transportado"
+            "VT RECEITA": "perna_unica_e_outros_receita"
+            "ESPECIE PASSAGEIRO TRANSPORTADO": "especie_passageiro_transportado"
+            "ESPECIE RECEITA": "especie_receita"
+            "TOTAL PASSAGEIRO TRANSPORTADO": "total_passageiro_transportado"
+            "TOTAL RECEITA": "total_receita"
+            "TIPO DE INFORMAÇÃO": "tipo_informacao"
+      ordered_header:
+        value:
+          - "operadora"
+          - "linha"
+          - "servico_tipo"
+          - "servico_termo"
+          - "tipo_veiculo"
+          - "data_ano"
+          - "data_mes"
+          - "data_dia"
+          - "tarifa_codigo"
+          - "tarifa_valor"
+          - "frota_determinada"
+          - "frota_licenciada"
+          - "frota_operante"
+          - "viagem_realizada"
+          - "km"
+          - "gratuidade_idoso"
+          - "gratuidade_especial"
+          - "gratuidade_estudante_federal"
+          - "gratuidade_estudante_estadual"
+          - "gratuidade_estudante_municipal"
+          - "gratuidade_rodoviario"
+          - "universitario"
+          - "gratuidade_total"
+          - "buc_1a_perna"
+          - "buc_2a_perna"
+          - "buc_receita"
+          - "buc_supervia_1a_perna"
+          - "buc_supervia_2a_perna"
+          - "buc_supervia_receita"
+          - "perna_unica_e_outros_transportado"
+          - "perna_unica_e_outros_receita"
+          - "especie_passageiro_transportado"
+          - "especie_receita"
+          - "total_passageiro_transportado"
+          - "total_receita"
+          - "tipo_informacao"

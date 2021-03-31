@@ -1,0 +1,329 @@
+source_bucket_name: rj-smtr
+project_id_staging: rj-smtr-staging
+project_id_prod: rj-smtr
+table_id: brt_rdo40_registros # AUTO GENERATED
+dataset_id: br_rj_riodejaneiro_rdo # AUTO GENERATED
+
+url_ckan: https://basedosdados.org/dataset/br-rj-riodejaneiro-rdo # AUTO GENERATED
+url_github: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_rdo # AUTO GENERATED
+
+version: 0.1 # REQUIRED
+
+last_updated: 2021-03-18 # AUTO GENERATED
+
+# Descreva a tabela. Essas são as primeiras frases que um usuário vai ver.
+# Você não precisa ser muito conciso. Sinta-se a vontade para dar exemplos de
+# como usar os dados.
+# Se souber, liste também aplicações: pesquisa, apps, etc. que usem os dados.
+description: |  # REQUIRED
+    Registros de bilhetagem do BRT do município do Rio de Janeiro.
+
+# Quem está completando esse arquivo config?
+published_by:
+    name: Laura Moraes - SMTR  # REQUIRED
+    code_url: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_brt_rdo/code # REQUIRED
+    email: laurinhamoraes@gmail.com
+
+# Qual organização/departamento/pessoa tratou os dados?
+# As vezes há um ponto intermediário entre os dados originais e subir na Base dos Dados.
+# Se essa pessoa é você, preencha abaixo com suas informações.
+treated_by:
+    name: Laura Moraes - SMTR  # REQUIRED
+    code_url: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_onibus_rdo/code # REQUIRED
+    email: laurinhamoraes@gmail.com
+
+# Se houve passos de tratamento, limpeza e manipulação de dados, descreva-os aqui.
+treatment_description: | 
+    Reordenei e renomeei os headers
+    Adicionei coluna da hora da captura
+
+# Com qual frequência a base é atualizada?
+# Opções: hora | dia | semana | mes | 1 ano | 2 anos | 5 anos | 10 anos | unico | recorrente
+data_update_frequency: mes # REQUIRED 
+
+# Nível da observação (qual é a granularidade de cada linha na tabela)
+# Escolha todas as opções necessárias.
+# Regras:
+#   - minúsculo, sem acento, singular.
+#   - em portugues (ou seja, não use os nomes de colunas abaixo)
+# Exemplos: pais, estado, municipio, cidade, hora, dia, semana, mes, ano, etc.
+observation_level: #REQUIRED
+    - timestamp_captura
+
+# Quais colunas identificam uma linha unicamente?
+# Preencha com os nomes de colunas. Ex: id_municipio, ano.
+# Pode ser vazio pois certas tabelas não possuem identificadores.
+primary_keys:
+    - <primeira coluna>
+    - <segunda coluna>
+
+# Qual é a cobertura espacial da tabela?
+# Regras:
+#   - minúsculo, sem acento, singular
+#   - descer até o menor nível administrativo cuja cobertura abaixo seja 'todos'
+# Exemplo 1: tabela que cubra todos os municípios nos estados de SP e GO
+#   - brasil
+#   - SP, GO
+# Exemplo 2: tabela que cubra países inteiros na América Latina
+#   - brasil, argentina, peru, equador
+coverage_geo:
+    - brasil
+    - RJ
+    - Rio de Janeiro
+
+# Qual é a cobertura temporal (em anos) da tabela?
+# Opções: ..., 1990, 1991, ..., 1999, 2000, 2001, ..., 2019, 2020, ...
+coverage_time:
+    - 2021
+
+# Liste as colunas da tabela que representam partições.
+# Não esqueça de deletar essas colunas nas tabelas .csv na hora de subir para o BigQuery.
+# Isso poupará muito tempo e dinheiro às pessoas utilizando essa tabela.
+# Se não houver partições, não modifique abaixo.
+partitions: # REQUIRED  
+    - year  
+    - month
+
+# Quais são as colunas? Certifique-se de escrever uma boa descrição, as pessoas vão gostar
+# para saber sobre o que é a coluna.
+# Adicionar todas as colunas manualmente pode ser bastante cansativo, por isso, quando
+# inicializando este arquivo de configuração, você pode apontar a função para uma amostra de dados que
+# preencherá automaticamente as colunas.
+# Algumas colunas existirão apenas na tabela final, você as construirá em `publish.sql`.
+# Para esses, defina is_in_staging como False.
+# Além disso, você deve adicionar as colunas de partição aqui e definir is_partition como True.
+columns: # REQUIRED
+  
+    -   
+        name: operadora
+        description: Código de identificação do consórcio
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: linha
+        description: Número da linha operadora na Base da SMTR.
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: servico_tipo
+        description: Código do tipo de serviço
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: servico_termo
+        description: Variação do tipo de serviço
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: tipo_veiculo
+        description: Código do tipo de veículo
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: data_ano
+        description: Ano da bilhetagem
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: data_mes
+        description: Mes da bilhetagem
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: data_dia
+        description: Dia da bilhetagem
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: tarifa_codigo
+        description: Código da tarifa praticada
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: tarifa_valor
+        description: Tarifa praticada durante a viagem
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: frota_determinada
+        description: Frota determinada na linha
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: frota_licenciada
+        description: Frota licenciada na linha
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: frota_operante
+        description: Frota operante na linha
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: viagem_realizada
+        description: Quantidade de viagens (ciclos) realizadas
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: km
+        description: Quantidade de Kilômetros percorridos
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: gratuidade_idoso
+        description: Quantidade de passageiros de gratuidade do tipo “Sênior”.
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: gratuidade_especial
+        description: Quantidade de passageiros de gratuidade do tipo “Portadores de Necessidades Especiais”.
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: gratuidade_estudante_federal
+        description: Quantidade de passageiros de gratuidade do tipo “Estudante Federal”.
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: gratuidade_estudante_estadual
+        description: Quantidade de passageiros de gratuidade do tipo “Estudante Estadual”.
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: gratuidade_estudante_municipal
+        description: Quantidade de passageiros de gratuidade do tipo “Estudante Municipal”.
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: gratuidade_rodoviario
+        description: Quantidade de passageiros de gratuidade do tipo “Funcionário de Empresa”.
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: universitario
+        description: Quantidade de passageiros de gratuidade do tipo “Passe Livre Universitário”.
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: gratuidade_total
+        description: Total de gratuidades
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: buc_1a_perna
+        description: Quantidade de passageiros pagantes que realizaram transações identificadas como 1ª perna de integração de BUC - Bilhete Único Carioca (onde a 2ª perna foi realizada em ônibus municipal).
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: buc_2a_perna
+        description: Quantidade de passageiros pagantes que realizaram integração de BUC (onde a 1ª perna foi realizada em um ônibus municipal).
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: buc_receita
+        description: Receita de transações de integrações de BUCS
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: buc_supervia_1a_perna
+        description: Quantidade de passageiros pagantes que realizaram transações identificadas como 1ª perna de integração de BUCS - Supervia (onde a 2ª perna foi realizada em um trem da Supervia).
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: buc_supervia_2a_perna
+        description: Quantidade de passageiros pagantes que realizaram integração de BUCS - Supervia (onde a 1ª perna foi realizada em um trem da Supervia).
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: buc_supervia_receita
+        description: Receita de transações de integrações de BUCS – Supervia (onde a 1ª perna foi realizada em um trem da Supervia).
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: perna_unica_e_outros_transportado
+        description: Cartões Perna Única e demais transações valoradas não contempladas nos campos deste RDO
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: perna_unica_e_outros_receita
+        description: Receita Cartões Perna Única e Receita das demais transações valoradas não contempladas nos campos deste RDO
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: especie_passageiro_transportado
+        description: Quantidade de passageiros pagantes em espécie (Venda a Bordo)
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: especie_receita
+        description: Receita de passageiros pagantes em espécie (Venda a Bordo)
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: total_passageiro_transportado
+        description: Quantidade total de passageiros transportados
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: total_receita
+        description: Total da receita
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: tipo_informacao
+        description: Tipo de informação do RDO BRT (obsoleto)
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: timestamp_captura
+        description: Data e hora de captura do registro
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: ano
+        description: Ano da captura em YYYY
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: True # Bool [True, False], whether the column is a partition.
+  
+    -   
+        name: mes
+        description: Mes da captura
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: True # Bool [True, False], whether the column is a partition.

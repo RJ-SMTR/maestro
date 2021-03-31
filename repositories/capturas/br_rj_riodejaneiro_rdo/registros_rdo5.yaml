@@ -1,0 +1,157 @@
+resources:
+  basedosdados_config:
+    config:
+      table_id: rdo5_registros
+      dataset_id: br_rj_riodejaneiro_rdo 
+  timezone_config:
+    config:
+      timezone: "America/Sao_Paulo" 
+  discord_webhook:
+    config:
+      #url: https://discord.com/api/webhooks/816785532327690280/HvAhSg6o4CA_90lCPMuLc5zc6WH_s__2WHdEdLLmYo5fDFcuwAjkTX80FhtxdsToTH4M
+      url: https://discord.com/api/webhooks/816734115604332614/n_UabKJU-fKF_qdOGKZ3a8bk-iNJmVJsso-aDMC_xuF7Hpump40fSP8v3R2EpYHn4Acb
+      success_cron: "* * * * *"
+solids:
+  parse_file_path_and_partitions:
+    inputs:
+      bucket_path: 
+        value: raw/br_rj_riodejaneiro_rdo/rdo5_registros/ano=2021/mes=01/dia=07/RDO_00638_00001_20210307_20210312_045044.csv
+  upload_to_bigquery:
+    inputs:
+      modes:
+        value:
+          - staging
+  get_headers:
+    inputs:
+      original_header:
+        value:
+          - Termo
+          - Linha
+          - DT_TRANS
+          - TARIFPRA
+          - GRIDOSO
+          - GRPNE
+          - GR_ESTU
+          - GR_ESTE
+          - GR_ESTM
+          - PASLVRUNI
+          - BUC
+          - BUCINT
+          - RECBUC
+          - BUCS
+          - BUCSINT
+          - RECBUCS
+          - BUCVAN
+          - BUCVANINT
+          - RECBUCVAN
+          - BUCVLT
+          - BUCVLTINT
+          - RECBUCVLT
+          - BUCBRT1
+          - BUCBRT2
+          - BUCBRT3
+          - RECBUCBRT
+          - BUE
+          - BUEINT
+          - RECBUE
+          - BUEB
+          - BUEBINT
+          - RECBUEB
+          - BUCM
+          - BUCMINT
+          - RECBUCM
+          - CARTPU
+          - RECCARTPU
+          - PASPAG
+          - RECPASPAG
+          - REGPROC
+          - DT_PROC
+          - CD_LINHA
+      column_mapping:
+        value:
+            "Termo": "operadora"
+            "Linha": "linha"
+            "DT_TRANS": "data_transacao"
+            "TARIFPRA": "tarifa_valor"
+            "GRIDOSO": "gratuidade_idoso"
+            "GRPNE": "gratuidade_especial"
+            "GR_ESTU": "gratuidade_estudante_federal"
+            "GR_ESTE": "gratuidade_estudante_estadual"
+            "GR_ESTM": "gratuidade_estudante_municipal"
+            "PASLVRUNI": "universitário"
+            "BUC": "buc_1a_perna"
+            "BUCINT": "buc_2a_perna"
+            "RECBUC": "buc_receita"
+            "BUCS": "buc_supervia_1a_perna"
+            "BUCSINT": "buc_supervia_2a_perna"
+            "RECBUCS": "buc_supervia_receita"
+            "BUCVAN": "buc_van_1a_perna"
+            "BUCVANINT": "buc_van_2a_perna"
+            "RECBUCVAN": "buc_van_receita"
+            "BUCVLT": "buc_vlt_1a_perna"
+            "BUCVLTINT": "buc_vlt_2a_perna"
+            "RECBUCVLT": "buc_vlt_receita"
+            "BUCBRT1": "buc_brt_1a_perna"
+            "BUCBRT2": "buc_brt_2a_perna"
+            "BUCBRT3": "buc_brt_3a_perna"
+            "RECBUCBRT": "buc_brt_receita"
+            "BUE": "buc_inter_1a_perna"
+            "BUEINT": "buc_inter_2a_perna"
+            "RECBUE": "buc_inter_receita"
+            "BUEB": "buc_barcas_1a_perna"
+            "BUEBINT": "buc_barcas_2a_perna"
+            "RECBUEB": "buc_barcas_receita"
+            "BUCM": "buc_metro_1a_perna"
+            "BUCMINT": "buc_metro_2a_perna"
+            "RECBUCM": "buc_metro_receita"
+            "CARTPU": "cartao"
+            "RECCARTPU": "receita_cartao"
+            "PASPAG": "espécie_passageiro_transportado"
+            "RECPASPAG": "espécie_receita"
+            "REGPROC": "registro_processado"
+            "DT_PROC": "data_processamento"
+            "CD_LINHA": "linha_rcti"
+      ordered_header:
+        value:
+          - operadora
+          - linha
+          - data_transacao
+          - tarifa_valor
+          - gratuidade_idoso
+          - gratuidade_especial
+          - gratuidade_estudante_federal
+          - gratuidade_estudante_estadual
+          - gratuidade_estudante_municipal
+          - universitario
+          - buc_1a_perna
+          - buc_2a_perna
+          - buc_receita
+          - buc_supervia_1a_perna
+          - buc_supervia_2a_perna
+          - buc_supervia_receita
+          - buc_van_1a_perna
+          - buc_van_2a_perna
+          - buc_van_receita
+          - buc_vlt_1a_perna
+          - buc_vlt_2a_perna
+          - buc_vlt_receita
+          - buc_brt_1a_perna
+          - buc_brt_2a_perna
+          - buc_brt_3a_perna
+          - buc_brt_receita
+          - buc_inter_1a_perna
+          - buc_inter_2a_perna
+          - buc_inter_receita
+          - buc_barcas_1a_perna
+          - buc_barcas_2a_perna
+          - buc_barcas_receita
+          - buc_metro_1a_perna
+          - buc_metro_2a_perna
+          - buc_metro_receita
+          - cartao
+          - receita_cartao
+          - especie_passageiro_transportado
+          - especie_receita
+          - registro_processado
+          - data_processamento
+          - linha_rcti

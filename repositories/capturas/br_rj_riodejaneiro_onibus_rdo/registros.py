@@ -166,7 +166,8 @@ def pre_treatment_br_rj_riodejaneiro_onibus_rdo(context, file_path):
     timezone = context.resources.timezone_config["timezone"]
 
     # Rearrange columns
-    df = pd.read_excel(file_path, engine='openpyxl')
+    # df = pd.read_excel(file_path, engine='openpyxl')
+    df = pd.read_csv(file_path, delimiter=";")
     df.columns = ORIGINAL_HEADER
     df.rename(columns = column_mapping, inplace = True)
     df = df.reindex(columns = ORDERED_HEADER)
