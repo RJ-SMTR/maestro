@@ -1,0 +1,148 @@
+resources:
+  basedosdados_config:
+    config:
+      table_id: registros
+      dataset_id: br_rj_riodejaneiro_onibus_rdo 
+  timezone_config:
+    config:
+      timezone: "America/Sao_Paulo" 
+  discord_webhook:
+    config:
+      #url: https://discord.com/api/webhooks/816785532327690280/HvAhSg6o4CA_90lCPMuLc5zc6WH_s__2WHdEdLLmYo5fDFcuwAjkTX80FhtxdsToTH4M
+      url: https://discord.com/api/webhooks/816734115604332614/n_UabKJU-fKF_qdOGKZ3a8bk-iNJmVJsso-aDMC_xuF7Hpump40fSP8v3R2EpYHn4Acb
+      success_cron: "* * * * *"
+solids:
+  parse_file_path_and_partitions:
+    inputs:
+      bucket_path: 
+        value: raw/br_rj_riodejaneiro_onibus_rdo/registros/year=2021/month=01/2021_-_01_-_JANEIRO.xlsx
+  upload_to_bigquery:
+    inputs:
+      modes:
+        value:
+          - staging
+  get_headers:
+    inputs:
+      original_header:
+        value:
+          - "Termo"
+          - "Linha"
+          - "TPSERV"
+          - "ORD_SERV"
+          - "TPVEIC"
+          - "ANO"
+          - "MÊS"
+          - "DIA"
+          - "TARIDET"
+          - "TARIFPRA"
+          - "FROTDET"
+          - "FROTLIC"
+          - "FROTOPE"
+          - "NUMVIG"
+          - "KMCOB"
+          - "IDOSO"
+          - "PNE"
+          - "ESTU"
+          - "ESTE"
+          - "ESTM"
+          - "FUNCEMP"
+          - "TOTGRAT"
+          - "BUC"
+          - "BUCINT"
+          - "RECBUC"
+          - "BUCS"
+          - "BUCSINT"
+          - "RECBUCS"
+          - "BUTMET"
+          - "RECVT"
+          - "TOTPASPAG"
+          - "RECPASPAG"
+          - "TOTPAS"
+          - "RECTOTAL"
+          - "PASLVRUNI"
+      column_mapping:
+        value:
+            "Termo": "operadora"
+            "Linha": "linha"
+            "TPSERV": "servico_tipo"
+            "ORD_SERV": "servico_termo"
+            "TPVEIC": "tipo_veiculo"
+            "ANO": "data_ano"
+            "MÊS": "data_mes"
+            "DIA": "data_dia"
+            "TARIDET": "tarifa_codigo"
+            "TARIFPRA": "tarifa_valor"
+            "FROTDET": "frota_determinada"
+            "FROTLIC": "frota_licenciada"
+            "FROTOPE": "frota_operante"
+            "NUMVIG": "viagem_realizada"
+            "KMCOB": "km"
+            "IDOSO": "gratuidade_idoso"
+            "PNE": "gratuidade_especial"
+            "ESTU": "gratuidade_estudante_federal"
+            "ESTE": "gratuidade_estudante_estadual"
+            "ESTM": "gratuidade_estudante_municipal"
+            "FUNCEMP": "gratuidade_rodoviario"
+            "PASLVRUNI": "universitario"
+            "TOTGRAT": "gratuidade_total"
+            "BUC": "buc_1a_perna"
+            "BUCINT": "buc_2a_perna"
+            "RECBUC": "buc_receita"
+            "BUCS": "buc_supervia_1a_perna"
+            "BUCSINT": "buc_supervia_2a_perna"
+            "RECBUCS": "buc_supervia_receita"
+            "BUTMET": "perna_unica_e_outros_transportado"
+            "RECVT": "perna_unica_e_outros_receita"
+            "TOTPASPAG": "especie_passageiro_transportado"
+            "RECPASPAG": "especie_receita"
+            "TOTPAS": "total_passageiro_transportado"
+            "RECTOTAL": "total_receita"
+      ordered_header:
+        value:
+          - "operadora"
+          - "linha"
+          - "servico_tipo"
+          - "servico_termo"
+          - "tipo_veiculo"
+          - "data_ano"
+          - "data_mes"
+          - "data_dia"
+          - "tarifa_codigo"
+          - "tarifa_valor"
+          - "frota_determinada"
+          - "frota_licenciada"
+          - "frota_operante"
+          - "viagem_realizada"
+          - "km"
+          - "gratuidade_idoso"
+          - "gratuidade_especial"
+          - "gratuidade_estudante_federal"
+          - "gratuidade_estudante_estadual"
+          - "gratuidade_estudante_municipal"
+          - "gratuidade_rodoviario"
+          - "universitario"
+          - "gratuidade_total"
+          - "buc_1a_perna"
+          - "buc_2a_perna"
+          - "buc_receita"
+          - "buc_supervia_1a_perna"
+          - "buc_supervia_2a_perna"
+          - "buc_supervia_receita"
+          - "perna_unica_e_outros_transportado"
+          - "perna_unica_e_outros_receita"
+          - "especie_passageiro_transportado"
+          - "especie_receita"
+          - "total_passageiro_transportado"
+          - "total_receita"
+          - "tipo_informacao"
+  divide_columns:
+    inputs:
+      cols_to_divide:
+        value:
+          - "km"
+          - "tarifa_valor"
+          - "buc_receita"
+          - "buc_supervia_receita"
+          - "perna_unica_e_outros_receita"
+          - "especie_receita"
+          - "total_receita"

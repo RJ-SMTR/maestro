@@ -1,20 +1,21 @@
 resources:
   basedosdados_config:
     config:
-      table_id: registros
-      dataset_id: br_rj_riodejaneiro_brt_rdo 
+      dataset_id: br_rj_riodejaneiro_rdo
+      table_id: brt_rdo40_registros
   timezone_config:
     config:
-      timezone: "" 
+      timezone: "America/Sao_Paulo" 
   discord_webhook:
     config:
-      url: https://discord.com/api/webhooks/816785532327690280/HvAhSg6o4CA_90lCPMuLc5zc6WH_s__2WHdEdLLmYo5fDFcuwAjkTX80FhtxdsToTH4M
+      #url: https://discord.com/api/webhooks/816785532327690280/HvAhSg6o4CA_90lCPMuLc5zc6WH_s__2WHdEdLLmYo5fDFcuwAjkTX80FhtxdsToTH4M
+      url: https://discord.com/api/webhooks/816734115604332614/n_UabKJU-fKF_qdOGKZ3a8bk-iNJmVJsso-aDMC_xuF7Hpump40fSP8v3R2EpYHn4Acb
       success_cron: "* * * * *"
 solids:
   parse_file_path_and_partitions:
     inputs:
       bucket_path: 
-        value: raw/br_rj_riodejaneiro_brt_rdo/registros/year=2021/month=03/RDO012021_v1.csv
+        value: raw/br_rj_riodejaneiro_rdo/brt_rdo40_registros/ano=2021/mes=01/RDO012021.csv
   upload_to_bigquery:
     inputs:
       modes:
