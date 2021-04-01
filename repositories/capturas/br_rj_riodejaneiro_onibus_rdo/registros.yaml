@@ -1,8 +1,8 @@
 resources:
   basedosdados_config:
     config:
-      table_id: registros
-      dataset_id: br_rj_riodejaneiro_onibus_rdo 
+      dataset_id: br_rj_riodejaneiro_rdo 
+      table_id: onibus_rdo40_registros
   timezone_config:
     config:
       timezone: "" 
@@ -14,9 +14,9 @@ solids:
   parse_file_path_and_partitions:
     inputs:
       bucket_path: 
-        value: raw/br_rj_riodejaneiro_onibus_rdo/registros/year=2021/month=01/2021_-_01_-_JANEIRO.xlsx
+        value: raw/br_rj_riodejaneiro_rdo/onibus_rdo40_registros/ano=2021/mes=01/2021_-_01_-_JANEIRO.csv
   upload_to_bigquery:
     inputs:
       modes:
-        values:
+        value:
           - staging

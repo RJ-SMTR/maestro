@@ -177,6 +177,8 @@ def pre_treatment_br_rj_riodejaneiro_onibus_rdo(context, file_path):
 
     # Divide money columns by 100
     df[cols_to_divide] = df[cols_to_divide].apply(lambda x: x/100, axis=1)
+    context.log.debug(str(df['data_mes'].dtypes))
+    context.log.debug(str(df['data_ano'].dtypes))
 
     return df
 
