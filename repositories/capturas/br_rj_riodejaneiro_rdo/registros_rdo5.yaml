@@ -34,7 +34,8 @@ solids:
           - GR_ESTU
           - GR_ESTE
           - GR_ESTM
-          - PASLVRUNI
+          - GR_PASLVRUNI
+          - GR_FUNCEMP
           - BUC
           - BUCINT
           - RECBUC
@@ -78,7 +79,8 @@ solids:
             "GR_ESTU": "gratuidade_estudante_federal"
             "GR_ESTE": "gratuidade_estudante_estadual"
             "GR_ESTM": "gratuidade_estudante_municipal"
-            "PASLVRUNI": "universitário"
+            "GR_PASLVRUNI": "universitario"
+            "GR_FUNCEMP": "gratuito_rodoviario"
             "BUC": "buc_1a_perna"
             "BUCINT": "buc_2a_perna"
             "RECBUC": "buc_receita"
@@ -106,8 +108,8 @@ solids:
             "RECBUCM": "buc_metro_receita"
             "CARTPU": "cartao"
             "RECCARTPU": "receita_cartao"
-            "PASPAG": "espécie_passageiro_transportado"
-            "RECPASPAG": "espécie_receita"
+            "PASPAG": "especie_passageiro_transportado"
+            "RECPASPAG": "especie_receita"
             "REGPROC": "registro_processado"
             "DT_PROC": "data_processamento"
             "CD_LINHA": "linha_rcti"
@@ -123,6 +125,7 @@ solids:
           - gratuidade_estudante_estadual
           - gratuidade_estudante_municipal
           - universitario
+          - gratuito_rodoviario
           - buc_1a_perna
           - buc_2a_perna
           - buc_receita

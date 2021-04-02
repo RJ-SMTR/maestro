@@ -67,7 +67,8 @@ def parse_file_path_and_partitions(context, bucket_path):
     partitions = re.findall("\/([^\/]*?)=(.*?)(?=\/)", bucket_path)
     partitions = "/".join(["=".join([field for field in item]) for item in partitions])
         
-    file_path = f"{os.getcwd()}/data/{{mode}}/{dataset_id}/{table_id}/{partitions}/{filename}.{{filetype}}"
+    folder = f"{os.getcwd()}/data/{{mode}}/{dataset_id}/{table_id}/"
+    file_path = f"{folder}/{partitions}/{filename}.{{filetype}}"
     context.log.info(f"creating file path {file_path}")
 
     yield Output(filename, output_name="filename")
@@ -128,9 +129,10 @@ def create_table_bq(context, file_path, table_config='replace', publish_config='
     dataset_id = context.resources.basedosdados_config["dataset_id"]
 
     tb = bd.Table(dataset_id=dataset_id, table_id=table_id)
+    _file_path = file_path.split(table_id)[0] + table_id
 
     tb.create(
-        path=Path(file_path).parent.parent.parent,
+        path=Path(_file_path),
         partitioned=True,
         if_table_exists="replace",
         if_storage_data_exists="replace",
