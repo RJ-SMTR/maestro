@@ -26,6 +26,7 @@ services:
       - /home/${USER}/maestro/repositories:/opt/dagster/app/repositories
       - /home/${USER}/maestro/data:/opt/dagster/app/data
       - /home/${USER}/maestro/bases:/opt/dagster/app/bases
+      - /home/${USER}/RDO_DATA:/opt/dagster/app/data/RDO_DATA
 
 
   # This service runs dagit, which loads the pipelines from the user code container.

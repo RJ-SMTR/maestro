@@ -22,8 +22,8 @@ Email: laurinhamoraes@gmail.com
 
 Partições (Filtre a tabela por essas colunas para economizar dinheiro e tempo)
 ---------
-- year
-- month
+- ano
+- mes
 
 Nível da Observação (i.e. a granularidade da linha)
 -------------------

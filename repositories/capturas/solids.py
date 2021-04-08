@@ -133,7 +133,6 @@ def create_table_bq(context, file_path, table_config='replace', publish_config='
 
     tb.create(
         path=Path(_file_path),
-        partitioned=True,
         if_table_exists="replace",
         if_storage_data_exists="replace",
         if_table_config_exists=table_config,
@@ -149,7 +148,8 @@ def delete_file(file):
 @solid(
     required_resource_keys={"basedosdados_config"},
 )
-def get_file_from_storage(context, file_path, filename, partitions, mode='raw', filetype="xlsx"):
+def get_file_from_storage(context, file_path, filename, partitions, mode='raw', filetype="xlsx",
+                          uploaded=True):
 
     # Download from storage
     table_id = context.resources.basedosdados_config['table_id']

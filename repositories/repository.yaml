@@ -3,6 +3,7 @@ schedules:
   objects:
   - br_rj_riodejaneiro_brt_gps_registros
   - br_rj_riodejaneiro_onibus_gps_registros
+
 pipelines:
 - module: repositories.capturas.br_rj_riodejaneiro_brt_gps.registros
   objects:
@@ -24,3 +25,8 @@ pipelines:
   objects:
   - br_rj_riodejaneiro_rdo_registros
   - br_rj_riodejaneiro_rdo_registros_init
+
+sensors:
+- module: repositories.capturas.sensors
+  objects:
+  - rdo_sensor
