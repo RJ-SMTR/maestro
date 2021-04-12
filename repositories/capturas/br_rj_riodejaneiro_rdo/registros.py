@@ -95,11 +95,6 @@ def upload_file_to_storage(context, file_path, partitions, mode='raw'):
     return True
 
 
-@solid
-def hello_world(context, file_path):
-    context.log.debug(f"Got file {file_path}")
-
-
 @discord_message_on_failure
 @discord_message_on_success
 @pipeline(
@@ -111,7 +106,7 @@ def hello_world(context, file_path):
         ),
         PresetDefinition.from_files(
             "Onibus_RDO_40",
-            config_files=[str(Path(__file__).parent / "registros_rdo40_onibus.yaml")],
+            config_files=[str(Path(__file__).parent / "onibus_rdo40_registros.yaml")],
             mode="dev",
         ),
         PresetDefinition.from_files(
@@ -159,7 +154,7 @@ def br_rj_riodejaneiro_rdo_registros():
         ),
         PresetDefinition.from_files(
             "Onibus_RDO_40",
-            config_files=[str(Path(__file__).parent / "registros_rdo40_onibus.yaml")],
+            config_files=[str(Path(__file__).parent / "onibus_rdo40_registros.yaml")],
             mode="dev",
         ),
         PresetDefinition.from_files(
@@ -186,6 +181,7 @@ def br_rj_riodejaneiro_rdo_registros_init():
     original_header, column_mapping, ordered_header = get_headers()
     treated_data = process_csv(raw_file_path, original_header, column_mapping, ordered_header)
     treated_data = add_timestamp(treated_data)
+    treated_data = divide_columns(treated_data)
 
     treated_file_path = save_treated_local(treated_data, file_path)
 
