@@ -54,7 +54,8 @@ def process_csv(context, file_path, original_header, column_mapping, ordered_hea
     # Rearrange columns
     df = pd.read_csv(file_path, delimiter=delimiter, 
                      skiprows=header_lines,
-                     names=original_header)
+                     names=original_header,
+                     index_col=False)
     df.rename(columns = column_mapping, inplace = True)
     df = df.reindex(columns = ordered_header)
     return df
