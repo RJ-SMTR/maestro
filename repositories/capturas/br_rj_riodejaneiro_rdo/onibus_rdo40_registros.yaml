@@ -143,7 +143,6 @@ solids:
     inputs:
       cols_to_divide:
         value:
-          - "km"
           - "tarifa_valor"
           - "buc_receita"
           - "buc_supervia_receita"
