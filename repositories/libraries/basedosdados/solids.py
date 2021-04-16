@@ -89,7 +89,7 @@ def upload_to_bigquery(context, file_paths, partitions, modes=['raw', 'staging']
         except ValueError:
             raise RuntimeError("Publishing table outside staging mode")
     else:
-        append_to_bigquery(context, file_paths, partitions, modes=['raw', 'staging'])
+        append_to_bigquery(context, file_paths, partitions, modes=modes)
         
 
 def append_to_bigquery(context, file_paths, partitions, modes=['raw', 'staging']):
