@@ -11,9 +11,9 @@ def capturas():
     return repository_list
 
 
-@repository
-def examples():
-    repository_list = load_repository(
-        Path(__file__).parent / "repository.yaml", "examples"
-    )
-    return repository_list
+# @repository
+# def examples():
+#     repository_list = load_repository(
+#         Path(__file__).parent / "repository.yaml", "examples"
+#     )
+#     return repository_list

@@ -20,8 +20,10 @@ from repositories.capturas.solids import (
     get_raw,
     save_raw_local,
     save_treated_local,
+)
+
+from repositories.libraries.basedosdados.solids import (
     upload_to_bigquery,
-    create_table_bq,
 )
 
 
@@ -68,36 +70,3 @@ def br_rj_riodejaneiro_onibus_gps_registros():
     treated_file_path = save_treated_local(treated_data, file_path)
 
     upload_to_bigquery([raw_file_path, treated_file_path], partitions)
-
-
-@discord_message_on_failure
-@discord_message_on_success
-@pipeline(
-    preset_defs=[
-        PresetDefinition.from_files(
-            "init",
-            config_files=[str(Path(__file__).parent / "registros.yaml")],
-            mode="dev",
-        )
-    ],
-    mode_defs=[
-        ModeDefinition(
-            "dev", resource_defs={"basedosdados_config": basedosdados_config, 
-                                  "timezone_config": timezone_config,
-                                  "discord_webhook": discord_webhook}
-        ),
-    ],
-)
-def br_rj_riodejaneiro_onibus_gps_registros_init():
-
-    file_path, partitions = get_file_path_and_partitions()
-
-    data = get_raw()
-
-    raw_file_path = save_raw_local(data, file_path)
-
-    treated_data = pre_treatment_br_rj_riodejaneiro_onibus_gps(data)
-
-    treated_file_path = save_treated_local(treated_data, file_path)
-
-    create_table_bq(treated_file_path)

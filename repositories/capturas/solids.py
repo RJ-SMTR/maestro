@@ -39,7 +39,10 @@ def get_file_path_and_partitions(context):
 
     partitions = f"data={date}/hora={hour}"
 
-    file_path = f"{os.getcwd()}/data/{{mode}}/{dataset_id}/{table_id}/{partitions}/{filename}.{{filetype}}"
+    # Get data folder from environment variable
+    data_folder = os.getenv("DATA_FOLDER", "data")
+
+    file_path = f"{os.getcwd()}/{data_folder}/{{mode}}/{dataset_id}/{table_id}/{partitions}/{filename}.{{filetype}}"
     context.log.info(f"creating file path {file_path}")
 
     yield Output(file_path, output_name="file_path")
@@ -67,7 +70,10 @@ def parse_file_path_and_partitions(context, bucket_path):
     partitions = re.findall("\/([^\/]*?)=(.*?)(?=\/)", bucket_path)
     partitions = "/".join(["=".join([field for field in item]) for item in partitions])
         
-    folder = f"{os.getcwd()}/data/{{mode}}/{dataset_id}/{table_id}/"
+    # Get data folder from environment variable
+    data_folder = os.getenv("DATA_FOLDER", "data")
+
+    folder = f"{os.getcwd()}/{data_folder}/{{mode}}/{dataset_id}/{table_id}/"
     file_path = f"{folder}/{partitions}/{filename}.{{filetype}}"
     context.log.info(f"creating file path {file_path}")
 
@@ -106,39 +112,6 @@ def save_treated_local(context, df, file_path, mode="staging"):
     df.to_csv(_file_path, index=False)
 
     return _file_path
-
-
-@solid(required_resource_keys={"basedosdados_config"})
-def upload_to_bigquery(context, file_paths, partitions, modes=['raw', 'staging']):
-
-    table_id = context.resources.basedosdados_config["table_id"]
-    dataset_id = context.resources.basedosdados_config["dataset_id"]
-
-    st = bd.Storage(dataset_id=dataset_id, table_id=table_id)
-
-    for idx, mode in enumerate(modes):
-        context.log.info(f"Uploading to mode {mode}")
-        st.upload(file_paths[idx], partitions=partitions, mode=mode, if_exists='replace')
-        delete_file(file_paths[idx])
-
-
-@solid(required_resource_keys={"basedosdados_config"})
-def create_table_bq(context, file_path, table_config='replace', publish_config='pass'):
-
-    table_id = context.resources.basedosdados_config["table_id"]
-    dataset_id = context.resources.basedosdados_config["dataset_id"]
-
-    tb = bd.Table(dataset_id=dataset_id, table_id=table_id)
-    _file_path = file_path.split(table_id)[0] + table_id
-
-    tb.create(
-        path=Path(_file_path),
-        if_table_exists="replace",
-        if_storage_data_exists="replace",
-        if_table_config_exists=table_config,
-    )
-
-    tb.publish(if_exists=publish_config)
 
 
 def delete_file(file):
