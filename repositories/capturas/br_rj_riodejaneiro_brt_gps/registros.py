@@ -8,9 +8,11 @@ import pendulum
 import pandas as pd
 
 from repositories.capturas.resources import (
-    basedosdados_config,
     timezone_config,
     discord_webhook,
+)
+from repositories.libraries.basedosdados.resources import (
+    basedosdados_config,
 )
 from repositories.helpers.hooks import discord_message_on_failure, discord_message_on_success
 from repositories.capturas.solids import (
