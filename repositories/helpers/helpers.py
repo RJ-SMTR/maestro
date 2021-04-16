@@ -1,27 +1,38 @@
 import importlib
-import logging
 import yaml
 import traceback
+from pathlib import Path
+import os
+from jinja2 import Environment, FileSystemLoader
 
 from dagster import (
-    pipeline,
-    ModeDefinition,
     SolidInvocation,
     PipelineDefinition,
     PresetDefinition,
     DependencyDefinition,
-    InputDefinition,
     Nothing,
 )
 
 
 from repositories.helpers.logging import logger
 
+def env_override(value, key):
+    return os.getenv(key, value)
 
 def read_config(yaml_file):
-    with open(yaml_file, "r") as load_file:
-        config = yaml.load(load_file, Loader=yaml.FullLoader)
-        return config
+
+    logger.debug("Setting template folder as {}", Path(yaml_file).parent)
+    file_loader = FileSystemLoader(Path(yaml_file).parent)
+    env = Environment(loader=file_loader)
+    env.filters['env_override'] = env_override
+
+    logger.debug("Setting template as {}", os.path.basename(yaml_file))
+    template = env.get_template(os.path.basename(yaml_file))
+
+    output = template.render()
+
+    config = yaml.load(output, Loader=yaml.FullLoader)
+    return config
 
 
 def load_repository(filename: str, repository_name: str):

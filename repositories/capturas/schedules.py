@@ -1,5 +1,4 @@
 from dagster import schedule
-import yaml
 from pathlib import Path
 from repositories.helpers.helpers import read_config
 
