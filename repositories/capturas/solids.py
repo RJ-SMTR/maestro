@@ -140,6 +140,23 @@ def get_file_from_storage(context, file_path, filename, partitions, mode='raw', 
     return _file_path
 
 
+@solid(
+    required_resource_keys={"basedosdados_config"},
+)
+def upload_file_to_storage(context, file_path, partitions, mode='raw'):
+
+    # Upload to storage
+    table_id = context.resources.basedosdados_config['table_id']
+    dataset_id = context.resources.basedosdados_config['dataset_id']
+
+    st = bd.Storage(table_id=table_id, dataset_id=dataset_id)
+
+    context.log.debug(f"Uploading file {file_path} to mode {mode} with partitions {partitions}")
+    st.upload(path=file_path, mode=mode, partitions=partitions, if_exists='replace')
+
+    return True
+
+
 @solid
 def delete_xls_header(context, file_path):
     wb = load_workbook(file_path)
