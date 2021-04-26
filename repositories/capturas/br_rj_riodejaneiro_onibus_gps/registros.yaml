@@ -13,5 +13,5 @@ resources:
       timezone: "" 
   discord_webhook:
     config:
-      url: https://discord.com/api/webhooks/817570923762024448/YM1-bD53vWulgR9WL2OVoFtLzcK2GcWZdVEwQpgaBM3SW-pfPIppt9VD7h8qwwpjoVDO
+      url: "{{ '' | env_override('SPPO_DISCORD_WEBHOOK')}}"
       success_cron: "00 08 * * *"

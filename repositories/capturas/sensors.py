@@ -3,8 +3,8 @@ from dagster import RunRequest, sensor
 from pathlib import Path
 from repositories.helpers.helpers import read_config
 
-DIRECTORY = "/opt/dagster/app/data/RDO_DATA"
-# DIRECTORY = "/home/lmoraes/RDO_DATA"
+
+DIRECTORY = os.getenv("RDO_DATA", "/opt/dagster/app/data/RDO_DATA")
 
 def build_run_key(filename, mtime):
     return f"{filename}:{str(mtime)}"
