@@ -20,6 +20,15 @@ solids:
       modes:
         value:
           - staging
+#      is_init:
+#        value:
+#          - true
+#      table_config:
+#        value:
+#          - replace
+#      publish_config:
+#        value:
+#          - pass
   load_and_reindex_csv:
     config:
       read_csv_kwargs:
