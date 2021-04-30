@@ -15,6 +15,9 @@ capturas:
   - module: repositories.capturas.br_rj_riodejaneiro_rdo.registros
     objects:
     - br_rj_riodejaneiro_rdo_registros
+  - module: repositories.capturas.br_rj_riodejaneiro_gtfs.feed
+    objects:
+    - br_rj_riodejaneiro_gtfs_feed
 
   sensors:
   - module: repositories.capturas.sensors

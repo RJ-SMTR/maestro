@@ -80,21 +80,23 @@ def render_and_create_view(_):
 
 @solid(required_resource_keys={"basedosdados_config"})
 def upload_to_bigquery(context, file_paths, partitions, modes=['raw', 'staging'], 
-                       table_config='replace', publish_config='pass', is_init=False):
+                       table_config='replace', publish_config='pass', is_init=False, table_id=None):
     if is_init:
         # Only available for mode staging
         try:
             idx = modes.index('staging')
-            create_table_bq(context, file_paths[idx], table_config=table_config, publish_config=publish_config)
+            create_table_bq(context, file_paths[idx], table_config=table_config, 
+                            publish_config=publish_config, table_id=table_id)
         except ValueError:
             raise RuntimeError("Publishing table outside staging mode")
     else:
-        append_to_bigquery(context, file_paths, partitions, modes=modes)
+        append_to_bigquery(context, file_paths, partitions, modes=modes, table_id=table_id)
         
 
-def append_to_bigquery(context, file_paths, partitions, modes=['raw', 'staging']):
+def append_to_bigquery(context, file_paths, partitions, modes=['raw', 'staging'], table_id=None):
 
-    table_id = context.resources.basedosdados_config["table_id"]
+    if not table_id:
+        table_id = context.resources.basedosdados_config["table_id"]
     dataset_id = context.resources.basedosdados_config["dataset_id"]
 
     st = bd.Storage(dataset_id=dataset_id, table_id=table_id)
@@ -105,13 +107,17 @@ def append_to_bigquery(context, file_paths, partitions, modes=['raw', 'staging']
         Path(file_paths[idx]).unlink(missing_ok=True)
 
 
-def create_table_bq(context, file_path, table_config='replace', publish_config='pass'):
+def create_table_bq(context, file_path, table_config='replace', publish_config='pass', 
+                    table_id=None):
 
-    table_id = context.resources.basedosdados_config["table_id"]
+    if not table_id:
+        table_id = context.resources.basedosdados_config["table_id"]
     dataset_id = context.resources.basedosdados_config["dataset_id"]
 
     tb = bd.Table(dataset_id=dataset_id, table_id=table_id)
     _file_path = file_path.split(table_id)[0] + table_id
+    context.log.debug(_file_path)
+    context.log.debug(table_id)
 
     tb.create(
         path=Path(_file_path),
