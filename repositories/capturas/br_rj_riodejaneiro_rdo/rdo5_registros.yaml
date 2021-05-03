@@ -23,7 +23,7 @@ solids:
   load_and_reindex_csv:
     config:
       read_csv_kwargs:
-        delimiter: ","
+        delimiter: ";"
         skiprows: 1
         names:
         - "operadora"
