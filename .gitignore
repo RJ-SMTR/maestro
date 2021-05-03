@@ -131,7 +131,7 @@ dmypy.json
 .maestro
 .dagster_workspace
 .basedosdados
-data/
+data*/
 local/
 logs/
 .vscode

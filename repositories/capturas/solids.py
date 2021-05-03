@@ -21,15 +21,12 @@ from repositories.helpers.storage import StoragePlus
 
 @solid(
     output_defs=[
-        OutputDefinition(name="file_path"),
+        OutputDefinition(name="filename"),
         OutputDefinition(name="partitions"),
     ],
-    required_resource_keys={"basedosdados_config", "timezone_config"},
+    required_resource_keys={"timezone_config"},
 )
-def get_file_path_and_partitions(context):
-
-    table_id = context.resources.basedosdados_config['table_id']
-    dataset_id = context.resources.basedosdados_config['dataset_id']
+def create_current_datetime_partition(context):
     timezone = context.resources.timezone_config["timezone"]
 
     capture_time = pendulum.now(timezone)
@@ -39,14 +36,27 @@ def get_file_path_and_partitions(context):
 
     partitions = f"data={date}/hora={hour}"
 
+    yield Output(filename, output_name="filename")
+    yield Output(partitions, output_name="partitions")
+
+
+@solid(
+    required_resource_keys={"basedosdados_config"},
+)
+def get_file_path_and_partitions(context, filename, partitions, table_id=None):
+
+    # If not specific table_id, use resource one
+    if not table_id:
+        table_id = context.resources.basedosdados_config['table_id']
+    dataset_id = context.resources.basedosdados_config['dataset_id']
+
     # Get data folder from environment variable
     data_folder = os.getenv("DATA_FOLDER", "data")
 
     file_path = f"{os.getcwd()}/{data_folder}/{{mode}}/{dataset_id}/{table_id}/{partitions}/{filename}.{{filetype}}"
     context.log.info(f"creating file path {file_path}")
 
-    yield Output(file_path, output_name="file_path")
-    yield Output(partitions, output_name="partitions")
+    return file_path
 
 
 @solid(
@@ -122,10 +132,12 @@ def delete_file(file):
     required_resource_keys={"basedosdados_config"},
 )
 def get_file_from_storage(context, file_path, filename, partitions, mode='raw', filetype="xlsx",
-                          uploaded=True):
+                          uploaded=True, table_id=None):
 
     # Download from storage
-    table_id = context.resources.basedosdados_config['table_id']
+    # If not specific table_id, use resource one
+    if not table_id:
+        table_id = context.resources.basedosdados_config['table_id']
     dataset_id = context.resources.basedosdados_config['dataset_id']
 
     _file_path = file_path.format(mode=mode, filetype=filetype)
@@ -143,10 +155,12 @@ def get_file_from_storage(context, file_path, filename, partitions, mode='raw', 
 @solid(
     required_resource_keys={"basedosdados_config"},
 )
-def upload_file_to_storage(context, file_path, partitions, mode='raw'):
+def upload_file_to_storage(context, file_path, partitions, mode='raw', table_id=None):
 
     # Upload to storage
-    table_id = context.resources.basedosdados_config['table_id']
+    # If not specific table_id, use resource one
+    if not table_id:
+        table_id = context.resources.basedosdados_config['table_id']
     dataset_id = context.resources.basedosdados_config['dataset_id']
 
     st = bd.Storage(table_id=table_id, dataset_id=dataset_id)

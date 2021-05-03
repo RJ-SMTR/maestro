@@ -54,7 +54,7 @@ def divide_columns(context, df, cols_to_divide=None, value=100):
         ),
         PresetDefinition.from_files(
             "RDO5",
-            config_files=[str(Path(__file__).parent / "registros_rdo5.yaml")],
+            config_files=[str(Path(__file__).parent / "rdo5_registros.yaml")],
             mode="dev",
         )
     ],

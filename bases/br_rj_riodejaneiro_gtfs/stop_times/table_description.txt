@@ -1,0 +1,55 @@
+Tabela stop_times do feed de GTFS do BRT
+
+
+Para saber mais acesse:
+Website: https://basedosdados.org/dataset/br-rj-riodejaneiro-gtfs
+Github: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_gtfs
+
+Ajude a manter o projeto :)
+Apoia-se: https://apoia.se/basedosdados
+
+Publicado por
+-------------
+Nome: Laura Moraes
+Código: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_gtfs/code
+Website: 
+Email: laurinhamoraes@gmail.comTratado por
+-----------
+Nome: Laura Moraes
+Código: 
+Website: 
+Email: laurinhamoraes@gmail.com
+
+Partições (Filtre a tabela por essas colunas para economizar dinheiro e tempo)
+---------
+- gtfs_version_date
+
+Nível da Observação (i.e. a granularidade da linha)
+-------------------
+- trip_id
+- stop_id
+
+Colunas identificando linhas unicamente
+-------------------
+- trip_id
+- stop_id
+
+Cobertura Temporal
+------------------
+- 2021
+
+Cobertura Espacial
+------------------
+- Brasil
+- RJ
+- Rio de Janeiro
+
+Tratamento
+----------
+Todas as colunas previstas no padrão do GTFS foram adicionadas, mesmo que nulas.
+
+Frequencia de Atualização
+-------------------------
+recorrente
+
+

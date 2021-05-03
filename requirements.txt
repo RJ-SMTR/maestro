@@ -9,3 +9,4 @@ xlrd
 dagster-docker
 dagster-graphql
 loguru
+gtfs_kit

@@ -18,6 +18,7 @@ from repositories.libraries.basedosdados.resources import (
 )
 from repositories.helpers.hooks import discord_message_on_failure, discord_message_on_success
 from repositories.capturas.solids import (
+    create_current_datetime_partition,
     get_file_path_and_partitions, 
     get_raw,
     save_raw_local,
@@ -61,7 +62,8 @@ def pre_treatment_br_rj_riodejaneiro_onibus_gps(context, data):
 )
 def br_rj_riodejaneiro_onibus_gps_registros():
 
-    file_path, partitions = get_file_path_and_partitions()
+    filename, partitions = create_current_datetime_partition()
+    file_path = get_file_path_and_partitions(filename, partitions)
 
     data = get_raw()
 
