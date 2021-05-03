@@ -19,6 +19,9 @@ services:
       DAGSTER_POSTGRES_HOST: "${DAGSTER_POSTGRES_HOST}"
       DAGSTER_POSTGRES_DB: "${DAGSTER_POSTGRES_DB}"
       DAGSTER_CURRENT_IMAGE: "${COMPOSE_PROJECT_NAME}_dagster_pipelines"
+      MODE: "${MODE}"
+      BRT_DISCORD_WEBHOOK: "${BRT_DISCORD_WEBHOOK}"
+      SPPO_DISCORD_WEBHOOK: "${SPPO_DISCORD_WEBHOOK}"
     networks:
       - dagster_network
     volumes:
@@ -27,6 +30,7 @@ services:
       - /home/${USER}/maestro/data:/opt/dagster/app/data
       - /home/${USER}/maestro/bases:/opt/dagster/app/bases
       - /home/${USER}/RDO_DATA:/opt/dagster/app/data/RDO_DATA
+      - /home/${USER}/GTFS_DATA:/opt/dagster/app/data/GTFS_DATA
 
 
   # This service runs dagit, which loads the pipelines from the user code container.
@@ -54,6 +58,9 @@ services:
       DAGSTER_POSTGRES_PASSWORD: "${DAGSTER_POSTGRES_PASSWORD}"
       DAGSTER_POSTGRES_HOST: "${DAGSTER_POSTGRES_HOST}"
       DAGSTER_POSTGRES_DB: "${DAGSTER_POSTGRES_DB}"
+      MODE: "${MODE}"
+      BRT_DISCORD_WEBHOOK: "${BRT_DISCORD_WEBHOOK}"
+      SPPO_DISCORD_WEBHOOK: "${SPPO_DISCORD_WEBHOOK}"
     networks:
       - dagster_network
     depends_on:
@@ -74,6 +81,10 @@ services:
       DAGSTER_POSTGRES_PASSWORD: "${DAGSTER_POSTGRES_PASSWORD}"
       DAGSTER_POSTGRES_HOST: "${DAGSTER_POSTGRES_HOST}"
       DAGSTER_POSTGRES_DB: "${DAGSTER_POSTGRES_DB}"
+      DAGSTER_POSTGRES_DB: "${DAGSTER_POSTGRES_DB}"
+      MODE: "${MODE}"
+      BRT_DISCORD_WEBHOOK: "${BRT_DISCORD_WEBHOOK}"
+      SPPO_DISCORD_WEBHOOK: "${SPPO_DISCORD_WEBHOOK}"
     volumes: # Make docker client accessible so we can launch containers using host docker
       - /var/run/docker.sock:/var/run/docker.sock
     networks:

@@ -1,4 +1,4 @@
-<descrição>
+Tabela calendar do feed de GTFS do BRT
 
 
 Para saber mais acesse:
@@ -10,15 +10,44 @@ Apoia-se: https://apoia.se/basedosdados
 
 Publicado por
 -------------
-Nome: <nome [você]>
-Código: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_gtfs/codeTratado por
+Nome: Laura Moraes
+Código: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_gtfs/code
+Website: 
+Email: laurinhamoraes@gmail.comTratado por
 -----------
-Nome: <nome>
+Nome: Laura Moraes
+Código: 
+Website: 
+Email: laurinhamoraes@gmail.com
 
 Partições (Filtre a tabela por essas colunas para economizar dinheiro e tempo)
 ---------
 - gtfs_version_date
 
+Nível da Observação (i.e. a granularidade da linha)
+-------------------
+- service_id
 
+Colunas identificando linhas unicamente
+-------------------
+- service_id
+
+Cobertura Temporal
+------------------
+- 2021
+
+Cobertura Espacial
+------------------
+- Brasil
+- RJ
+- Rio de Janeiro
+
+Tratamento
+----------
+Todas as colunas previstas no padrão do GTFS foram adicionadas, mesmo que nulas.
+
+Frequencia de Atualização
+-------------------------
+recorrente
 
 

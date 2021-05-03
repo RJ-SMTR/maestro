@@ -7,7 +7,7 @@ dataset_id: br_rj_riodejaneiro_gtfs # AUTO GENERATED
 url_ckan: https://basedosdados.org/dataset/br-rj-riodejaneiro-gtfs # AUTO GENERATED
 url_github: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_gtfs # AUTO GENERATED
 
-version: <vA.B> # REQUIRED
+version: 0.1 # REQUIRED
 
 last_updated: 2021-04-30 # AUTO GENERATED
 
@@ -16,31 +16,28 @@ last_updated: 2021-04-30 # AUTO GENERATED
 # como usar os dados.
 # Se souber, liste também aplicações: pesquisa, apps, etc. que usem os dados.
 description: |  # REQUIRED
-    <descrição>
+    Tabela frequencies do feed de GTFS do BRT
 
 # Quem está completando esse arquivo config?
 published_by:
-    name: <nome [você]>  # REQUIRED
+    name: Laura Moraes  # REQUIRED
     code_url: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_gtfs/code # REQUIRED
-    website: <website>
-    email: <email>
+    email: laurinhamoraes@gmail.com
 
 # Qual organização/departamento/pessoa tratou os dados?
 # As vezes há um ponto intermediário entre os dados originais e subir na Base dos Dados.
 # Se essa pessoa é você, preencha abaixo com suas informações.
 treated_by:
-    name: <nome>
-    code_url: <onde encontrar código de tratamento>
-    website: <onde encontrar os dados tratados>
-    email: <email>
+    name: Laura Moraes
+    email: laurinhamoraes@gmail.com
 
 # Se houve passos de tratamento, limpeza e manipulação de dados, descreva-os aqui.
 treatment_description: | 
-    <CEPESP fez X. Eu fiz K>
+    Todas as colunas previstas no padrão do GTFS foram adicionadas, mesmo que nulas.
 
 # Com qual frequência a base é atualizada?
 # Opções: hora | dia | semana | mes | 1 ano | 2 anos | 5 anos | 10 anos | unico | recorrente
-data_update_frequency: <frequência> # REQUIRED 
+data_update_frequency: recorrente # REQUIRED 
 
 # Nível da observação (qual é a granularidade de cada linha na tabela)
 # Escolha todas as opções necessárias.
@@ -49,15 +46,13 @@ data_update_frequency: <frequência> # REQUIRED
 #   - em portugues (ou seja, não use os nomes de colunas abaixo)
 # Exemplos: pais, estado, municipio, cidade, hora, dia, semana, mes, ano, etc.
 observation_level: #REQUIRED
-    - <primeira coluna>
-    - <segunda coluna>
+    - trip_id
 
 # Quais colunas identificam uma linha unicamente?
 # Preencha com os nomes de colunas. Ex: id_municipio, ano.
 # Pode ser vazio pois certas tabelas não possuem identificadores.
 primary_keys:
-    - <primeira coluna>
-    - <segunda coluna>
+    - trip_id
 
 # Qual é a cobertura espacial da tabela?
 # Regras:
@@ -69,16 +64,14 @@ primary_keys:
 # Exemplo 2: tabela que cubra países inteiros na América Latina
 #   - brasil, argentina, peru, equador
 coverage_geo:
-    - <admin0 - pais>
-    - <admin1 - estados/regioes/etc>
-    - <admin2 - municipios/counties/etc>
-    - <admin3 - distritos/subdistritos/etc>
+    - Brasil
+    - RJ
+    - Rio de Janeiro
 
 # Qual é a cobertura temporal (em anos) da tabela?
 # Opções: ..., 1990, 1991, ..., 1999, 2000, 2001, ..., 2019, 2020, ...
 coverage_time:
-    - <ano 1>
-    - <ano 2>
+    - 2021
 
 # Liste as colunas da tabela que representam partições.
 # Não esqueça de deletar essas colunas nas tabelas .csv na hora de subir para o BigQuery.
@@ -99,36 +92,36 @@ columns: # REQUIRED
   
     -   
         name: trip_id
-        description: <descrição da coluna>
+        description: Identifies a trip to which the specified headway of service applies.
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
     -   
         name: start_time
-        description: <descrição da coluna>
+        description: Time at which the first vehicle departs from the first stop of the trip with the specified headway.
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
     -   
         name: end_time
-        description: <descrição da coluna>
+        description: Time at which service changes to a different headway (or ceases) at the first stop in the trip.
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
     -   
         name: headway_secs
-        description: <descrição da coluna>
+        description: Time, in seconds, between departures from the same stop (headway) for the trip, during the time interval specified by start_time and end_time. Multiple headways for the same trip are allowed, but may not overlap. New headways may start at the exact time the previous headway ends.
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
     -   
         name: exact_times
-        description: <descrição da coluna>
+        description: Indicates the type of service for a trip. See the file description for more information. Valid options are 0 or empty - Frequency-based trips. 1 - Schedule-based trips with the exact same headway throughout the day. In this case the end_time value must be greater than the last desired trip start_time but less than the last desired trip start_time + headway_secs.
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
     -   
         name: gtfs_version_date
-        description: <descrição da coluna>
+        description: GTFS version
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: True # Bool [True, False], whether the column is a partition.

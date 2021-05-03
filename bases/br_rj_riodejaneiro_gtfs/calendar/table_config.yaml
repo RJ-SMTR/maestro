@@ -152,6 +152,6 @@ columns: # REQUIRED
   
     -   
         name: gtfs_version_date
-        description: <descrição da coluna>
+        description: GTFS version
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: True # Bool [True, False], whether the column is a partition.

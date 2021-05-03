@@ -11,35 +11,19 @@ resources:
     config:
       timezone: America/Sao_Paulo
 solids:
-  create_gtfs_version_partition:
-    inputs:
-      original_filepath:
-        value: /home/lmoraes/GTFS_DATA/gtfs_brt.zip
-  get_gtfs_files:
-    inputs:
-      original_filepath:
-        value: /home/lmoraes/GTFS_DATA/gtfs_brt.zip
-  open_gtfs_feed:
-    inputs:
-      original_filepath:
-        value: /home/lmoraes/GTFS_DATA/gtfs_brt.zip
-  upload_file_to_storage:
-    inputs:
-      file_path: 
-        value: /home/lmoraes/GTFS_DATA/gtfs_brt.zip
   process_gtfs_files:
     solids:
       upload_to_bigquery:
         inputs:
-          is_init:
-             value: true
-          table_config:
-            value: 'pass'
-          publish_config:
-            value: 'replace'
           modes:
             value: 
             - staging
+      #     is_init:
+      #        value: true
+      #     table_config:
+      #       value: 'pass'
+      #     publish_config:
+      #       value: 'replace'
       pre_treatment_br_rj_riodejaneiro_gtfs:
         config:
           agency:
