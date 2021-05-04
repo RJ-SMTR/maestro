@@ -23,7 +23,7 @@ CREATE VIEW rj-smtr.br_rj_riodejaneiro_rdo.rdo5_registros AS
 SELECT 
 SAFE_CAST(operadora AS STRING) operadora,
 SAFE_CAST(linha AS STRING) linha,
-SAFE_CAST(PARSE_DATETIME("%d/%m/%Y", data_transacao) AS DATETIME) data_transacao,
+SAFE_CAST(PARSE_DATETIME("%Y-%m-%d", data_transacao) AS DATETIME) data_transacao,
 SAFE_CAST(tarifa_valor AS FLOAT64) tarifa_valor,
 SAFE_CAST(gratuidade_idoso AS INT64) gratuidade_idoso,
 SAFE_CAST(gratuidade_especial AS INT64) gratuidade_especial,
