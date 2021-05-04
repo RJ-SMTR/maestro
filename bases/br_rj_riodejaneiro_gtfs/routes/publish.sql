@@ -19,7 +19,7 @@ TIPOS:
 
 */
 
-CREATE VIEW rj-smtr-dev.br_rj_riodejaneiro_gtfs.routes AS
+CREATE VIEW rj-smtr.br_rj_riodejaneiro_gtfs.routes AS
 SELECT 
 SAFE_CAST(route_id AS STRING) route_id,
 SAFE_CAST(agency_id AS STRING) agency_id,
@@ -34,4 +34,4 @@ SAFE_CAST(route_sort_order AS INT64) route_sort_order,
 SAFE_CAST(continuous_pickup AS INT64) continuous_pickup,
 SAFE_CAST(continuous_drop_off AS INT64) continuous_drop_off,
 SAFE_CAST(DATETIME(PARSE_TIMESTAMP("%Y%m%d", CAST(gtfs_version_date AS STRING), "America/Sao_Paulo")) AS DATETIME) gtfs_version_date
-from rj-smtr-dev.br_rj_riodejaneiro_gtfs_staging.routes as t
+from rj-smtr-staging.br_rj_riodejaneiro_gtfs_staging.routes as t

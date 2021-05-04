@@ -19,7 +19,7 @@ TIPOS:
 
 */
 
-CREATE VIEW rj-smtr-dev.br_rj_riodejaneiro_gtfs.trips AS
+CREATE VIEW rj-smtr.br_rj_riodejaneiro_gtfs.trips AS
 SELECT 
 SAFE_CAST(route_id AS STRING) route_id,
 SAFE_CAST(service_id AS STRING) service_id,
@@ -32,4 +32,4 @@ SAFE_CAST(block_id AS STRING) block_id,
 SAFE_CAST(wheelchair_accessible AS INT64) wheelchair_accessible,
 SAFE_CAST(bikes_allowed AS INT64) bikes_allowed,
 SAFE_CAST(DATETIME(PARSE_TIMESTAMP("%Y%m%d", CAST(gtfs_version_date AS STRING), "America/Sao_Paulo")) AS DATETIME) gtfs_version_date
-from rj-smtr-dev.br_rj_riodejaneiro_gtfs_staging.trips as t
+from rj-smtr-staging.br_rj_riodejaneiro_gtfs_staging.trips as t
