@@ -1,0 +1,35 @@
+resources:
+  basedosdados_config:
+    config:
+      dataset_id: br_rj_riodejaneiro_gtfs_brt
+      table_id: realized_trips
+  discord_webhook:
+    config:
+      url: "{{ '' | env_override('BRT_DISCORD_WEBHOOK')}}"
+      success_cron: "* * * * *"
+  timezone_config:
+    config:
+      timezone: America/Sao_Paulo
+solids:
+  download_brt_raw_realized_trips:
+      config:
+        date: "2021-03-05"
+      inputs:
+        data_url:
+          value: http://zn4.m2mcontrol.com.br/relatorio/VIA
+        post_url:
+          value: http://zn4.m2mcontrol.com.br/api/relatorioViagem/gerarRelatorio/post/209
+  upload_raw_realized_trips:
+    config:
+      is_init: false
+      mode: raw
+      publish_config: pass
+      table_config: pass
+  upload_realized_trips:
+    config:
+      is_init: false
+      mode: staging
+      publish_config: pass
+      table_config: pass
+
+    
