@@ -15,6 +15,7 @@ from openpyxl import load_workbook
 import re
 
 import basedosdados as bd
+
 # Temporario, essa funcao vai ser incorporada a base dos dados
 from repositories.helpers.storage import StoragePlus
 
@@ -47,8 +48,8 @@ def get_file_path_and_partitions(context, filename, partitions, table_id=None):
 
     # If not specific table_id, use resource one
     if not table_id:
-        table_id = context.resources.basedosdados_config['table_id']
-    dataset_id = context.resources.basedosdados_config['dataset_id']
+        table_id = context.resources.basedosdados_config["table_id"]
+    dataset_id = context.resources.basedosdados_config["dataset_id"]
 
     # Get data folder from environment variable
     data_folder = os.getenv("DATA_FOLDER", "data")
@@ -70,7 +71,7 @@ def get_file_path_and_partitions(context, filename, partitions, table_id=None):
 def parse_file_path_and_partitions(context, bucket_path):
 
     # Parse bucket to get mode, dataset_id, table_id and filename
-    path_list = bucket_path.split('/')
+    path_list = bucket_path.split("/")
     dataset_id = path_list[1]
     table_id = path_list[2]
     filename = path_list[-1].split(".")[0]
@@ -79,7 +80,7 @@ def parse_file_path_and_partitions(context, bucket_path):
     # Parse bucket to get partitions
     partitions = re.findall("\/([^\/]*?)=(.*?)(?=\/)", bucket_path)
     partitions = "/".join(["=".join([field for field in item]) for item in partitions])
-        
+
     # Get data folder from environment variable
     data_folder = os.getenv("DATA_FOLDER", "data")
 
@@ -124,21 +125,25 @@ def save_treated_local(context, df, file_path, mode="staging"):
     return _file_path
 
 
-def delete_file(file):
-    return Path(file).unlink(missing_ok=True)
-
-
 @solid(
     required_resource_keys={"basedosdados_config"},
 )
-def get_file_from_storage(context, file_path, filename, partitions, mode='raw', filetype="xlsx",
-                          uploaded=True, table_id=None):
+def get_file_from_storage(
+    context,
+    file_path,
+    filename,
+    partitions,
+    mode="raw",
+    filetype="xlsx",
+    uploaded=True,
+    table_id=None,
+):
 
     # Download from storage
     # If not specific table_id, use resource one
     if not table_id:
-        table_id = context.resources.basedosdados_config['table_id']
-    dataset_id = context.resources.basedosdados_config['dataset_id']
+        table_id = context.resources.basedosdados_config["table_id"]
+    dataset_id = context.resources.basedosdados_config["dataset_id"]
 
     _file_path = file_path.format(mode=mode, filetype=filetype)
 
@@ -147,26 +152,80 @@ def get_file_from_storage(context, file_path, filename, partitions, mode='raw', 
     context.log.debug(f"filename: {filename}")
     context.log.debug(f"partition: {partitions}")
     context.log.debug(f"mode: {mode}")
-    st.download(filename=filename+"."+filetype, file_path=_file_path, partitions=partitions, mode=mode,
-                if_exists='replace')
+    st.download(
+        filename=filename + "." + filetype,
+        file_path=_file_path,
+        partitions=partitions,
+        mode=mode,
+        if_exists="replace",
+    )
     return _file_path
+
+
+def save_local_as_bd(
+    data,
+    data_folder,
+    file_name,
+    dataset_id,
+    table_id,
+    mode,
+    filetype,
+    partitions=None,
+):
+
+    file_name = f"{file_name}.{filetype}"
+
+    if partitions == None:
+        file_path = f"{data_folder}/{mode}/{dataset_id}/{table_id}/"
+    else:
+        file_path = f"{data_folder}/{mode}/{dataset_id}/{table_id}/{partitions}/"
+
+    return save_local(data, file_path, file_name)
+
+
+def save_local(data, file_path="tmp", file_name="tmp"):
+    """Saves data locally."""
+
+    if file_path == "tmp":
+        file_path = "TMP/"
+
+    file_path = Path(file_path) / Path(file_name)
+
+    Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+
+    if isinstance(data, pd.DataFrame):
+        data.to_csv(file_path, index=False)
+    elif isinstance(data, dict):
+        json.dump(data, Path(file_path).open("w"))
+    else:
+        Path(file_path).open("w").write(data)
+
+    return file_path
+
+
+def delete_file(file_path):
+    return Path(file_path).unlink(missing_ok=True)
 
 
 @solid(
     required_resource_keys={"basedosdados_config"},
 )
-def upload_file_to_storage(context, file_path, partitions, mode='raw', table_id=None):
+def upload_file_to_storage(
+    context, file_path, partitions=None, mode="raw", table_id=None
+):
 
     # Upload to storage
     # If not specific table_id, use resource one
     if not table_id:
-        table_id = context.resources.basedosdados_config['table_id']
-    dataset_id = context.resources.basedosdados_config['dataset_id']
+        table_id = context.resources.basedosdados_config["table_id"]
+    dataset_id = context.resources.basedosdados_config["dataset_id"]
 
     st = bd.Storage(table_id=table_id, dataset_id=dataset_id)
 
-    context.log.debug(f"Uploading file {file_path} to mode {mode} with partitions {partitions}")
-    st.upload(path=file_path, mode=mode, partitions=partitions, if_exists='replace')
+    context.log.debug(
+        f"Uploading file {file_path} to mode {mode} with partitions {partitions}"
+    )
+    st.upload(path=file_path, mode=mode, partitions=partitions, if_exists="replace")
 
     return True
 
@@ -174,7 +233,7 @@ def upload_file_to_storage(context, file_path, partitions, mode='raw', table_id=
 @solid
 def delete_xls_header(context, file_path):
     wb = load_workbook(file_path)
-    ws =  wb.active
+    ws = wb.active
     # Delete current header
     ws.delete_rows(1)
     wb.save(file_path)
@@ -184,13 +243,14 @@ def delete_xls_header(context, file_path):
 @solid
 def set_xls_header(context, file_path, header):
     wb = load_workbook(file_path)
-    ws =  wb.active
+    ws = wb.active
     ws.insert_rows(1)
     for idx, column in enumerate(header):
-        ws.cell(row=1, column=idx+1).value = column
+        ws.cell(row=1, column=idx + 1).value = column
     wb.save(file_path)
 
     return file_path
+
 
 @composite_solid
 def set_header(file_path, header):
