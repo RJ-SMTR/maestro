@@ -18,6 +18,11 @@ capturas:
   - module: repositories.capturas.br_rj_riodejaneiro_gtfs.feed
     objects:
     - br_rj_riodejaneiro_gtfs_feed
+  - module: repositories.capturas.br_rj_riodejaneiro_gtfs_brt.realized_trips
+    objects:
+    - br_rj_riodejaneiro_gtfs_realized_trips
+    - daily_partition_set
+    - daily_schedule
 
   sensors:
   - module: repositories.capturas.sensors

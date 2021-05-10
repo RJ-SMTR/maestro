@@ -77,23 +77,109 @@ def render_and_create_view(_):
     return create_view(sql)
 
 
+@solid(
+    required_resource_keys={"basedosdados_config"},
+    config_schema={
+        "mode": str,
+        "table_config": str,
+        "publish_config": str,
+        "is_init": bool,
+    },
+)
+def upload_to_bigquery_v2(context, file_path, partitions=None, table_id=None):
 
-@solid(required_resource_keys={"basedosdados_config"})
-def upload_to_bigquery(context, file_paths, partitions, modes=['raw', 'staging'], 
-                       table_config='replace', publish_config='pass', is_init=False, table_id=None):
-    if is_init:
+    if context.solid_config["is_init"]:
         # Only available for mode staging
         try:
-            idx = modes.index('staging')
-            create_table_bq(context, file_paths[idx], table_config=table_config, 
-                            publish_config=publish_config, table_id=table_id)
+            create_table_bq_v2(
+                context,
+                file_path,
+                table_config=context.solid_config["table_config"],
+                publish_config=context.solid_config["publish_config"],
+                table_id=table_id,
+            )
         except ValueError:
             raise RuntimeError("Publishing table outside staging mode")
     else:
-        append_to_bigquery(context, file_paths, partitions, modes=modes, table_id=table_id)
-        
+        append_to_bigquery_v2(
+            context,
+            file_path,
+            partitions,
+            mode=context.solid_config["mode"],
+            table_id=table_id,
+        )
 
-def append_to_bigquery(context, file_paths, partitions, modes=['raw', 'staging'], table_id=None):
+
+def append_to_bigquery_v2(context, file_path, partitions, mode, table_id=None):
+
+    if not table_id:
+        table_id = context.resources.basedosdados_config["table_id"]
+    dataset_id = context.resources.basedosdados_config["dataset_id"]
+
+    bd.Storage(dataset_id=dataset_id, table_id=table_id).upload(
+        file_path, partitions=partitions, mode=mode, if_exists="replace"
+    )
+
+    # delete file
+    Path(file_path).unlink(missing_ok=True)
+
+
+def create_table_bq_v2(
+    context, file_path, table_config="replace", publish_config="pass", table_id=None
+):
+    if not table_id:
+        table_id = context.resources.basedosdados_config["table_id"]
+    dataset_id = context.resources.basedosdados_config["dataset_id"]
+
+    context.log.debug(f"Filepath: {file_path}")
+
+    tb = bd.Table(dataset_id=dataset_id, table_id=table_id)
+    tb.create(
+        path=Path(file_path),
+        if_table_exists="replace",
+        if_storage_data_exists="replace",
+        if_table_config_exists=table_config,
+    )
+
+    tb.publish(if_exists=publish_config)
+
+    # delete file
+    Path(file_path).unlink(missing_ok=True)
+
+
+@solid(required_resource_keys={"basedosdados_config"})
+def upload_to_bigquery(
+    context,
+    file_paths,
+    partitions,
+    modes=["raw", "staging"],
+    table_config="replace",
+    publish_config="pass",
+    is_init=False,
+    table_id=None,
+):
+    if is_init:
+        # Only available for mode staging
+        try:
+            idx = modes.index("staging")
+            create_table_bq(
+                context,
+                file_paths[idx],
+                table_config=table_config,
+                publish_config=publish_config,
+                table_id=table_id,
+            )
+        except ValueError:
+            raise RuntimeError("Publishing table outside staging mode")
+    else:
+        append_to_bigquery(
+            context, file_paths, partitions, modes=modes, table_id=table_id
+        )
+
+
+def append_to_bigquery(
+    context, file_paths, partitions, modes=["raw", "staging"], table_id=None
+):
 
     if not table_id:
         table_id = context.resources.basedosdados_config["table_id"]
@@ -103,12 +189,15 @@ def append_to_bigquery(context, file_paths, partitions, modes=['raw', 'staging']
 
     for idx, mode in enumerate(modes):
         context.log.info(f"Uploading to mode {mode}")
-        st.upload(file_paths[idx], partitions=partitions, mode=mode, if_exists='replace')
+        st.upload(
+            file_paths[idx], partitions=partitions, mode=mode, if_exists="replace"
+        )
         Path(file_paths[idx]).unlink(missing_ok=True)
 
 
-def create_table_bq(context, file_path, table_config='replace', publish_config='pass', 
-                    table_id=None):
+def create_table_bq(
+    context, file_path, table_config="replace", publish_config="pass", table_id=None
+):
 
     if not table_id:
         table_id = context.resources.basedosdados_config["table_id"]
