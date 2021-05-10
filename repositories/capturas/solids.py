@@ -45,6 +45,7 @@ def create_current_datetime_partition(context):
     required_resource_keys={"basedosdados_config"},
 )
 def get_file_path_and_partitions(context, filename, partitions, table_id=None):
+    context.log.info(filename)
 
     # If not specific table_id, use resource one
     if not table_id:

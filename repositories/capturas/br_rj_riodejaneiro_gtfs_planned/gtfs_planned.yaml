@@ -1,7 +1,7 @@
 resources:
   basedosdados_config:
     config:
-      dataset_id: br_rj_riodejaneiro_gtfs
+      dataset_id: br_rj_riodejaneiro_gtfs_planned
       table_id: gtfs
   discord_webhook:
     config:
