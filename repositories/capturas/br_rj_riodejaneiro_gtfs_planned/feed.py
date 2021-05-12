@@ -120,7 +120,7 @@ def get_realized_trips(file_path):
             mode="dev",
         ),
     ],
-    tags={"dagster/priority": "-1"}
+    # tags={"dagster/priority": "-1"}
 )
 def br_rj_riodejaneiro_gtfs_planned_feed():
 

@@ -56,7 +56,7 @@ def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data):
                                   "discord_webhook": discord_webhook}
         ),
     ],
-    tags={"dagster/priority": "10"}
+    # tags={"dagster/priority": "10"}
 )
 def br_rj_riodejaneiro_brt_gps_registros():
 

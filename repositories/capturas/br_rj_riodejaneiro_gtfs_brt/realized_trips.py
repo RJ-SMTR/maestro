@@ -212,7 +212,7 @@ def treat_raw_realized_trips(context, raw_file_path, file_name):
             mode="dev",
         ),
     ],
-    tags={"dagster/priority": "-1"}
+    # tags={"dagster/priority": "-1"}
 )
 def br_rj_riodejaneiro_gtfs_realized_trips():
 
