@@ -65,6 +65,7 @@ def divide_columns(context, df, cols_to_divide=None, value=100):
                                   "discord_webhook": discord_webhook}
         ),
     ],
+    # tags={"dagster/priority": "-1"}
 )
 def br_rj_riodejaneiro_rdo_registros():
 

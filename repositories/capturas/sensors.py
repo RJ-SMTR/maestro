@@ -60,7 +60,7 @@ def rdo_sensor(context):
                 yield RunRequest(run_key=run_key, run_config=config)
 
 
-@sensor(pipeline_name="br_rj_riodejaneiro_gtfs_feed", mode="dev")
+@sensor(pipeline_name="br_rj_riodejaneiro_gtfs_planned_feed", mode="dev")
 def gtfs_sensor(context):
     last_mtime = parse_run_key(context.last_run_key)[1] if context.last_run_key else 0
 
@@ -87,6 +87,8 @@ def gtfs_sensor(context):
                 config['solids']['open_gtfs_feed'] = {'inputs': {'original_filepath': {
                     'value': filepath}}}
                 config['solids']['upload_file_to_storage'] = {'inputs': {'file_path': {
+                    'value': filepath}}}
+                config['solids']['get_realized_trips'] = {'inputs': {'file_path': {
                     'value': filepath}}}
                 config['resources']['basedosdados_config'] = {"config": {"dataset_id": dataset_id,
                                                                          "table_id": table_id}}

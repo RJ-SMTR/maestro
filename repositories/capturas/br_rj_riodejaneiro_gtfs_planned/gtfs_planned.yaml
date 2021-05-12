@@ -1,7 +1,7 @@
 resources:
   basedosdados_config:
     config:
-      dataset_id: br_rj_riodejaneiro_gtfs
+      dataset_id: br_rj_riodejaneiro_gtfs_planned
       table_id: gtfs
   discord_webhook:
     config:
@@ -11,32 +11,31 @@ resources:
     config:
       timezone: America/Sao_Paulo
 solids:
-  create_gtfs_version_partition:
+  realized_upload_to_bigquery:
     inputs:
-      original_filepath:
-        value: /home/lmoraes/GTFS_DATA/gtfs_brt.zip
-  get_gtfs_files:
+      table_id:
+        value: realized_trips_planned
+      modes:
+        value:
+        - staging
+  realized_get_file_path_and_partitions:
     inputs:
-      original_filepath:
-        value: /home/lmoraes/GTFS_DATA/gtfs_brt.zip
-  open_gtfs_feed:
-    inputs:
-      original_filepath:
-        value: /home/lmoraes/GTFS_DATA/gtfs_brt.zip
+      filename:
+        value: gtfs_planned
   process_gtfs_files:
     solids:
       upload_to_bigquery:
         inputs:
-          is_init:
-             value: true
-          table_config:
-            value: 'replace'
-          publish_config:
-            value: 'replace'
           modes:
             value: 
             - staging
-      pre_treatment_br_rj_riodejaneiro_gtfs:
+      #     is_init:
+      #        value: true
+      #     table_config:
+      #       value: 'pass'
+      #     publish_config:
+      #       value: 'replace'
+      pre_treatment_br_rj_riodejaneiro_gtfs_planned:
         config:
           agency:
             columns:
