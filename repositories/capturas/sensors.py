@@ -88,6 +88,8 @@ def gtfs_sensor(context):
                     'value': filepath}}}
                 config['solids']['upload_file_to_storage'] = {'inputs': {'file_path': {
                     'value': filepath}}}
+                config['solids']['get_realized_trips'] = {'inputs': {'file_path': {
+                    'value': filepath}}}
                 config['resources']['basedosdados_config'] = {"config": {"dataset_id": dataset_id,
                                                                          "table_id": table_id}}
                 yield RunRequest(run_key=run_key, run_config=config)

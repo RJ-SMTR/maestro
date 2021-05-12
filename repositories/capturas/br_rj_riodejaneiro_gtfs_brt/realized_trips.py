@@ -11,16 +11,11 @@ from dagster import (
     solid,
     pipeline,
     ModeDefinition,
-    composite_solid,
     PresetDefinition,
     OutputDefinition,
     Output,
     Partition,
     PartitionSetDefinition,
-)
-from dagster.experimental import (
-    DynamicOutput,
-    DynamicOutputDefinition,
 )
 
 from repositories.capturas.resources import (
@@ -35,9 +30,7 @@ from repositories.helpers.hooks import (
     discord_message_on_success,
 )
 from repositories.capturas.solids import (
-    upload_data_to_storage,
     save_local_as_bd,
-    delete_file,
 )
 
 
@@ -199,6 +192,8 @@ def treat_raw_realized_trips(context, raw_file_path, file_name):
     return treated_file_path
 
 
+@discord_message_on_failure
+@discord_message_on_success
 @pipeline(
     mode_defs=[
         ModeDefinition(
@@ -217,6 +212,7 @@ def treat_raw_realized_trips(context, raw_file_path, file_name):
             mode="dev",
         ),
     ],
+    tags={"dagster/priority": "-1"}
 )
 def br_rj_riodejaneiro_gtfs_realized_trips():
 

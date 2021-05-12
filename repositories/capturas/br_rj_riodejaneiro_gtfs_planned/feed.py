@@ -85,25 +85,22 @@ def pre_treatment_br_rj_riodejaneiro_gtfs_planned(context, feed, file):
 
 @solid
 def process_filename(context, treated_file_path):
+    context.log.debug(f"File path to add to list: {treated_file_path}")
     return [treated_file_path]
 
 
 @composite_solid
 def process_gtfs_files(feed, partitions, file):
     treated_data = pre_treatment_br_rj_riodejaneiro_gtfs_planned(feed, file)
-    file_path = get_file_path_and_partitions(filename=file, partitions=partitions, table_id=file)
-    treated_file_path = save_treated_local(treated_data, file_path)
-    treated_file_path_list = process_filename(treated_file_path)
-    upload_to_bigquery(file_paths=treated_file_path_list, partitions=partitions, table_id=file)
+    gtfs_file_path = get_file_path_and_partitions(filename=file, partitions=partitions, table_id=file)
+    gtfs_treated_file_path = save_treated_local(treated_data, gtfs_file_path)
+    gtfs_treated_file_path_list = process_filename(gtfs_treated_file_path)
+    upload_to_bigquery(file_paths=gtfs_treated_file_path_list, partitions=partitions, table_id=file)
 
 @solid 
 def get_realized_trips(file_path):
     realized_trips = rgtfs.generate_realized_trips_from_gtfs(file_path)
     return realized_trips
-
-@solid
-def hello_world(context, text):
-    context.log.debug(text)
 
 
 @discord_message_on_failure
@@ -128,13 +125,22 @@ def br_rj_riodejaneiro_gtfs_planned_feed():
 
     feed = open_gtfs_feed()
     partitions = create_gtfs_version_partition(feed=feed)
-    # upload_file_to_storage(partitions=partitions)
+    upload_file_to_storage(partitions=partitions)
 
-    # files = get_gtfs_files()
-    # files.map(lambda file: process_gtfs_files(
-    #     feed=feed, file=file, partitions=partitions))
+    # GTFS
+    files = get_gtfs_files()
+    files.map(lambda file: process_gtfs_files(
+        feed=feed, file=file, partitions=partitions))
 
-    file_path = get_file_path_and_partitions(partitions=partitions)
-    realized_trips = get_realized_trips() 
-    treated_file_path = save_treated_local(realized_trips, file_path)
-    upload_to_bigquery([treated_file_path], partitions)
+    # Realized trips
+    realized_file_path = get_file_path_and_partitions.alias(
+        'realized_get_file_path_and_partitions')(partitions=partitions)
+    realized_trips = get_realized_trips()
+    realized_treated_file_path = save_treated_local.alias('realized_save_treated_local')(
+        realized_trips, 
+        realized_file_path)
+    realized_treated_file_path_list = process_filename.alias('realized_process_filename')(
+        realized_treated_file_path)
+    upload_to_bigquery.alias('realized_upload_to_bigquery')(
+        realized_treated_file_path_list, 
+        partitions)

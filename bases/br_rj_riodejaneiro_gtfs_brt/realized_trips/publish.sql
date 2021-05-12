@@ -19,7 +19,7 @@ TIPOS:
 
 */
 
-CREATE VIEW rj-smtr-dev.br_rj_riodejaneiro_gtfs_brt.realized_trips AS
+CREATE VIEW rj-smtr.br_rj_riodejaneiro_gtfs_brt.realized_trips AS
 SELECT 
 SAFE_CAST(vehicle_id AS STRING) vehicle_id,
 SAFE_CAST(departure_datetime AS DATETIME) departure_datetime,
@@ -32,4 +32,4 @@ SAFE_CAST(average_speed AS FLOAT64) average_speed,
 SAFE_CAST(trajectory_type AS STRING) trajectory_type,
 SAFE_CAST(trip_id AS STRING) trip_id,
 SAFE_CAST(trip_short_name AS STRING) trip_short_name
-from rj-smtr-dev.br_rj_riodejaneiro_gtfs_brt_staging.realized_trips as t
+from rj-smtr-staging.br_rj_riodejaneiro_gtfs_brt_staging.realized_trips as t

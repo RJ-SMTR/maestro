@@ -11,6 +11,17 @@ resources:
     config:
       timezone: America/Sao_Paulo
 solids:
+  realized_upload_to_bigquery:
+    inputs:
+      table_id:
+        value: realized_trips_planned
+      modes:
+        value:
+        - staging
+  realized_get_file_path_and_partitions:
+    inputs:
+      filename:
+        value: gtfs_planned
   process_gtfs_files:
     solids:
       upload_to_bigquery:
