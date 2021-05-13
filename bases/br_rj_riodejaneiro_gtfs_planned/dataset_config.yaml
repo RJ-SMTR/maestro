@@ -1,7 +1,7 @@
-dataset_id: br_rj_riodejaneiro_gtfs_planned # AUTO GENERATED
+dataset_id: br_rj_riodejaneiro_gtfs # AUTO GENERATED
 
-url_ckan: https://basedosdados.org/dataset/br-rj-riodejaneiro-gtfs-planned
-url_github: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_gtfs_planned
+url_ckan: https://basedosdados.org/dataset/br-rj-riodejaneiro-gtfs
+url_github: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_gtfs
 
 # Descreva a base.
 # Ela é sobre o que?
