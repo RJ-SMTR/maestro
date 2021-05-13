@@ -19,7 +19,7 @@ TIPOS:
 
 */
 
-CREATE VIEW rj-smtr.br_rj_riodejaneiro_gtfs.stop_times AS
+CREATE VIEW rj-smtr.br_rj_riodejaneiro_gtfs_planned.stop_times AS
 SELECT 
 SAFE_CAST(trip_id AS STRING) trip_id,
 SAFE_CAST(arrival_time AS TIME) arrival_time,

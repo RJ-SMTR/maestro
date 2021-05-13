@@ -19,7 +19,7 @@ TIPOS:
 
 */
 
-CREATE VIEW rj-smtr.br_rj_riodejaneiro_gtfs.frequencies AS
+CREATE VIEW rj-smtr.br_rj_riodejaneiro_gtfs_planned.frequencies AS
 SELECT 
 SAFE_CAST(trip_id AS STRING) trip_id,
 SAFE_CAST(start_time AS TIME) start_time,

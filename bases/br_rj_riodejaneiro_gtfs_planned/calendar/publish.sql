@@ -19,7 +19,7 @@ TIPOS:
 
 */
 
-CREATE VIEW rj-smtr.br_rj_riodejaneiro_gtfs.calendar AS
+CREATE VIEW rj-smtr.br_rj_riodejaneiro_gtfs_planned.calendar AS
 SELECT 
 SAFE_CAST(service_id AS STRING) service_id,
 SAFE_CAST(monday AS INT64) monday,

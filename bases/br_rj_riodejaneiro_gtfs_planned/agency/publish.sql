@@ -19,7 +19,7 @@ TIPOS:
 
 */
 
-CREATE VIEW rj-smtr.br_rj_riodejaneiro_gtfs.agency AS
+CREATE VIEW rj-smtr.br_rj_riodejaneiro_gtfs_planned.agency AS
 SELECT 
 SAFE_CAST(agency_id AS INT64) agency_id,
 SAFE_CAST(agency_name AS STRING) agency_name,

@@ -19,7 +19,7 @@ TIPOS:
 
 */
 
-CREATE VIEW rj-smtr.br_rj_riodejaneiro_gtfs.shapes AS
+CREATE VIEW rj-smtr.br_rj_riodejaneiro_gtfs_planned.shapes AS
 SELECT 
 SAFE_CAST(shape_id AS STRING) shape_id,
 SAFE_CAST(shape_pt_lat AS FLOAT64) shape_pt_lat,

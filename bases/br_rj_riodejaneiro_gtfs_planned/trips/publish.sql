@@ -19,7 +19,7 @@ TIPOS:
 
 */
 
-CREATE VIEW rj-smtr.br_rj_riodejaneiro_gtfs.trips AS
+CREATE VIEW rj-smtr.br_rj_riodejaneiro_gtfs_planned.trips AS
 SELECT 
 SAFE_CAST(route_id AS STRING) route_id,
 SAFE_CAST(service_id AS STRING) service_id,

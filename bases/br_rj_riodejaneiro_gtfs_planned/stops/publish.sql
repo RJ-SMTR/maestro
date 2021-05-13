@@ -19,7 +19,7 @@ TIPOS:
 
 */
 
-CREATE VIEW rj-smtr.br_rj_riodejaneiro_gtfs.stops AS
+CREATE VIEW rj-smtr.br_rj_riodejaneiro_gtfs_planned.stops AS
 SELECT 
 SAFE_CAST(stop_id AS STRING) stop_id,
 SAFE_CAST(stop_name AS STRING) stop_name,
