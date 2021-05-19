@@ -1,3 +1,5 @@
+
+
 .PHONY: create-env update-env
 
 REPO=$(shell basename $(CURDIR))
@@ -34,7 +36,7 @@ setup-workspace:
 	mkdir data
 
 run-daemon: 
-	. .$(REPO)/bin/activate; DAGSTER_HOME=$$(pwd)/.dagster_workspace dagster-daemon run
+	. .$(REPO)/bin/activate; set -a;. $$(pwd)/.env_make; set +a; DAGSTER_HOME=$$(pwd)/.dagster_workspace dagster-daemon run
 
 run-dagit:
-	. .$(REPO)/bin/activate; DAGSTER_HOME=$$(pwd)/.dagster_workspace dagit
+	. .$(REPO)/bin/activate; set -a;. $$(pwd)/.env_make; set +a; DAGSTER_HOME=$$(pwd)/.dagster_workspace dagit
