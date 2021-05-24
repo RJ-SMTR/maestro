@@ -22,6 +22,9 @@ services:
       MODE: "${MODE}"
       BRT_DISCORD_WEBHOOK: "${BRT_DISCORD_WEBHOOK}"
       SPPO_DISCORD_WEBHOOK: "${SPPO_DISCORD_WEBHOOK}"
+      FTPS_HOST: "${FTPS_HOST}"
+      FTPS_USERNAME: "${FTPS_USERNAME}"
+      FTPS_PWD: "${FTPS_PWD}"
     networks:
       - dagster_network
     volumes:
@@ -31,6 +34,7 @@ services:
       - /home/${USER}/maestro/bases:/opt/dagster/app/bases
       - /home/${USER}/RDO_DATA:/opt/dagster/app/data/RDO_DATA
       - /home/${USER}/GTFS_DATA:/opt/dagster/app/data/GTFS_DATA
+      - /home/${USER}/FTPS_DATA:/opt/dagster/app/data/FTPS_DATA
 
 
   # This service runs dagit, which loads the pipelines from the user code container.
@@ -61,6 +65,9 @@ services:
       MODE: "${MODE}"
       BRT_DISCORD_WEBHOOK: "${BRT_DISCORD_WEBHOOK}"
       SPPO_DISCORD_WEBHOOK: "${SPPO_DISCORD_WEBHOOK}"
+      FTPS_HOST: "${FTPS_HOST}"
+      FTPS_USERNAME: "${FTPS_USERNAME}"
+      FTPS_PWD: "${FTPS_PWD}"
     networks:
       - dagster_network
     depends_on:
@@ -85,6 +92,9 @@ services:
       MODE: "${MODE}"
       BRT_DISCORD_WEBHOOK: "${BRT_DISCORD_WEBHOOK}"
       SPPO_DISCORD_WEBHOOK: "${SPPO_DISCORD_WEBHOOK}"
+      FTPS_HOST: "${FTPS_HOST}"
+      FTPS_USERNAME: "${FTPS_USERNAME}"
+      FTPS_PWD: "${FTPS_PWD}"
     volumes: # Make docker client accessible so we can launch containers using host docker
       - /var/run/docker.sock:/var/run/docker.sock
     networks:

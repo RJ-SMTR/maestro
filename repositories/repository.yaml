@@ -29,3 +29,4 @@ capturas:
     objects:
     - rdo_sensor
     - gtfs_sensor
+    - ftps_sensor
