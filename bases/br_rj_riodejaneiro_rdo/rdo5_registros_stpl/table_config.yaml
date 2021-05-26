@@ -1,7 +1,7 @@
 source_bucket_name: rj-smtr-staging
 project_id_staging: rj-smtr-staging
 project_id_prod: rj-smtr
-table_id: rdo5_registros # AUTO GENERATED
+table_id: rdo5_registros_stpl # AUTO GENERATED
 dataset_id: br_rj_riodejaneiro_rdo # AUTO GENERATED
 
 url_ckan: https://basedosdados.org/dataset/br-rj-riodejaneiro-rdo # AUTO GENERATED
@@ -9,7 +9,7 @@ url_github: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodeja
 
 version: 0.1 # REQUIRED
 
-last_updated: 2021-04-01 # AUTO GENERATED
+last_updated: 2021-05-26 # AUTO GENERATED
 
 # Descreva a tabela. Essas são as primeiras frases que um usuário vai ver.
 # Você não precisa ser muito conciso. Sinta-se a vontade para dar exemplos de
@@ -74,8 +74,6 @@ coverage_geo:
 # Qual é a cobertura temporal (em anos) da tabela?
 # Opções: ..., 1990, 1991, ..., 1999, 2000, 2001, ..., 2019, 2020, ...
 coverage_time:
-    - 2019
-    - 2020
     - 2021
 
 # Liste as colunas da tabela que representam partições.
@@ -99,7 +97,7 @@ columns: # REQUIRED
   
     -   
         name: operadora
-        description: Código de identificação do consórcio
+        description: Número de identifcação do operador
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
@@ -114,7 +112,8 @@ columns: # REQUIRED
         description: Data referente aos dados de RDO
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
-      -   
+  
+    -   
         name: tarifa_valor
         description: Tarifa praticada durante a viagem
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
@@ -153,12 +152,6 @@ columns: # REQUIRED
     -   
         name: universitario
         description: Quantidade de passageiros de gratuidade do tipo “Passe Livre Universitário”.
-        is_in_staging: True # Bool [True, False], whether the column is in the staging table
-        is_partition: False # Bool [True, False], whether the column is a partition.
-  
-    -   
-        name: gratuito_rodoviario
-        description: Quantidade de passageiros de gratuidade do tipo “Funcionário de Empresa”.
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
@@ -206,10 +199,9 @@ columns: # REQUIRED
   
     -   
         name: buc_van_2a_perna
-        description: Quantidade de passageiros pagantes que realizaram integração de BUC (onde a 1ª perna foi realizada em VAN municipal).
+        description: Quantidade de passageiros pagantes que realizaram integração de BUC (onde a 2ª perna foi realizada em VAN municipal).
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
-
   
     -   
         name: buc_van_receita
@@ -218,38 +210,20 @@ columns: # REQUIRED
         is_partition: False # Bool [True, False], whether the column is a partition.
   
     -   
-        name: buc_vlt_1a_perna
-        description: Quantidade de passageiros pagantes que realizaram transações identificadas como 1ª perna de integração de BUC (onde a 2ª perna foi realizada em um VLT).
-        is_in_staging: True # Bool [True, False], whether the column is in the staging table
-        is_partition: False # Bool [True, False], whether the column is a partition.
-  
-    -   
-        name: buc_vlt_2a_perna
-        description: Quantidade de passageiros pagantes que realizaram integração de BUC (onde a 1ª perna foi realizada em um VLT).
-        is_in_staging: True # Bool [True, False], whether the column is in the staging table
-        is_partition: False # Bool [True, False], whether the column is a partition.
-  
-    -   
-        name: buc_vlt_receita
-        description: Receita de transações de integrações de BUC-VLT
-        is_in_staging: True # Bool [True, False], whether the column is in the staging table
-        is_partition: False # Bool [True, False], whether the column is a partition.
-  
-    -   
         name: buc_brt_1a_perna
-        description: Quantidade de passageiros pagantes que realizaram integração de BUC identificadas como 1ª perna em ônibus municipal ou linhas BRT (onde a 2ª perna foi realizada em linhas BRT).
+        description: Quantidade de passageiros pagantes que realizaram integração de BUC identificadas como 1ª perna em Van (onde a 2ª perna foi realizada em linhas BRT).
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
     -   
         name: buc_brt_2a_perna
-        description: Quantidade de passageiros pagantes que realizaram integração de BUC identificadas como 2ª perna em linhas BRT (onde a 1ª perna foi realizada em ônibus municipal ou linhas BRT).
+        description: Quantidade de passageiros pagantes que realizaram integração de BUC identificadas como 2ª perna em linhas BRT (onde a 1ª perna foi realizada em Van).
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
     -   
         name: buc_brt_3a_perna
-        description: Quantidade de passageiros pagantes que realizaram integração de BUC identificadas como 3ª perna em ônibus municipal ou linhas BRT (onde a 2ª perna foi realizada em linhas BRT).
+        description: Quantidade de passageiros pagantes que realizaram integração de BUC identificadas como 3ª perna em Van (onde a 2ª perna foi realizada em linhas BRT).
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
@@ -261,37 +235,19 @@ columns: # REQUIRED
   
     -   
         name: buc_inter_1a_perna
-        description: Quantidade de passageiros pagantes que realizaram transações identificadas como 1ª perna de integração de BUI - Bilhete Único Intermunicipal (onde a 2ª perna foi realizada em um ônibus e van intermunicipal ou Supervia).
+        description: Quantidade de passageiros pagantes que realizaram transações identificadas como 1ª perna de integração (onde a 2ª perna foi realizada em um ônibus e van intermunicipal).
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
     -   
         name: buc_inter_2a_perna
-        description: Quantidade de passageiros pagantes que realizaram integração de BUI - Bilhete Único Intermunicipal (onde a 1ª perna foi realizada em ônibus e van intermunicipal ou Supervia).
+        description: Quantidade de passageiros pagantes que realizaram integração (onde a 1ª perna foi realizada em ônibus e van intermunicipal).
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
     -   
         name: buc_inter_receita
         description: Receita de transações de integrações de BUI-Ônibus
-        is_in_staging: True # Bool [True, False], whether the column is in the staging table
-        is_partition: False # Bool [True, False], whether the column is a partition.
-  
-    -   
-        name: buc_barcas_1a_perna
-        description: Quantidade de passageiros pagantes que realizaram transações identificadas como 1ª perna de uma integração com BUI (onde a 2ª perna foi realizada em uma estação de Barcas)
-        is_in_staging: True # Bool [True, False], whether the column is in the staging table
-        is_partition: False # Bool [True, False], whether the column is a partition.
-  
-    -   
-        name: buc_barcas_2a_perna
-        description: Quantidade de passageiros pagantes que realizaram uma integração com BUI (onde a 1ª perna foi realizada em uma estação de Barcas).
-        is_in_staging: True # Bool [True, False], whether the column is in the staging table
-        is_partition: False # Bool [True, False], whether the column is a partition.
-  
-    -   
-        name: buc_barcas_receita
-        description: Receita de transações de integrações de BUI-Barcas
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
@@ -346,12 +302,6 @@ columns: # REQUIRED
     -   
         name: data_processamento
         description: Data do Processamento do Arquivo do RDO.
-        is_in_staging: True # Bool [True, False], whether the column is in the staging table
-        is_partition: False # Bool [True, False], whether the column is a partition.
-  
-    -   
-        name: linha_rcti
-        description: Número da linha operadora na Base da RCTI
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   

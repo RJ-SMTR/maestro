@@ -1,0 +1,43 @@
+resources:
+  basedosdados_config:
+    config:
+      table_id: rho5_registros_stpl
+      dataset_id: br_rj_riodejaneiro_rdo 
+  timezone_config:
+    config:
+      timezone: "America/Sao_Paulo" 
+  discord_webhook:
+    config:
+      url: "{{ '' | env_override('SPPO_DISCORD_WEBHOOK')}}"
+      success_cron: "* * * * *"
+solids:
+  parse_file_path_and_partitions:
+    inputs:
+      bucket_path: 
+        value: raw/br_rj_riodejaneiro_rdo/rho5_registros_stpl/ano=2021/mes=01/dia=07/RDO_00638_00001_20210307_20210312_045044.csv
+  upload_to_bigquery:
+    inputs:
+      modes:
+        value:
+          - staging
+  load_and_reindex_csv:
+    config:
+      read_csv_kwargs:
+        delimiter: ";"
+        skiprows: 1
+        names:
+        - "operadora"
+        - "linha"
+        - "data_transacao"
+        - "hora_transacao"
+        - "total_gratuidades"
+        - "total_pagantes"
+        index_col: false
+      reindex_kwargs:
+        columns:
+        - "operadora"
+        - "linha"
+        - "data_transacao"
+        - "hora_transacao"
+        - "total_gratuidades"
+        - "total_pagantes"
