@@ -112,7 +112,9 @@ def gtfs_sensor(context):
 
 @sensor(pipeline_name="br_rj_riodejaneiro_rdo_registros", mode="dev")
 def ftps_sensor(context):
-    last_mtime = parse_run_key(context.last_run_key)[1] if context.last_run_key else 0
+    last_mtime = float(context.cursor) if context.cursor else 0
+    logger.debug(f"Current cursor: {last_mtime}")
+    max_mtime = last_mtime + 259200
     ftp_client = connect_ftp(os.getenv("FTPS_HOST"), os.getenv("FTPS_USERNAME"), os.getenv("FTPS_PWD"))
 
     # Change to working directory
@@ -132,15 +134,13 @@ def ftps_sensor(context):
                 timestamp = filepath[1]['modify']
                 file_mtime = datetime.timestamp(parser.parse(timestamp))
 
-                if file_mtime > last_mtime:                
+                if file_mtime < max_mtime and file_mtime > last_mtime:                
                     # the run key should include mtime if we want to kick off new runs based on file modifications
                     run_key = build_run_key(filename, file_mtime)
 
                     # Download file to local folder
                     try:
                         config = read_config(Path(__file__).parent / f'br_rj_riodejaneiro_rdo/{folder_name}_{fileprefix}.yaml') 
-                        # config_file = f'/home/lmoraes/maestro/repositories/capturas/br_rj_riodejaneiro_rdo/{folder_name}_{fileprefix}.yaml'
-                        # config = read_config(Path(config_file)) 
                         table_id = config['resources']['basedosdados_config']['config']['table_id']
                         date = tuple(re.findall("\d+", filename))
                         ano = date[2][:4]
@@ -161,6 +161,8 @@ def ftps_sensor(context):
                         logger.warning(f"Config file for file {filename} was not found. Skipping file.")
                     
                 ftp_client.cwd('/')
-            else:
-                logger.warning(f"Skipping file {folder[0]} since it is not inside a folder")
-                continue
+        else:
+            logger.warning(f"Skipping file {folder[0]} since it is not inside a folder")
+            continue
+    logger.debug(f"Setting cursor to {max_mtime}")
+    context.update_cursor(str(max_mtime))
