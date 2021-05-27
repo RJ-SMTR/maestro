@@ -115,6 +115,7 @@ def ftps_sensor(context):
     last_mtime = float(context.cursor) if context.cursor else 0
     logger.debug(f"Current cursor: {last_mtime}")
     max_mtime = last_mtime + 259200
+    next_mtime = max_mtime
     ftp_client = connect_ftp(os.getenv("FTPS_HOST"), os.getenv("FTPS_USERNAME"), os.getenv("FTPS_PWD"))
 
     # Change to working directory
@@ -160,9 +161,11 @@ def ftps_sensor(context):
                     except jinja2.TemplateNotFound as err:
                         logger.warning(f"Config file for file {filename} was not found. Skipping file.")
                     
+                next_mtime = min(file_mtime, max_mtime)
                 ftp_client.cwd('/')
         else:
             logger.warning(f"Skipping file {folder[0]} since it is not inside a folder")
             continue
-    logger.debug(f"Setting cursor to {max_mtime}")
-    context.update_cursor(str(max_mtime))
+
+        logger.debug(f"Setting cursor to {next_mtime}")
+        context.update_cursor(str(next_mtime))
