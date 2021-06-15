@@ -20,6 +20,12 @@ cp workspace_docker.yaml workspace.yaml
 docker-compose up --build
 ```
 
+3. Reestarte o sistema com
+```
+docker stop $(docker ps -a -q)
+docker-compose up --build -d
+```
+
 ### Utilizando o make
 1. Assim como no caso anterior, crie um arquivo para colocar as variáveis de ambiente. Pode chamá-lo de `.env_make`. Além das variáveis anteriores, é preciso configurar mais duas:
 ```
