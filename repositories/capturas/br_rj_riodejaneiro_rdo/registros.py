@@ -14,11 +14,11 @@ from repositories.capturas.resources import (
 from repositories.libraries.basedosdados.resources import (
     basedosdados_config,
 )
-from repositories.helpers.hooks import discord_message_on_failure, discord_message_on_success
+from repositories.helpers.hooks import discord_message_on_failure, discord_message_on_success, redis_keepalive_on_failure, redis_keepalive_on_succes
 from repositories.capturas.solids import (
     get_file_from_storage,
     upload_file_to_storage,
-    parse_file_path_and_partitions, 
+    parse_file_path_and_partitions,
     save_treated_local,
 )
 from repositories.libraries.basedosdados.solids import (
@@ -34,7 +34,8 @@ from repositories.libraries.pandas.solids import (
 def divide_columns(context, df, cols_to_divide=None, value=100):
     if cols_to_divide:
         # Divide columns by value
-        df[cols_to_divide] = df[cols_to_divide].apply(lambda x: x/value, axis=1)
+        df[cols_to_divide] = df[cols_to_divide].apply(
+            lambda x: x/value, axis=1)
     return df
 
 
@@ -44,12 +45,14 @@ def divide_columns(context, df, cols_to_divide=None, value=100):
     preset_defs=[
         PresetDefinition.from_files(
             "BRT_RDO_40",
-            config_files=[str(Path(__file__).parent / "brt_rdo40_registros.yaml")],
+            config_files=[str(Path(__file__).parent /
+                              "brt_rdo40_registros.yaml")],
             mode="dev",
         ),
         PresetDefinition.from_files(
             "Onibus_RDO_40",
-            config_files=[str(Path(__file__).parent / "onibus_rdo40_registros.yaml")],
+            config_files=[str(Path(__file__).parent /
+                              "onibus_rdo40_registros.yaml")],
             mode="dev",
         ),
         PresetDefinition.from_files(
@@ -60,7 +63,7 @@ def divide_columns(context, df, cols_to_divide=None, value=100):
     ],
     mode_defs=[
         ModeDefinition(
-            "dev", resource_defs={"basedosdados_config": basedosdados_config, 
+            "dev", resource_defs={"basedosdados_config": basedosdados_config,
                                   "timezone_config": timezone_config,
                                   "discord_webhook": discord_webhook}
         ),
@@ -72,7 +75,7 @@ def br_rj_riodejaneiro_rdo_registros():
     filename, filetype, file_path, partitions = parse_file_path_and_partitions()
 
     uploaded = upload_file_to_storage(partitions=partitions)
-    raw_file_path = get_file_from_storage(file_path=file_path, filename=filename, 
+    raw_file_path = get_file_from_storage(file_path=file_path, filename=filename,
                                           partitions=partitions, filetype=filetype,
                                           uploaded=uploaded)
 

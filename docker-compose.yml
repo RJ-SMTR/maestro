@@ -103,6 +103,17 @@ services:
       - dagster_pipelines
     restart: always
 
+  # This serves a Redis (https://redis.io/) server, which is used by pipelines
+  # in order to tell the watchdog they're healthy.
+  redis:
+    image: redis:6
+    restart: unless-stopped
+    container_name: redis
+    ports:
+      - 6379:6379
+    networks:
+      - dagster_network
+
 networks:
   dagster_network:
     driver: bridge

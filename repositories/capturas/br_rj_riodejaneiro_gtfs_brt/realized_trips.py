@@ -19,6 +19,7 @@ from dagster import (
 )
 
 from repositories.capturas.resources import (
+    keepalive_key,
     timezone_config,
     discord_webhook,
 )
@@ -28,6 +29,8 @@ from repositories.libraries.basedosdados.resources import (
 from repositories.helpers.hooks import (
     discord_message_on_failure,
     discord_message_on_success,
+    redis_keepalive_on_failure,
+    redis_keepalive_on_succes,
 )
 from repositories.capturas.solids import (
     save_local_as_bd,
@@ -194,6 +197,8 @@ def treat_raw_realized_trips(context, raw_file_path, file_name):
 
 @discord_message_on_failure
 @discord_message_on_success
+@redis_keepalive_on_failure
+@redis_keepalive_on_succes
 @pipeline(
     mode_defs=[
         ModeDefinition(
@@ -202,6 +207,7 @@ def treat_raw_realized_trips(context, raw_file_path, file_name):
                 "basedosdados_config": basedosdados_config,
                 "timezone_config": timezone_config,
                 "discord_webhook": discord_webhook,
+                "keepalive_key": keepalive_key,
             },
         ),
     ],
@@ -219,8 +225,10 @@ def br_rj_riodejaneiro_gtfs_realized_trips():
     raw_file_path, file_name = download_brt_raw_realized_trips()
     treated_file_path = treat_raw_realized_trips(raw_file_path, file_name)
 
-    upload_to_bigquery_v2.alias("upload_raw_realized_trips")(file_path=raw_file_path)
-    upload_to_bigquery_v2.alias("upload_realized_trips")(file_path=treated_file_path)
+    upload_to_bigquery_v2.alias(
+        "upload_raw_realized_trips")(file_path=raw_file_path)
+    upload_to_bigquery_v2.alias("upload_realized_trips")(
+        file_path=treated_file_path)
 
 
 def get_date_partitions():
@@ -239,7 +247,8 @@ def get_date_partitions():
 
 def run_config_for_date_partition(partition):
     date = partition.value
-    config = yaml.load(open(Path(__file__).parent / "realized_trips.yaml", "r"))
+    config = yaml.load(
+        open(Path(__file__).parent / "realized_trips.yaml", "r"))
     config["solids"]["download_brt_raw_realized_trips"]["config"]["date"] = date
     return config
 

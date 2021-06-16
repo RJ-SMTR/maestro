@@ -2,6 +2,7 @@
 
 O dagster pode ser rodado localmente com o make ou utilizando docker.
 Ambos os casos utilizam variáveis de ambiente para configuração do BD, webhooks e as pastas dos sensores.
+Caso seja de interesse, é possível configurar e habilitar um watchdog para as pipelines. Para tal, ler as instruções no diretório `watchdog/`.
 
 ### Utilizando docker
 1. Crie um arquivo chamado `.env` na raiz do projeto com as seguintes variáveis de ambiente:
