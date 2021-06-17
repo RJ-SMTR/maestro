@@ -1,0 +1,11 @@
+---
+config:
+  cooldown: 120
+  loop_time_delta: 30
+services:
+  pipelines:
+    timeout: 300
+    command: docker restart dagster_dagit dagster_daemon dagster_pipelines
+    keys:
+      - br_rj_riodejaneiro_brt_gps
+      - br_rj_riodejaneiro_onibus_gps

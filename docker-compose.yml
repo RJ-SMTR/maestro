@@ -114,6 +114,25 @@ services:
     networks:
       - dagster_network
 
+  # This serves the watchdog service itself. It checks Redis keys and restart
+  # dagster containers if needed
+  watchdog:
+    build:
+      context: ./watchdog
+    restart: unless-stopped
+    container_name: watchdog
+    environment:
+      PYTHONUNBUFFERED: 1
+      WDT_DISCORD_WEBHOOK: "${WDT_DISCORD_WEBHOOK}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/${USER}/maestro/watchdog_config.yaml:/app/watchdog_config.yaml:ro
+    networks:
+      - dagster_network
+    depends_on:
+      - redis
+
+
 networks:
   dagster_network:
     driver: bridge

@@ -2,7 +2,7 @@
 
 O dagster pode ser rodado localmente com o make ou utilizando docker.
 Ambos os casos utilizam variáveis de ambiente para configuração do BD, webhooks e as pastas dos sensores.
-Caso seja de interesse, é possível configurar e habilitar um watchdog para as pipelines. Para tal, ler as instruções no diretório `watchdog/`.
+Caso seja de interesse, é possível configurar o watchdog das pipelines. Instruções no diretório `watchdog/`.
 
 ### Utilizando docker
 1. Crie um arquivo chamado `.env` na raiz do projeto com as seguintes variáveis de ambiente:
@@ -14,6 +14,7 @@ DAGSTER_POSTGRES_DB=<BD do PSQL>
 DAGSTER_POSTGRES_HOST=<host do PSQL>
 BRT_DISCORD_WEBHOOK=<webhook do discord para enviar as notificações das pipelines relacionadas ao BRT>
 SPPO_DISCORD_WEBHOOK=<webhook do discord para enviar as notificações das pipelines relacionadas aos ônibus>
+WDT_DISCORD_WEBHOOK=<webhook do discord para enviar as notificações do watchdog>
 ```
 2. Modifique o arquivo do workspace.yaml para executar com as configurações do docker e inicie seu build
 ```
@@ -22,6 +23,9 @@ docker-compose up --build
 ```
 
 ### Utilizando o make
+
+**Disclaimer**: Ainda não há compatibilidade do watchdog para o deployment usando `make`. Se isso é uma demanda, favor submeter uma issue.
+
 1. Assim como no caso anterior, crie um arquivo para colocar as variáveis de ambiente. Pode chamá-lo de `.env_make`. Além das variáveis anteriores, é preciso configurar mais duas:
 ```
 COMPOSE_PROJECT_NAME=<prefixo das imagens que serão contruídas>
@@ -31,6 +35,7 @@ DAGSTER_POSTGRES_DB=<BD do PSQL>
 DAGSTER_POSTGRES_HOST=<host do PSQL>
 BRT_DISCORD_WEBHOOK=<webhook do discord para enviar as notificações das pipelines relacionadas ao BRT>
 SPPO_DISCORD_WEBHOOK=<webhook do discord para enviar as notificações das pipelines relacionadas aos ônibus>
+WDT_DISCORD_WEBHOOK=<webhook do discord para enviar as notificações do watchdog>
 RDO_DATA=<pasta que o sensor dos dados de RDO deve monitorar>
 GTFS_DATA=<pasta que o sensor dos dados de GTFS deve monitorar>
 ```
