@@ -16,16 +16,47 @@ BRT_DISCORD_WEBHOOK=<webhook do discord para enviar as notificações das pipeli
 SPPO_DISCORD_WEBHOOK=<webhook do discord para enviar as notificações das pipelines relacionadas aos ônibus>
 WDT_DISCORD_WEBHOOK=<webhook do discord para enviar as notificações do watchdog>
 ```
-2. Modifique o arquivo do workspace.yaml para executar com as configurações do docker e inicie seu build
+2. O build assume que o repositório 'maestro' foi clonado em /home, caso tenha clonado em outro local, mude as
+seguintes linhas no arquivo docker-compose.yaml:
+```
+linha 32 - 34 /home/${USER}/maestro/repositories:/opt/dagster/app/repositories ->> /home/${USER}/<clone_path>/repositories:/opt/dagster/app/repositories
+
+linha 129 /home/${USER}/maestro/watchdog_config.yaml:/app/watchdog_config.yaml:ro ->> /home/${USER}/projects/smtr-maestro/watchdog_config.yaml:/app/watchdog_config.yaml:ro
+```
+3. É preciso subir uma instância local do postgresql para que o build funcione. Use o comando:
+```
+docker run -itd --name postgres -e POSTGRES_PASSWORD=123456 --restart unless-stopped -p 5432:5432 postgres:13
+```
+
+4. Altere as variáveis de ambiente de acordo no arquivo .env:
+```
+DAGSTER_POSTGRES_USER=postgres
+DAGSTER_POSTGRES_PASSWORD=123456
+DAGSTER_POSTGRES_DB=postgres
+```
+Altere também a variável DAGSTER_POSTGRES_HOST com o seu endereço de IP
+
+5. Modifique o arquivo do workspace.yaml para executar com as configurações do docker e inicie seu build
 ```
 cp workspace_docker.yaml workspace.yaml
 docker-compose up --build
 ```
 
-3. Reestarte o sistema com
+6. Reestarte o sistema com
 ```
 docker stop $(docker ps -a -q)
 docker-compose up --build -d
+```
+
+7. Cheque se o build funcionou usando o comando `docker ps`, a saída deverá ser similar à:
+```
+CONTAINER ID   IMAGE                    COMMAND                  CREATED         STATUS         PORTS                    NAMES
+b59080461555   test_dagster_daemon      "dagster-daemon run"     8 seconds ago   Up 6 seconds                            dagster_daemon
+4f47bc455f72   test_dagster_dagit       "dagit -h 0.0.0.0 -p…"   8 seconds ago   Up 6 seconds   0.0.0.0:3000->3000/tcp   dagster_dagit
+6fcea03043a2   test_watchdog            "python3 watchdog.py"    8 seconds ago   Up 6 seconds                            watchdog
+85fae7f16cc6   test_dagster_pipelines   "dagster api grpc -h…"   9 seconds ago   Up 7 seconds   0.0.0.0:4000->4000/tcp   dagster_pipelines
+652e9138ede5   redis:6                  "docker-entrypoint.s…"   9 seconds ago   Up 7 seconds   0.0.0.0:6379->6379/tcp   redis
+c4bafe3fbb0a   postgres:13              "docker-entrypoint.s…"   6 minutes ago   Up 6 minutes   0.0.0.0:5432->5432/tcp   postgres
 ```
 
 ### Utilizando o make
