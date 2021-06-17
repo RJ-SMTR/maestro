@@ -17,15 +17,16 @@ from pathlib import Path
 import rgtfs
 
 from repositories.capturas.resources import (
+    keepalive_key,
     timezone_config,
     discord_webhook,
 )
 from repositories.libraries.basedosdados.resources import (
     basedosdados_config,
 )
-from repositories.helpers.hooks import discord_message_on_failure, discord_message_on_success
+from repositories.helpers.hooks import discord_message_on_failure, discord_message_on_success, redis_keepalive_on_failure, redis_keepalive_on_succes
 from repositories.capturas.solids import (
-    get_file_path_and_partitions, 
+    get_file_path_and_partitions,
     upload_file_to_storage,
     save_treated_local,
 )
@@ -34,12 +35,14 @@ from repositories.libraries.basedosdados.solids import (
     upload_to_bigquery,
 )
 
+
 @solid
 def open_gtfs_feed(context, original_filepath):
     context.log.debug(f"Opening GTFS {original_filepath}")
     feed = gk.read_feed(original_filepath, dist_units='km')
 
     return feed
+
 
 @solid(
     output_defs=[
@@ -50,8 +53,9 @@ def get_gtfs_files(context, original_filepath):
     feed_files = gk.list_feed(original_filepath)['file_name']
     for item in feed_files:
         filename = Path(item).stem
-        yield DynamicOutput(filename, mapping_key=filename, 
+        yield DynamicOutput(filename, mapping_key=filename,
                             output_name='filename')
+
 
 @solid
 def create_gtfs_version_partition(context, feed, original_filepath):
@@ -68,6 +72,7 @@ def create_gtfs_version_partition(context, feed, original_filepath):
 
     return partitions
 
+
 @solid
 def pre_treatment_br_rj_riodejaneiro_gtfs_planned(context, feed, file):
     context.log.debug(f"Getting file {file}")
@@ -76,7 +81,7 @@ def pre_treatment_br_rj_riodejaneiro_gtfs_planned(context, feed, file):
 
     # Add extra columns
     try:
-        reindex_kwargs = context.solid_config[file] 
+        reindex_kwargs = context.solid_config[file]
         treated_data = raw_data.reindex(**reindex_kwargs)
     except KeyError:
         treated_data = raw_data
@@ -92,12 +97,15 @@ def process_filename(context, treated_file_path):
 @composite_solid
 def process_gtfs_files(feed, partitions, file):
     treated_data = pre_treatment_br_rj_riodejaneiro_gtfs_planned(feed, file)
-    gtfs_file_path = get_file_path_and_partitions(filename=file, partitions=partitions, table_id=file)
+    gtfs_file_path = get_file_path_and_partitions(
+        filename=file, partitions=partitions, table_id=file)
     gtfs_treated_file_path = save_treated_local(treated_data, gtfs_file_path)
     gtfs_treated_file_path_list = process_filename(gtfs_treated_file_path)
-    upload_to_bigquery(file_paths=gtfs_treated_file_path_list, partitions=partitions, table_id=file)
+    upload_to_bigquery(file_paths=gtfs_treated_file_path_list,
+                       partitions=partitions, table_id=file)
 
-@solid 
+
+@solid
 def get_realized_trips(file_path):
     realized_trips = rgtfs.generate_realized_trips_from_gtfs(file_path)
     return realized_trips
@@ -105,12 +113,15 @@ def get_realized_trips(file_path):
 
 @discord_message_on_failure
 @discord_message_on_success
+@redis_keepalive_on_failure
+@redis_keepalive_on_succes
 @pipeline(
     mode_defs=[
         ModeDefinition(
-            "dev", resource_defs={"basedosdados_config": basedosdados_config, 
+            "dev", resource_defs={"basedosdados_config": basedosdados_config,
                                   "timezone_config": timezone_config,
-                                  "discord_webhook": discord_webhook}
+                                  "discord_webhook": discord_webhook,
+                                  "keepalive_key": keepalive_key}
         ),
     ],
     preset_defs=[
@@ -138,10 +149,10 @@ def br_rj_riodejaneiro_gtfs_planned_feed():
         'realized_get_file_path_and_partitions')(partitions=partitions)
     realized_trips = get_realized_trips()
     realized_treated_file_path = save_treated_local.alias('realized_save_treated_local')(
-        realized_trips, 
+        realized_trips,
         realized_file_path)
     realized_treated_file_path_list = process_filename.alias('realized_process_filename')(
         realized_treated_file_path)
     upload_to_bigquery.alias('realized_upload_to_bigquery')(
-        realized_treated_file_path_list, 
+        realized_treated_file_path_list,
         partitions)

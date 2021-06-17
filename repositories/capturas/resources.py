@@ -1,5 +1,6 @@
 from dagster import resource, Field
 
+
 @resource(
     {
         "timezone": Field(
@@ -10,6 +11,7 @@ from dagster import resource, Field
 def timezone_config(context):
     return context.resource_config
 
+
 @resource(
     {
         "url": Field(str, is_required=True, description="Discord webhook URL"),
@@ -17,4 +19,13 @@ def timezone_config(context):
     }
 )
 def discord_webhook(context):
+    return context.resource_config
+
+
+@resource(
+    {
+        "key": Field(str, is_required=True, description="Redis key for a particular pipeline")
+    }
+)
+def keepalive_key(context):
     return context.resource_config

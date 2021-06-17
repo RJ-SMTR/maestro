@@ -14,3 +14,4 @@ rgtfs
 numpy==1.20.1
 pandas==1.2.4
 traitlets==5.0.5
+redis-pal>=0.1.4

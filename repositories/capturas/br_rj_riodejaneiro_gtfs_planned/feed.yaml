@@ -10,6 +10,9 @@ resources:
   timezone_config:
     config:
       timezone: America/Sao_Paulo
+  keepalive_key:
+    config:
+      key: "br_rj_riodejaneiro_gtfs_planned"
 solids:
   create_gtfs_version_partition:
     inputs:
@@ -41,7 +44,7 @@ solids:
         value: realized_trips_planned
       modes:
         value:
-        - staging
+          - staging
   process_gtfs_files:
     solids:
       pre_treatment_br_rj_riodejaneiro_gtfs_planned:

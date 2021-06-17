@@ -10,3 +10,4 @@ dagster-docker
 dagster-graphql
 loguru
 rgtfs
+redis-pal>=0.1.4

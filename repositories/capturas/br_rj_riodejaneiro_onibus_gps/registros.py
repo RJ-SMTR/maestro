@@ -10,16 +10,17 @@ import pandas as pd
 from pathlib import Path
 
 from repositories.capturas.resources import (
+    keepalive_key,
     timezone_config,
     discord_webhook,
 )
 from repositories.libraries.basedosdados.resources import (
     basedosdados_config,
 )
-from repositories.helpers.hooks import discord_message_on_failure, discord_message_on_success
+from repositories.helpers.hooks import discord_message_on_failure, discord_message_on_success, redis_keepalive_on_failure, redis_keepalive_on_succes
 from repositories.capturas.solids import (
     create_current_datetime_partition,
-    get_file_path_and_partitions, 
+    get_file_path_and_partitions,
     get_raw,
     save_raw_local,
     save_treated_local,
@@ -43,7 +44,8 @@ def pre_treatment_br_rj_riodejaneiro_onibus_gps(context, data):
     df["timestamp_captura"] = timestamp_captura
     # Remove timezone and force it to be config timezone
     df["datahora"] = df["datahora"].astype(float).apply(
-        lambda ms: pd.to_datetime(pendulum.from_timestamp(ms / 1000.0).replace(tzinfo=None).set(tz=timezone).isoformat())
+        lambda ms: pd.to_datetime(pendulum.from_timestamp(
+            ms / 1000.0).replace(tzinfo=None).set(tz=timezone).isoformat())
     )
 
     return df
@@ -51,12 +53,15 @@ def pre_treatment_br_rj_riodejaneiro_onibus_gps(context, data):
 
 @discord_message_on_failure
 @discord_message_on_success
+@redis_keepalive_on_failure
+@redis_keepalive_on_succes
 @pipeline(
     mode_defs=[
         ModeDefinition(
-            "dev", resource_defs={"basedosdados_config": basedosdados_config, 
+            "dev", resource_defs={"basedosdados_config": basedosdados_config,
                                   "timezone_config": timezone_config,
-                                  "discord_webhook": discord_webhook}
+                                  "discord_webhook": discord_webhook,
+                                  "keepalive_key": keepalive_key}
         ),
     ],
     # tags={"dagster/priority": "10"}

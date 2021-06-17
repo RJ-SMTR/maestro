@@ -1,17 +1,20 @@
 solids:
   get_raw:
     inputs:
-      url: 
+      url:
         value: http://webapibrt.rio.rj.gov.br/api/v1/brt
 resources:
   basedosdados_config:
     config:
       table_id: registros
-      dataset_id: br_rj_riodejaneiro_brt_gps 
+      dataset_id: br_rj_riodejaneiro_brt_gps
   timezone_config:
     config:
-      timezone: "America/Sao_Paulo" 
+      timezone: "America/Sao_Paulo"
   discord_webhook:
     config:
       url: "{{ '' | env_override('BRT_DISCORD_WEBHOOK')}}"
       success_cron: "00 08 * * *"
+  keepalive_key:
+    config:
+      key: "br_rj_riodejaneiro_brt_gps"
