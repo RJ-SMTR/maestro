@@ -79,7 +79,8 @@ def parse_file_path_and_partitions(context, bucket_path):
 
     # Parse bucket to get partitions
     partitions = re.findall("\/([^\/]*?)=(.*?)(?=\/)", bucket_path)
-    partitions = "/".join(["=".join([field for field in item]) for item in partitions])
+    partitions = "/".join(["=".join([field for field in item])
+                          for item in partitions])
 
     # Get data folder from environment variable
     data_folder = os.getenv("DATA_FOLDER", "data")
@@ -97,7 +98,18 @@ def parse_file_path_and_partitions(context, bucket_path):
 @solid
 def get_raw(context, url):
 
-    data = requests.get(url)
+    data = None
+
+    try:
+        data = requests.get(url, timeout=15)
+    except requests.exceptions.ReadTimeout as e:
+        raise e
+    except Exception as e:
+        raise Exception(
+            f"Unknown exception while trying to fetch data from {url}: {e}")
+
+    if data is None:
+        raise Exception(f"Data from API is none!")
 
     if data.ok:
         return data
@@ -225,7 +237,8 @@ def upload_file_to_storage(
     context.log.debug(
         f"Uploading file {file_path} to mode {mode} with partitions {partitions}"
     )
-    st.upload(path=file_path, mode=mode, partitions=partitions, if_exists="replace")
+    st.upload(path=file_path, mode=mode,
+              partitions=partitions, if_exists="replace")
 
     return True
 
