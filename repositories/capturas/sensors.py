@@ -9,7 +9,7 @@ from datetime import datetime
 
 from repositories.helpers.helpers import read_config
 from repositories.helpers.logging import logger
-from repositories.helpers.io import getListOfFiles, build_run_key, parse_run_key, connect_ftp
+from repositories.helpers.io import get_list_of_files, build_run_key, parse_run_key, connect_ftp
 
 
 RDO_DIRECTORY = os.getenv("RDO_DATA", "/opt/dagster/app/data/RDO_DATA")
@@ -23,7 +23,7 @@ def rdo_sensor(context: SensorExecutionContext):
     last_mtime = parse_run_key(context.last_run_key)[
         1] if context.last_run_key else 0
 
-    for filepath in getListOfFiles(RDO_DIRECTORY):
+    for filepath in get_list_of_files(RDO_DIRECTORY):
         if os.path.isfile(filepath):
             fstats = os.stat(filepath)
             _file_name = filepath.split(RDO_DIRECTORY)[1].strip('/')
@@ -53,7 +53,7 @@ def gtfs_sensor(context):
     last_mtime = parse_run_key(context.last_run_key)[
         1] if context.last_run_key else 0
 
-    for filepath in getListOfFiles(GTFS_DIRECTORY):
+    for filepath in get_list_of_files(GTFS_DIRECTORY):
         if os.path.isfile(filepath):
             fstats = os.stat(filepath)
             _file_name = filepath.split(GTFS_DIRECTORY)[1].strip('/')

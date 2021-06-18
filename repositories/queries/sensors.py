@@ -5,7 +5,7 @@ from redis_pal import RedisPal
 from dagster import RunRequest, sensor, SensorExecutionContext
 
 from repositories.helpers.helpers import read_config
-from repositories.helpers.io import build_run_key, getListOfFiles, parse_filepath_to_tablename, parse_run_key
+from repositories.helpers.io import build_run_key, get_list_of_files, parse_filepath_to_tablename, parse_run_key
 
 VIEWS_DIRECTORY = os.getenv(
     "VIEWS_DIRECTORY", "/opt/dagster/app/repositories/queries/views")
@@ -28,7 +28,7 @@ def views_sensor(context: SensorExecutionContext):
         1] if context.last_run_key else 0
 
     # Get list of files
-    list_of_files: list = getListOfFiles(VIEWS_DIRECTORY)
+    list_of_files: list = get_list_of_files(VIEWS_DIRECTORY)
 
     # Get previous set of files from Redis
     prev_set_of_files: set = rp.get("queries_files_set")

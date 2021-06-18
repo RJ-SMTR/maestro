@@ -2,7 +2,7 @@ import os
 from repositories.helpers.implicit_ftp import ImplicitFTP_TLS
 
 
-def getListOfFiles(dirName):
+def get_list_of_files(dirName):
     # create a list of file and sub directories
     # names in the given directory
     listOfFile = os.listdir(dirName)
@@ -13,7 +13,7 @@ def getListOfFiles(dirName):
         fullPath = os.path.join(dirName, entry)
         # If entry is a directory then get the list of files in this directory
         if os.path.isdir(fullPath):
-            allFiles = allFiles + getListOfFiles(fullPath)
+            allFiles = allFiles + get_list_of_files(fullPath)
         # Skip .keep files
         elif not fullPath.endswith(".keep"):
             allFiles.append(fullPath)
