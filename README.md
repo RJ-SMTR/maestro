@@ -15,6 +15,8 @@ DAGSTER_POSTGRES_HOST=<host do PSQL>
 BRT_DISCORD_WEBHOOK=<webhook do discord para enviar as notificações das pipelines relacionadas ao BRT>
 SPPO_DISCORD_WEBHOOK=<webhook do discord para enviar as notificações das pipelines relacionadas aos ônibus>
 WDT_DISCORD_WEBHOOK=<webhook do discord para enviar as notificações do watchdog>
+QUERIES_DISCORD_WEBHOOK=<webhook do discord para enviar as notificações das pipelines relacionadas às queries>
+BQ_PROJECT_NAME=<nome do projeto do BigQuery (default é rj-smtr-dev)>
 ```
 2. O build assume que o repositório 'maestro' foi clonado em /home, caso tenha clonado em outro local, mude as
 seguintes linhas no arquivo docker-compose.yaml:
@@ -73,6 +75,8 @@ DAGSTER_POSTGRES_HOST=<host do PSQL>
 BRT_DISCORD_WEBHOOK=<webhook do discord para enviar as notificações das pipelines relacionadas ao BRT>
 SPPO_DISCORD_WEBHOOK=<webhook do discord para enviar as notificações das pipelines relacionadas aos ônibus>
 WDT_DISCORD_WEBHOOK=<webhook do discord para enviar as notificações do watchdog>
+QUERIES_DISCORD_WEBHOOK=<webhook do discord para enviar as notificações das pipelines relacionadas às queries>
+BQ_PROJECT_NAME=<nome do projeto do BigQuery (default é rj-smtr-dev)>
 RDO_DATA=<pasta que o sensor dos dados de RDO deve monitorar>
 GTFS_DATA=<pasta que o sensor dos dados de GTFS deve monitorar>
 ```
