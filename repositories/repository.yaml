@@ -1,32 +1,43 @@
 capturas:
   schedules:
-  - module: repositories.capturas.schedules
-    objects:
-    - br_rj_riodejaneiro_brt_gps_registros
-    - br_rj_riodejaneiro_onibus_gps_registros
+    - module: repositories.capturas.schedules
+      objects:
+        - br_rj_riodejaneiro_brt_gps_registros
+        - br_rj_riodejaneiro_onibus_gps_registros
 
   pipelines:
-  - module: repositories.capturas.br_rj_riodejaneiro_brt_gps.registros
-    objects:
-    - br_rj_riodejaneiro_brt_gps_registros
-  - module: repositories.capturas.br_rj_riodejaneiro_onibus_gps.registros
-    objects:
-    - br_rj_riodejaneiro_onibus_gps_registros
-  - module: repositories.capturas.br_rj_riodejaneiro_rdo.registros
-    objects:
-    - br_rj_riodejaneiro_rdo_registros
-  - module: repositories.capturas.br_rj_riodejaneiro_gtfs_planned.feed
-    objects:
-    - br_rj_riodejaneiro_gtfs_planned_feed
-  - module: repositories.capturas.br_rj_riodejaneiro_gtfs_brt.realized_trips
-    objects:
-    - br_rj_riodejaneiro_gtfs_realized_trips
-    - daily_partition_set
-    - daily_schedule
+    - module: repositories.capturas.br_rj_riodejaneiro_brt_gps.registros
+      objects:
+        - br_rj_riodejaneiro_brt_gps_registros
+    - module: repositories.capturas.br_rj_riodejaneiro_onibus_gps.registros
+      objects:
+        - br_rj_riodejaneiro_onibus_gps_registros
+    - module: repositories.capturas.br_rj_riodejaneiro_rdo.registros
+      objects:
+        - br_rj_riodejaneiro_rdo_registros
+    - module: repositories.capturas.br_rj_riodejaneiro_gtfs_planned.feed
+      objects:
+        - br_rj_riodejaneiro_gtfs_planned_feed
+    - module: repositories.capturas.br_rj_riodejaneiro_gtfs_brt.realized_trips
+      objects:
+        - br_rj_riodejaneiro_gtfs_realized_trips
+        - daily_partition_set
+        - daily_schedule
 
   sensors:
-  - module: repositories.capturas.sensors
-    objects:
-    - rdo_sensor
-    - gtfs_sensor
-    - ftps_sensor
+    - module: repositories.capturas.sensors
+      objects:
+        - rdo_sensor
+        - gtfs_sensor
+        - ftps_sensor
+
+queries:
+  pipelines:
+    - module: repositories.queries.pipelines
+      objects:
+        - update_view_on_bigquery
+
+  sensors:
+    - module: repositories.queries.sensors
+      objects:
+        - views_sensor

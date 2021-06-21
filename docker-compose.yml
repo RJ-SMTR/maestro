@@ -25,6 +25,8 @@ services:
       FTPS_HOST: "${FTPS_HOST}"
       FTPS_USERNAME: "${FTPS_USERNAME}"
       FTPS_PWD: "${FTPS_PWD}"
+      BQ_PROJECT_NAME: "${BQ_PROJECT_NAME}"
+      QUERIES_DISCORD_WEBHOOK: "${QUERIES_DISCORD_WEBHOOK}"
     networks:
       - dagster_network
     volumes:
@@ -68,6 +70,8 @@ services:
       FTPS_HOST: "${FTPS_HOST}"
       FTPS_USERNAME: "${FTPS_USERNAME}"
       FTPS_PWD: "${FTPS_PWD}"
+      BQ_PROJECT_NAME: "${BQ_PROJECT_NAME}"
+      QUERIES_DISCORD_WEBHOOK: "${QUERIES_DISCORD_WEBHOOK}"
     networks:
       - dagster_network
     depends_on:
@@ -95,6 +99,8 @@ services:
       FTPS_HOST: "${FTPS_HOST}"
       FTPS_USERNAME: "${FTPS_USERNAME}"
       FTPS_PWD: "${FTPS_PWD}"
+      BQ_PROJECT_NAME: "${BQ_PROJECT_NAME}"
+      QUERIES_DISCORD_WEBHOOK: "${QUERIES_DISCORD_WEBHOOK}"
     volumes: # Make docker client accessible so we can launch containers using host docker
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
