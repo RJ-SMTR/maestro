@@ -6,6 +6,7 @@ from dagster import (
     SolidExecutionContext,
     Nothing,
     Field,
+    RetryPolicy
 )
 
 from google.cloud import bigquery
@@ -17,7 +18,7 @@ import basedosdados as bd
 from repositories.libraries.jinja2.solids import render
 
 
-@solid
+@solid(retry_policy=RetryPolicy(max_retries=3, delay=5))
 def update_view(context: SolidExecutionContext, view_sql: str, table_name: str, delete: bool = False) -> Nothing:
 
     # Table ID can't be empty
