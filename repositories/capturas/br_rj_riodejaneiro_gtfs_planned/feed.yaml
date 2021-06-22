@@ -12,7 +12,7 @@ resources:
       timezone: America/Sao_Paulo
   keepalive_key:
     config:
-      key: "br_rj_riodejaneiro_gtfs_planned"
+      key: "br_rj_riodejaneiro_gtfs_planned_feed"
 solids:
   create_gtfs_version_partition:
     inputs:
