@@ -1,6 +1,5 @@
 from dagster import solid, pipeline, ModeDefinition, InputDefinition
 from pandas.core.dtypes import dtypes
-import pendulum
 import pandas as pd
 import basedosdados as bd
 import google.api_core.exceptions
@@ -102,6 +101,24 @@ def update_realized_trips(context, gps_data):
         RT.to_csv(rt_filename, index=False)
 
         realized.create(path=rt_filename, if_table_config_exists="replace")
+
+    with open(
+        "bases/br_rj_riodejaneiro_brt_gtfs_gps/realized_trips/publish.sql", "aw"
+    ) as q:
+        query = """
+        CREATE VIEW rj-smtr.br_rj_riodejaneiro_brt_gtfs_gps.realized_trips AS
+        SELECT 
+        SAFE_CAST(vehicle_id AS STRING) vehicle_id,
+        SAFE_CAST(route_id AS STRING) route_id,
+        SAFE_CAST(direction_id AS INT64) direction_id,
+        SAFE_CAST(service_id AS STRING) service_id,
+        SAFE_CAST(trip_id AS STRING) trip_id,
+        SAFE_CAST(departure_datetime AS DATETIME) departure_datetime,
+        SAFE_CAST(arrival_datetime AS DATETIME) arrival_datetime,
+        from rj-smtr-staging.br_rj_riodejaneiro_brt_gtfs_gps_staging.realized_trips as t
+        """
+        q.write(query)
+    realized.publish(if_exists="replace")
 
 
 @pipeline(
