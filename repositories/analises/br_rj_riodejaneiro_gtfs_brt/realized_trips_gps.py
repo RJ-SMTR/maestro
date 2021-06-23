@@ -31,16 +31,16 @@ def get_daily_brt_gps_data(
 
     gps_path = "brt_daily.csv"
     gtfs_path = "gtfs_brt.zip"
-    # bd.download(
-    #     savepath=gps_path,
-    #     query=query,
-    #     billing_project_id="rj-smtr-dev",
-    #     from_file=True,
-    #     index=False,
-    # )
-    # bd.Storage("br_rj_riodejaneiro_gtfs_planned", "gtfs_planned").download(
-    #     savepath=gtfs_path,filename="gtfs_version_date=20210419/gtfs_planned3.zip"
-    # )
+    bd.download(
+        savepath=gps_path,
+        query=query,
+        billing_project_id="rj-smtr-dev",
+        from_file=True,
+        index=False,
+    )
+    bd.Storage("br_rj_riodejaneiro_gtfs_planned", "gtfs_planned").download(
+        savepath=gtfs_path, filename="gtfs_version_date=20210419/gtfs_planned3.zip"
+    )
 
     return pd.read_csv(gps_path)
 
@@ -76,7 +76,7 @@ def update_realized_trips(context, gps_data):
     unplanned.to_csv(unplanned_filename, index=False)
 
     realized = Table(
-        dataset_id="br_rj_riodejaneiro_gtfs_brt_teste", table_id="realized_trips_teste"
+        dataset_id="br_rj_riodejaneiro_gtfs_brt", table_id="realized_trips_gps"
     )
 
     try:
@@ -86,10 +86,10 @@ def update_realized_trips(context, gps_data):
 
     if ref:
         tb = bd.read_table(
-            "br_rj_riodejaneiro_gtfs_brt_teste_staging",
-            "realized_trips_teste",
-            query_project_id="rj-smtr-dev",
-            billing_project_id="rj-smtr-dev",
+            "br_rj_riodejaneiro_gtfs_brt_staging",
+            "realized_trips_gps",
+            query_project_id="rj-smtr",
+            billing_project_id="rj-smtr",
             from_file=True,
         )
 
