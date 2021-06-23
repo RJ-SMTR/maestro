@@ -10,7 +10,7 @@ dagster-docker
 dagster-graphql
 loguru
 gtfs_kit
-rgtfs
+rgtfs==0.1.1a0
 numpy==1.20.1
 pandas==1.2.4
 traitlets==5.0.5

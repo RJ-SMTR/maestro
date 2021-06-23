@@ -11,12 +11,13 @@ from repositories.helpers.logging import logger
 def env_override(value, key):
     return os.getenv(key, value)
 
+
 def read_config(yaml_file):
 
     logger.debug("Setting template folder as {}", Path(yaml_file).parent)
     file_loader = FileSystemLoader(Path(yaml_file).parent)
     env = Environment(loader=file_loader)
-    env.filters['env_override'] = env_override
+    env.filters["env_override"] = env_override
 
     logger.debug("Setting template as {}", os.path.basename(yaml_file))
     template = env.get_template(os.path.basename(yaml_file))
