@@ -32,6 +32,11 @@ capturas:
         - ftps_sensor
 
 analises:
+  schedules:
+    - module: repositories.analises.schedules
+      objects:
+        - br_rj_riodejaneiro_brt_gtfs_gps
+
   pipelines:
     - module: repositories.analises.br_rj_riodejaneiro_gtfs_brt.realized_trips_gps
       objects:
