@@ -1,20 +1,21 @@
-from dagster import schedule
+from dagster import daily_schedule
 from pathlib import Path
+from datetime import datetime, time
 from repositories.helpers.helpers import read_config
 
 
-@schedule(
-    cron_schedule="30 0 * * *",
+@daily_schedule(
     pipeline_name="br_rj_riodejaneiro_brt_gtfs_gps",
+    start_date=datetime(2021, 5, 1),
     name="br_rj_riodejaneiro_brt_gtfs_gps",
+    execution_time=time(0, 30),
     mode="dev",
     execution_timezone="America/Sao_Paulo",
 )
-def br_rj_riodejaneiro_brt_gtfs_gps(context):
-    timezone = context.scheduled_execution_time.timezone.name
-    config = read_config(
-        Path(__file__).parent
-        / "br_rj_riodejaneiro_brt_gtfs_gps/realized_trips_gps.yaml"
-    )
-    config["resources"]["timezone_config"]["config"]["timezone"] = timezone
-    return config
+def br_rj_riodejaneiro_brt_gtfs_gps(date):
+    return {
+        "solids": {
+            "get_daily_brt_data": {"config": {"date": date.strftime("%Y-%m-%d")}},
+            "update_realized_trips": {"config": {"date": date.strftime("%Y-%m-%d")}},
+        }
+    }
