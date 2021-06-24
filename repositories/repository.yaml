@@ -31,13 +31,13 @@ capturas:
         - gtfs_sensor
         - ftps_sensor
 
-queries:
-  pipelines:
-    - module: repositories.queries.pipelines
+analises:
+  schedules:
+    - module: repositories.analises.schedules
       objects:
-        - update_view_on_bigquery
+        - br_rj_riodejaneiro_brt_gtfs_gps
 
-  sensors:
-    - module: repositories.queries.sensors
+  pipelines:
+    - module: repositories.analises.br_rj_riodejaneiro_gtfs_brt.realized_trips_gps
       objects:
-        - views_sensor
+        - br_rj_riodejaneiro_brt_gtfs_gps
