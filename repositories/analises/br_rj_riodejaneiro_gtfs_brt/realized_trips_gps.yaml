@@ -1,10 +1,3 @@
-solids:
-  update_realized_trips:
-    inputs:
-      gps_path:
-        value: brt_daily.csv
-      gtfs_path:
-        value: brt_gtfs.zip
 resources:
   basedosdados_config:
     config:

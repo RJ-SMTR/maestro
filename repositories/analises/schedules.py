@@ -6,7 +6,7 @@ from repositories.helpers.helpers import read_config
 
 @daily_schedule(
     pipeline_name="br_rj_riodejaneiro_brt_gtfs_gps",
-    start_date=datetime(2021, 5, 1),
+    start_date=datetime(2021, 1, 1),
     name="br_rj_riodejaneiro_brt_gtfs_gps",
     execution_time=time(0, 30),
     mode="dev",
@@ -15,7 +15,7 @@ from repositories.helpers.helpers import read_config
 def br_rj_riodejaneiro_brt_gtfs_gps(date):
     return {
         "solids": {
-            "get_daily_brt_data": {"config": {"date": date.strftime("%Y-%m-%d")}},
-            "update_realized_trips": {"config": {"date": date.strftime("%Y-%m-%d")}},
+            "get_daily_brt_data": {"config": {"date": datetime}},
+            "update_realized_trips": {"config": {"date": datetime}},
         }
     }

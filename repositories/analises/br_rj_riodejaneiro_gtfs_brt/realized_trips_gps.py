@@ -7,7 +7,7 @@ from datetime import date, datetime, timedelta
 from rgtfs import simple
 
 
-def get_gtfs_version():
+def get_gtfs_versions():
     prefix = "raw/br_rj_riodejaneiro_gtfs_planned/gtfs_planned"
     st = bd.Storage("br_rj_riodejaneiro_gtfs_planned", "gtfs_planned")
     blobs = [blob.name for blob in st.bucket.list_blobs(prefix=prefix)]
@@ -22,17 +22,16 @@ def get_gtfs_version():
     return versions
 
 
-def build_gtfs_version_blob_name(versions, date: date):
-    monthly = [version for version in versions if version.month == date.month]
+def build_gtfs_version_blob_name(versions, date: datetime):
 
-    version = min(versions, key=lambda x: abs(x - date))
-    if version.month != date.month:
-        versions.remove(version)
-        ver = min(versions, key=lambda x: abs(x - date))
-        if ver.month == date.month:
-            version = ver
+    monthly = [v for v in versions if v.month == date.month]
 
-    gtfs_blob_name = f"gtfs_version_date={version}"
+    if monthly:
+        version = min(monthly, key=lambda x: abs(x - date))
+    else:
+        version = min(versions, key=lambda x: abs(x - date))
+
+    gtfs_blob_name = f"gtfs_version_date={version}.zip"
     return gtfs_blob_name
 
 
@@ -66,10 +65,10 @@ def get_daily_brt_gps_data(
         index=False,
     )
     gtfs_filename = build_gtfs_version_blob_name(
-        get_gtfs_version(), context.solid_config["date"]
+        get_gtfs_versions(), context.solid_config["date"]
     )
     bd.Storage("br_rj_riodejaneiro_gtfs_planned", "gtfs_planned").download(
-        savepath=gtfs_path, filename="gtfs_version_date=20210419/gtfs_planned3.zip"
+        savepath=gtfs_path, filename=gtfs_filename
     )
 
     return pd.read_csv(gps_path)
