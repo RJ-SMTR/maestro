@@ -78,13 +78,16 @@ def get_daily_brt_gps_data(context, gtfs_data):
 
     gps_path = f"brt_daily_{context.solid_config['date']}.csv"
 
-    bd.download(
-        savepath=gps_path,
-        query=query,
-        billing_project_id="rj-smtr-dev",  #### TODO: mudar no deploy
-        from_file=True,
-        index=False,
-    )
+    try:
+        rt = pd.read_csv(gps_path)
+    except FileNotFoundError:
+        bd.download(
+            savepath=gps_path,
+            query=query,
+            billing_project_id="rj-smtr-dev",  #### TODO: mudar no deploy
+            from_file=True,
+            index=False,
+        )
 
     return pd.read_csv(gps_path)
 
@@ -114,6 +117,12 @@ def update_realized_trips(context, gps_data):
     )
 
     gtfs_path = f"{gtfs_partition}.zip"
+
+    try:
+        gps = pd.read_csv(gps_path)
+        gps.drop(["route_id", "dia"], axis=1).to_csv(gps_path, index=False)
+    except FileNotFoundError:
+        pass
 
     RT, unplanned = simple.main(
         gtfs_path,
