@@ -38,6 +38,6 @@ analises:
         - br_rj_riodejaneiro_brt_gtfs_gps
 
   pipelines:
-    - module: repositories.analises.br_rj_riodejaneiro_gtfs_brt.realized_trips_gps
+    - module: repositories.analises.br_rj_riodejaneiro_brt_gtfs_gps.realized_trips
       objects:
-        - br_rj_riodejaneiro_brt_gtfs_gps
+        - br_rj_riodejaneiro_brt_gtfs_gps_realized_trips

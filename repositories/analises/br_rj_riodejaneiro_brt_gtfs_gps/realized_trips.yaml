@@ -1,8 +1,13 @@
+solids:
+  update_realized_trips:
+    inputs:
+      gps_path:
+        value: brt_daily.csv
 resources:
   basedosdados_config:
     config:
-      table_id: realized_trips_gps
-      dataset_id: br_rj_riodejaneiro_brt_gtfs
+      table_id: realized_trips
+      dataset_id: br_rj_riodejaneiro_brt_gtfs_gps
   timezone_config:
     config:
       timezone: "America/Sao_Paulo"
@@ -12,4 +17,4 @@ resources:
       success_cron: "00 08 * * *"
   keepalive_key:
     config:
-      key: "br_rj_riodejaneiro_brt_gps"
+      key: "br_rj_riodejaneiro_brt_gtfs_gps"
