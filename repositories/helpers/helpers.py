@@ -52,12 +52,12 @@ def load_module(obj_type: str, module: str, function_list: list):
                 logger.info(f"Imported {obj_type} {func}")
             except Exception as err:
                 logger.info(f"Could not import {obj_type} {func}")
-                traceback.print_tb(err.__traceback__)
-                print(err)
+                logger.info(traceback.print_tb(err.__traceback__))
+                logger.info(err)
 
     except Exception as err:
         logger.info(f"Could not import module {module}")
-        traceback.print_tb(err.__traceback__)
-        print(err)
+        logger.info(traceback.print_tb(err.__traceback__))
+        logger.info(err)
 
     return repository_list
