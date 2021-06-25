@@ -101,7 +101,7 @@ def get_raw(context, url):
     data = None
 
     try:
-        data = requests.get(url, timeout=15)
+        data = requests.get(url, timeout=60)
     except requests.exceptions.ReadTimeout as e:
         raise e
     except Exception as e:

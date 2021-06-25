@@ -3,11 +3,14 @@ from dagster import (
     composite_solid,
     InputDefinition,
     OutputDefinition,
+    SolidExecutionContext,
     Nothing,
     Field,
+    RetryPolicy
 )
 
 from google.cloud import bigquery
+from google.oauth2 import service_account
 from google.api_core.exceptions import Conflict
 from pathlib import Path
 import basedosdados as bd
@@ -15,41 +18,47 @@ import basedosdados as bd
 from repositories.libraries.jinja2.solids import render
 
 
-@solid(
-    input_defs=[InputDefinition("view_sql", str)],
-    output_defs=[OutputDefinition(Nothing)],
-    config_schema={
-        "dataset_id": Field(str, is_required=True),
-        "table_id": Field(str, is_required=True),
-    },
-    required_resource_keys={"bd_client"},
-)
-def create_view(context, view_sql):
+@solid(retry_policy=RetryPolicy(max_retries=3, delay=5))
+def update_view(context: SolidExecutionContext, view_sql: str, table_name: str, delete: bool = False) -> Nothing:
 
-    client = context.resources.bd_client
+    # Table ID can't be empty
+    if table_name is None or table_name == "":
+        raise Exception("Table name can't be None or empty!")
 
-    project_id = client.project
-    dataset_id = context.solid_config["dataset_id"]
-    table_id = context.solid_config["table_id"]
+    # SQL can't be empty if not removing table
+    if (view_sql is None or view_sql == "") and (not delete):
+        raise Exception("Query can't be None or empty!")
 
-    table = bigquery.Table(f"{project_id}.{dataset_id}.{table_id}")
-    table.view_query = view_sql
+    # Setup credentials and BQ client
+    credentials = service_account.Credentials.from_service_account_file(
+        Path.home() / ".basedosdados/credentials/prod.json")
+    client = bigquery.Client(credentials=credentials)
 
-    # Always Overwrite
-    try:
-        client.create_table(table)
-    except Conflict:
-        client.delete_table(table)
-        client.create_table(table)
+    # Delete
+    if (delete):
+        client.delete_table(table_name, not_found_ok=True)
+
+    # Create/update
+    else:
+        table = bigquery.Table(table_name)
+        table.view_query = view_sql
+
+        # Always Overwrite
+        try:
+            client.create_table(table)
+        except Conflict:
+            client.delete_table(table)
+            client.create_table(table)
 
 
 def config_mapping_fn(config):
 
     return {
-        "create_view": {
+        "update_view": {
             "config": {
-                "dataset_id": config["dataset_id"],
-                "table_id": config["table_id"],
+                "view_sql": config["view_sql"],
+                "table_name": config["table_name"],
+                "delete": config["delete"],
             }
         },
         "render": {
@@ -59,22 +68,6 @@ def config_mapping_fn(config):
             }
         },
     }
-
-
-@composite_solid(
-    config_fn=config_mapping_fn,
-    config_schema={
-        "dataset_id": str,
-        "table_id": str,
-        "sql_filepath": str,
-        "sql_context": dict,
-    },
-    input_defs=[InputDefinition("_", Nothing)],
-)
-def render_and_create_view(_):
-
-    sql = render(_)
-    return create_view(sql)
 
 
 @solid(
