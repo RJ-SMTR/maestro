@@ -41,3 +41,15 @@ analises:
     - module: repositories.analises.br_rj_riodejaneiro_brt_gtfs_gps.realized_trips
       objects:
         - br_rj_riodejaneiro_brt_gtfs_gps_realized_trips
+        - br_rj_riodejaneiro_brt_gtfs_gps
+
+queries:
+  pipelines:
+    - module: repositories.queries.pipelines
+      objects:
+        - update_view_on_bigquery
+
+  sensors:
+    - module: repositories.queries.sensors
+      objects:
+        - views_sensor
