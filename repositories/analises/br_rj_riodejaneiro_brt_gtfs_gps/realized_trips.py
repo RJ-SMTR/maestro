@@ -123,7 +123,6 @@ def update_realized_trips(context, gps_data):
     )
 
     unplanned.to_csv(unplanned_filename, index=False)
-    RT = pd.read_csv(rt_filename)
 
     RT["direction_id"] = RT["direction_id"].astype("int64")
 
