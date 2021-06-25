@@ -120,7 +120,8 @@ def update_realized_trips(context, gps_data):
 
     try:
         gps = pd.read_csv(gps_path)
-        gps.drop(["route_id", "dia"], axis=1).to_csv(gps_path, index=False)
+        if "route_id" in gps and "dia" in gps:
+            gps.drop(["route_id", "dia"], axis=1).to_csv(gps_path, index=False)
     except FileNotFoundError:
         pass
 
