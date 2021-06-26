@@ -3,7 +3,7 @@ name: Build, publish and deploy
 on:
   workflow_run:
     workflows: ["Tests"]
-    branches: ["master", "feature/k8s"]
+    branches: [main, feature/k8s]
     types:
       - completed
 
