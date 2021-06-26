@@ -36,7 +36,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           architecture: ${{ matrix.arch }}
       - name: Install dependencies
-        run: pip install wheel && pip install --prefer-binary -r requirements.txt
+        run: pip install wheel && pip install --prefer-binary -r requirements.txt -r requirements-test.txt
       - name: Run tests
         run: |
           pytest
