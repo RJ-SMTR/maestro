@@ -8,7 +8,7 @@ from pathlib import Path
 from datetime import datetime
 from rgtfs import simple
 from repositories.libraries.basedosdados.resources import basedosdados_config, bd_client
-from repositories.analises.resources import gtfs, gps_data
+from repositories.analises.resources import schedule_run_date
 
 
 def date_from_datetime(datetime_str):
@@ -29,18 +29,17 @@ def build_gtfs_version_name(versions, _date):
 
 
 @solid(
-    config_schema={"date": str}, required_resource_keys={"basedosdados_config", "gtfs"}
+    config_schema={"dataset_id": str, "table_id": str, "storage_path": str},
+    required_resource_keys={"schedule_run_date"},
 )
 def download_gtfs_from_storage(context):
 
     bucket = (
-        bd.Storage(
-            context.resources.gtfs["dataset_id"], context.resources.gtfs["table_id"]
-        )
+        bd.Storage(context.solid_config["dataset_id"], context.solid_config["table_id"])
         .client["storage_staging"]
         .bucket("rj-smtr-staging")
     )
-    prefix = context.resources.gtfs["storage_path"]
+    prefix = context.solid_config["storage_path"]
     blobs = [(blob.name, blob) for blob in bucket.list_blobs(prefix=prefix)]
 
     gtfs_versions = list(
@@ -53,7 +52,7 @@ def download_gtfs_from_storage(context):
     )
 
     gtfs_partition = build_gtfs_version_name(
-        gtfs_versions, context.solid_config["date"]
+        gtfs_versions, context.resources.schedule_run_date["date"]
     )
 
     blob_obj = [blob[1] for blob in blobs if (prefix + gtfs_partition) in blob[0]]
@@ -67,22 +66,25 @@ def download_gtfs_from_storage(context):
     return gtfs_path
 
 
-@solid(config_schema={"date": str}, required_resource_keys={"bd_client", "gps_data"})
+@solid(
+    config_schema={"query_table": str},
+    required_resource_keys={"bd_client", "schedule_run_date"},
+)
 def get_daily_brt_gps_data(context, gtfs_path):
+
+    run_date = context.resources.schedule_run_date["date"]
 
     query = f"""
     with brt_daily as (
     SELECT codigo AS vehicle_id, timestamp_gps AS datetime, latitude, longitude, linha
-    FROM {context.resources.gps_data["query_table"]} as t
-    WHERE t.data =  DATE_SUB(DATE("{context.solid_config['date']}"), INTERVAL 1 DAY)
-    OR (t.data = DATE_SUB(DATE("{context.solid_config['date']}"), INTERVAL 2 DAY) AND t.hora BETWEEN 20 AND 23)
+    FROM {context.solid_config["query_table"]} as t
+    WHERE t.data =  DATE_SUB(DATE("{run_date}"), INTERVAL 1 DAY)
+    OR (t.data = DATE_SUB(DATE("{run_date}"), INTERVAL 2 DAY) AND t.hora BETWEEN 20 AND 23)
     )
     SELECT * FROM brt_daily
     """
 
-    gps_path = (
-        f"tmp_data/brt_daily_{date_from_datetime(context.solid_config['date'])}.csv"
-    )
+    gps_path = f"tmp_data/brt_daily_{date_from_datetime(run_date)}.csv"
 
     bd.download(
         savepath=gps_path,
@@ -109,35 +111,36 @@ def drop_overlap(df1, df2):
     return _df
 
 
-def create_or_append_table(table_obj, csv_path, which_table, _df, date, project_id):
-    try:
-        ref = table_obj._get_table_obj("prod")
-    except google.api_core.exceptions.NotFound:
-        ref = None
+def create_or_append_table(context, csv_path, which_table, _df, date):
+    table_obj = Table(
+        dataset_id=context.resources.basedosdados_config["dataset_id"],
+        table_id=which_table,
+    )
     query = f"""SELECT * FROM {table_obj.table_full_name['prod']} as t
             """
-
     if which_table == "realized_trips":
         query += f"""WHERE EXTRACT(DATE FROM t.departure_datetime) = DATE_SUB(DATE("{date}"), INTERVAL 1 DAY)"""
     if which_table == "unplanned":
         query += f"""WHERE DATE(t.dia) = DATE_SUB(DATE("{date}"), INTERVAL 1 DAY)"""
 
+    try:
+        ref = table_obj._get_table_obj("prod")
+    except google.api_core.exceptions.NotFound:
+        ref = None
     if ref:
+        savepath = f"tmp_data/{which_table}_{date}_from_bq.csv"
         bd.download(
-            savepath=f"tmp_data/{which_table}_{date}_from_bq.csv",
+            savepath=savepath,
             query=query,
-            billing_project_id=project_id,
+            billing_project_id=context.resources.bd_client.project,
             from_file=True,
             index=False,
         )
-        tb = pd.read_csv(f"tmp_data/{which_table}_{date}_from_bq.csv")
-        if which_table == "unplanned":
-            _df["n_registros"] = _df["n_registros"].astype("int64")
-        if which_table == "realized_trips":
-            _df["direction_id"] = _df["direction_id"].astype("int64")
 
+        tb = pd.read_csv(savepath)
         df = drop_overlap(tb, _df)
         df.to_csv(csv_path, index=False)
+
         table_obj.append(csv_path, if_exists="replace")
     else:
         _df.to_csv(csv_path, index=False)
@@ -148,54 +151,38 @@ def create_or_append_table(table_obj, csv_path, which_table, _df, date, project_
 
 
 @solid(
-    config_schema={"date": str},
-    required_resource_keys={"basedosdados_config", "bd_client"},
+    required_resource_keys={"basedosdados_config", "bd_client", "schedule_run_date"},
 )
 def update_realized_trips(context, local_paths):
-    date = date_from_datetime(context.solid_config["date"])
-    rt_filename = f"tmp_data/realized_trips_{date}.csv"
-    unplanned_filename = f"tmp_data/unplanned_{date}.csv"
-    rgtfs_path = f"tmp_data/rgtfs_{date}"
-
-    gps_path = local_paths["gps_path"]
-
-    gtfs_path = local_paths["gtfs_path"]
+    date = date_from_datetime(context.resources.schedule_run_date["date"])
+    local_paths["rt_filename"] = f"tmp_data/realized_trips_{date}.csv"
+    local_paths["unplanned_filename"] = f"tmp_data/unplanned_{date}.csv"
+    local_paths["rgtfs_path"] = f"tmp_data/rgtfs_{date}"
 
     realized_trips, unplanned = simple.main(
-        gtfs_path,
-        gps_path,
-        rgtfs_path,
+        local_paths["gtfs_path"],
+        local_paths["gps_path"],
+        local_paths["rgtfs_path"],
         stop_buffer_radius=100,
     )
 
-    realized_tb = Table(
-        dataset_id=context.resources.basedosdados_config["dataset_id"],
-        table_id="realized_trips",
-    )
-    unplanned_tb = Table(
-        dataset_id=context.resources.basedosdados_config["dataset_id"],
-        table_id="unplanned",
-    )
-
     create_or_append_table(
-        table_obj=realized_tb,
-        csv_path=rt_filename,
+        context,
+        csv_path=local_paths["rt_filename"],
         which_table="realized_trips",
         _df=realized_trips,
-        date=context.solid_config["date"],
-        project_id=context.resources.bd_client.project,
+        date=context.resources.schedule_run_date["date"],
     )
     create_or_append_table(
-        table_obj=unplanned_tb,
-        csv_path=unplanned_filename,
+        context,
+        csv_path=local_paths["unplanned_filename"],
         which_table="unplanned",
         _df=unplanned,
-        date=context.solid_config["date"],
-        project_id=context.resources.bd_client.project,
+        date=context.resources.schedule_run_date["date"],
     )
 
     for path in Path("tmp_data").glob(f"*_{date}*"):
-        if str(path) == rgtfs_path:
+        if str(path) == local_paths["rgtfs_path"]:
             shutil.rmtree(path)
         else:
             path.unlink(missing_ok=True)
@@ -208,8 +195,7 @@ def update_realized_trips(context, local_paths):
             resource_defs={
                 "basedosdados_config": basedosdados_config,
                 "bd_client": bd_client,
-                "gtfs": gtfs,
-                "gps_data": gps_data,
+                "schedule_run_date": schedule_run_date,
             },
         )
     ]

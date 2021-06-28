@@ -16,16 +16,8 @@ def br_rj_riodejaneiro_brt_gtfs_gps_realized_trips(date):
     config = read_config(
         Path(__file__).parent / "br_rj_riodejaneiro_brt_gtfs_gps/realized_trips.yaml"
     )
-    solids = [
-        "get_daily_brt_gps_data",
-        "download_gtfs_from_storage",
-        "update_realized_trips",
-    ]
-    solid_config = {
-        "solids": {
-            solid: {"config": {"date": date.strftime("%Y-%m-%d")}} for solid in solids
-        }
+    config["resources"]["schedule_run_date"] = {
+        "config": {"date": date.strftime("%Y-%m-%d")}
     }
-    config.update(solid_config)
 
     return config
