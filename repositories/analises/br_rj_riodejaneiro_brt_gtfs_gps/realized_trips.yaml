@@ -1,20 +1,13 @@
-solids:
-  update_realized_trips:
-    inputs:
-      gps_path:
-        value: brt_daily.csv
 resources:
   basedosdados_config:
     config:
       table_id: realized_trips
       dataset_id: br_rj_riodejaneiro_brt_gtfs_gps
-  timezone_config:
+  gtfs:
     config:
-      timezone: "America/Sao_Paulo"
-  discord_webhook:
+      dataset_id: br_rj_riodejaneiro_gtfs_planned
+      table_id: gtfs_planned
+      storage_path: raw/br_rj_riodejaneiro_gtfs_planned/gtfs_planned/
+  gps_data:
     config:
-      url: "{{ '' | env_override('BRT_DISCORD_WEBHOOK')}}"
-      success_cron: "00 08 * * *"
-  keepalive_key:
-    config:
-      key: "br_rj_riodejaneiro_brt_gtfs_gps"
+      query_table: rj-smtr.br_rj_riodejaneiro_brt_gps.registros_tratada
