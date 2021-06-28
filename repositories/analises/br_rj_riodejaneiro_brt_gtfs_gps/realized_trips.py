@@ -11,9 +11,13 @@ from repositories.libraries.basedosdados.resources import basedosdados_config, b
 from repositories.analises.resources import gtfs, gps_data
 
 
+def date_from_datetime(datetime_str):
+    return datetime.strptime(datetime_str, "%Y-%m-%d").date()
+
+
 def build_gtfs_version_name(versions, _date):
 
-    _date = datetime.strptime(_date, "%Y-%m-%d").date()
+    _date = date_from_datetime(_date)
 
     valid_versions = [v for v in versions if v <= _date]
 
@@ -37,16 +41,10 @@ def download_gtfs_from_storage(context):
         .bucket("rj-smtr-staging")
     )
     prefix = context.resources.gtfs["storage_path"]
-
     blobs = [(blob.name, blob) for blob in bucket.list_blobs(prefix=prefix)]
 
     gtfs_versions = list(
-        set(
-            [
-                datetime.strptime(blob[0].split("=")[1].split("/")[0], "%Y%m%d").date()
-                for blob in blobs
-            ]
-        )
+        set([date_from_datetime(blob[0].split("=")[1].split("/")[0]) for blob in blobs])
     )
 
     gtfs_partition = build_gtfs_version_name(
@@ -77,7 +75,9 @@ def get_daily_brt_gps_data(context, gtfs_path):
     SELECT * FROM brt_daily
     """
 
-    gps_path = f"tmp_data/brt_daily_{context.solid_config['date']}.csv"
+    gps_path = (
+        f"tmp_data/brt_daily_{date_from_datetime(context.solid_config['date'])}.csv"
+    )
 
     bd.download(
         savepath=gps_path,
@@ -147,7 +147,7 @@ def create_or_append_table(table_obj, csv_path, which_table, _df, date, project_
     required_resource_keys={"basedosdados_config", "bd_client"},
 )
 def update_realized_trips(context, local_paths):
-    date = datetime.strptime(context.solid_config["date"], "%Y-%m-%d").date()
+    date = date_from_datetime(context.solid_config["date"])
     rt_filename = f"tmp_data/realized_trips_{date}.csv"
     unplanned_filename = f"tmp_data/unplanned_{date}.csv"
     rgtfs_path = f"tmp_data/rgtfs_{date}"
