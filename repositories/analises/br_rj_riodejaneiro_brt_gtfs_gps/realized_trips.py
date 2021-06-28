@@ -124,13 +124,13 @@ def create_or_append_table(table_obj, csv_path, which_table, _df, date, project_
 
     if ref:
         bd.download(
-            savepath=f"{which_table}_{date}_from_bq.csv",
+            savepath=f"tmp_data/{which_table}_{date}_from_bq.csv",
             query=query,
             billing_project_id=project_id,
             from_file=True,
             index=False,
         )
-        tb = pd.read_csv(f"{which_table}_{date}_from_bq.csv")
+        tb = pd.read_csv(f"tmp_data/{which_table}_{date}_from_bq.csv")
         if which_table == "unplanned":
             _df["n_registros"] = _df["n_registros"].astype("int64")
         if which_table == "realized_trips":
@@ -194,7 +194,7 @@ def update_realized_trips(context, local_paths):
         project_id=context.resources.bd_client.project,
     )
 
-    for path in Path("tmp_data").glob(f"*_{date}"):
+    for path in Path("tmp_data").glob(f"*_{date}*"):
         if str(path) == rgtfs_path:
             shutil.rmtree(path)
         else:
