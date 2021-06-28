@@ -44,7 +44,12 @@ def download_gtfs_from_storage(context):
     blobs = [(blob.name, blob) for blob in bucket.list_blobs(prefix=prefix)]
 
     gtfs_versions = list(
-        set([date_from_datetime(blob[0].split("=")[1].split("/")[0]) for blob in blobs])
+        set(
+            [
+                datetime.strptime(blob[0].split("=")[1].split("/")[0], "%Y%m%d").date()
+                for blob in blobs
+            ]
+        )
     )
 
     gtfs_partition = build_gtfs_version_name(
