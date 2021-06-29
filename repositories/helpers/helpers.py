@@ -11,12 +11,13 @@ from repositories.helpers.logging import logger
 def env_override(value, key):
     return os.getenv(key, value)
 
+
 def read_config(yaml_file):
 
     logger.debug("Setting template folder as {}", Path(yaml_file).parent)
     file_loader = FileSystemLoader(Path(yaml_file).parent)
     env = Environment(loader=file_loader)
-    env.filters['env_override'] = env_override
+    env.filters["env_override"] = env_override
 
     logger.debug("Setting template as {}", os.path.basename(yaml_file))
     template = env.get_template(os.path.basename(yaml_file))
@@ -51,12 +52,12 @@ def load_module(obj_type: str, module: str, function_list: list):
                 logger.info(f"Imported {obj_type} {func}")
             except Exception as err:
                 logger.info(f"Could not import {obj_type} {func}")
-                traceback.print_tb(err.__traceback__)
-                print(err)
+                logger.info(traceback.print_tb(err.__traceback__))
+                logger.info(err)
 
     except Exception as err:
         logger.info(f"Could not import module {module}")
-        traceback.print_tb(err.__traceback__)
-        print(err)
+        logger.info(traceback.print_tb(err.__traceback__))
+        logger.info(err)
 
     return repository_list
