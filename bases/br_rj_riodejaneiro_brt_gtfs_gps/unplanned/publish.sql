@@ -19,9 +19,9 @@ TIPOS:
 
 */
 
-CREATE VIEW rj-smtr-dev.br_rj_riodejaneiro_brt_gtfs_gps.unplanned AS
+CREATE VIEW rj-smtr.br_rj_riodejaneiro_brt_gtfs_gps.unplanned AS
 SELECT 
 SAFE_CAST(linha AS STRING) linha,
 SAFE_CAST(n_registros AS INT64) n_registros,
 SAFE_CAST(dia AS DATE) dia
-from rj-smtr-dev.br_rj_riodejaneiro_brt_gtfs_gps_staging.unplanned as t
+from rj-smtr-staging.br_rj_riodejaneiro_brt_gtfs_gps_staging.unplanned as t

@@ -19,7 +19,7 @@ TIPOS:
 
 */
 
-CREATE VIEW rj-smtr-dev.br_rj_riodejaneiro_brt_gtfs_gps.realized_trips AS
+CREATE VIEW rj-smtr.br_rj_riodejaneiro_brt_gtfs_gps.realized_trips AS
 SELECT 
 SAFE_CAST(vehicle_id AS STRING) vehicle_id,
 SAFE_CAST(route_id AS STRING) route_id,
@@ -28,4 +28,4 @@ SAFE_CAST(service_id AS STRING) service_id,
 SAFE_CAST(trip_id AS STRING) trip_id,
 SAFE_CAST(departure_datetime AS DATETIME) departure_datetime,
 SAFE_CAST(arrival_datetime AS DATETIME) arrival_datetime
-from rj-smtr-dev.br_rj_riodejaneiro_brt_gtfs_gps_staging.realized_trips as t
+from rj-smtr-staging.br_rj_riodejaneiro_brt_gtfs_gps_staging.realized_trips as t
