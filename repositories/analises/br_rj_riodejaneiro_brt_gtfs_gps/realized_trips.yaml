@@ -1,0 +1,14 @@
+solids:
+  download_gtfs_from_storage:
+    config:
+      dataset_id: br_rj_riodejaneiro_gtfs_planned
+      table_id: gtfs_planned
+      storage_path: raw/br_rj_riodejaneiro_gtfs_planned/gtfs_planned/
+  get_daily_brt_gps_data:
+    config:
+      query_table: rj-smtr.br_rj_riodejaneiro_brt_gps.registros_tratada
+resources:
+  basedosdados_config:
+    config:
+      table_id: realized_trips
+      dataset_id: br_rj_riodejaneiro_brt_gtfs_gps
