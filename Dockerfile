@@ -11,17 +11,23 @@ RUN pip install --no-cache-dir -r requirements.txt
 ENV DAGSTER_HOME=/opt/dagster/dagster_home
 RUN mkdir -p $DAGSTER_HOME
 
+# Create basedosdados directories and mount directories for actual credentials
+RUN mkdir -p /root/.basedosdados/templates
+RUN mkdir -p /root/.basedosdados_mount/credentials
+RUN touch /root/.basedosdados_mount/config.toml
+RUN ln -s /root/.basedosdados_mount/config.toml /root/.basedosdados/config.toml
+RUN ln -s /root/.basedosdados_mount/credentials /root/.basedosdados/credentials
+
 COPY .dagster_workspace/dagster.yaml $DAGSTER_HOME
 
 # Add repository code
 WORKDIR /opt/dagster/app
 COPY bases/ /opt/dagster/app/bases/
-COPY data/ /opt/dagster/app/data/
 COPY repositories/ /opt/dagster/app/repositories/
 
 # Run dagster gRPC server on port 4000
-EXPOSE 4000
+EXPOSE 3030
 
 # CMD allows this to be overridden from run launchers or executors that want
 # to run other commands against your repository
-CMD ["dagster", "api", "grpc", "-h", "0.0.0.0", "-p", "4000", "-f", "repositories/repository.py"]
+CMD ["dagster", "api", "grpc", "-h", "0.0.0.0", "-p", "3030", "-f", "repositories/repository.py"]
