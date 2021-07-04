@@ -1,6 +1,6 @@
 from dagster import resource, Field
 
-from basedosdados.base import Base
+from basedosdados.upload.base import Base
 
 
 @resource

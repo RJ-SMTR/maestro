@@ -21,7 +21,7 @@ def views_sensor(context: SensorExecutionContext):
     is triggered. This ensures BQ views are always up-to-date.
     """
     # Start RedisPal (we use that to check on deleted files)
-    rp: RedisPal = RedisPal(host="redis")
+    rp: RedisPal = RedisPal(host="dagster-redis-master")
 
     # Get last modification time
     last_mtime = parse_run_key(context.last_run_key)[
