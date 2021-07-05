@@ -136,7 +136,7 @@ def create_or_append_table(context, csv_path, which_table, _df, date):
             index=False,
         )
 
-        tb = pd.read_csv(savepath, parse_dates=parse_dates)
+        tb = pd.read_csv(savepath)
         df = drop_overlap(tb, _df)
         df.to_csv(csv_path, index=False)
 
