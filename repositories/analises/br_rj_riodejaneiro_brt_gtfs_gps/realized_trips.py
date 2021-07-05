@@ -98,9 +98,8 @@ def get_daily_brt_gps_data(context, gtfs_path):
 
 
 def drop_overlap(df1, df2):
-
-    for col in df1.columns:
-        df2[col] = df2[col].astype(df1[col].dtypes.name)
+    df1 = df1.astype("string")
+    df2 = df2.astype("string")
 
     _df = df1.merge(df2, on=df2.columns.to_list(), how="right", indicator=True)
 
@@ -165,6 +164,8 @@ def update_realized_trips(context, local_paths):
         local_paths["rgtfs_path"],
         stop_buffer_radius=100,
     )
+    # Convert direction_id to int
+    realized_trips["direction_id"] = realized_trips["direction_id"].astype("int64")
 
     create_or_append_table(
         context,
