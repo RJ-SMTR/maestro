@@ -119,10 +119,8 @@ def create_or_append_table(context, csv_path, which_table, _df, date):
             """
     if which_table == "realized_trips":
         query += f"""WHERE EXTRACT(DATE FROM t.departure_datetime) = DATE_SUB(DATE("{date}"), INTERVAL 1 DAY)"""
-        parse_dates = ["departure_datetime", "arrival_datetime"]
     if which_table == "unplanned":
         query += f"""WHERE DATE(t.dia) = DATE_SUB(DATE("{date}"), INTERVAL 1 DAY)"""
-        parse_dates = ["dia"]
 
     try:
         ref = table_obj._get_table_obj("prod")
