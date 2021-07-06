@@ -70,11 +70,8 @@ def upload_success_to_BQ(context: HookContext):
         dataset_id=context.resources.basedosdados_config["dataset_id"],
         table_id=context.resources.basedosdados_config["table_id"] + "_logs",
         filepath=filepath,
-        table_config="replace",
+        table_config="pass",
     )
-    message = f"Solid {context.solid.name} finished sucessfully, uploading to BQ"
-    url = context.resources.discord_webhook["url"]
-    requests.post(url, data={"content": message})
 
 
 @failure_hook(required_resource_keys={"basedosdados_config"})
@@ -94,6 +91,3 @@ def upload_failure_to_BQ(context: HookContext):
         filepath=filepath,
         table_config="replace",
     )
-    message = f"Solid {context.solid.name} failed, uploading to BQ"
-    url = context.resources.discord_webhook["url"]
-    requests.post(url, data={"content": message})
