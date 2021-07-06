@@ -15,7 +15,14 @@ from repositories.capturas.resources import (
 from repositories.libraries.basedosdados.resources import (
     basedosdados_config,
 )
-from repositories.helpers.hooks import discord_message_on_failure, discord_message_on_success, redis_keepalive_on_failure, redis_keepalive_on_succes
+from repositories.helpers.hooks import (
+    discord_message_on_failure,
+    discord_message_on_success,
+    redis_keepalive_on_failure,
+    redis_keepalive_on_succes,
+    upload_success_to_BQ,
+    upload_failure_to_BQ,
+)
 from repositories.capturas.solids import (
     create_current_datetime_partition,
     get_file_path_and_partitions,
@@ -41,8 +48,9 @@ def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data):
     timestamp_captura = pd.to_datetime(pendulum.now(timezone).isoformat())
     df["timestamp_captura"] = timestamp_captura
     df["dataHora"] = df["dataHora"].apply(
-        lambda ms: pd.to_datetime(pendulum.from_timestamp(
-            ms / 1000.0, timezone).isoformat())
+        lambda ms: pd.to_datetime(
+            pendulum.from_timestamp(ms / 1000.0, timezone).isoformat()
+        )
     )
 
     return df
@@ -52,13 +60,18 @@ def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data):
 @discord_message_on_success
 @redis_keepalive_on_failure
 @redis_keepalive_on_succes
+@upload_success_to_BQ
+@upload_failure_to_BQ
 @pipeline(
     mode_defs=[
         ModeDefinition(
-            "dev", resource_defs={"basedosdados_config": basedosdados_config,
-                                  "timezone_config": timezone_config,
-                                  "discord_webhook": discord_webhook,
-                                  "keepalive_key": keepalive_key}
+            "dev",
+            resource_defs={
+                "basedosdados_config": basedosdados_config,
+                "timezone_config": timezone_config,
+                "discord_webhook": discord_webhook,
+                "keepalive_key": keepalive_key,
+            },
         ),
     ],
     # tags={"dagster/priority": "10"}
