@@ -19,9 +19,9 @@ TIPOS:
 
 */
 
-CREATE VIEW rj-smtr-dev.br_rj_riodejaneiro_onibus_gps.registros_logs AS
+CREATE VIEW rj-smtr.br_rj_riodejaneiro_onibus_gps.registros_logs AS
 SELECT 
 SAFE_CAST(timestamp AS DATETIME) timestamp,
 SAFE_CAST(sucesso AS BOOLEAN) sucesso,
 SAFE_CAST(erro AS STRING) erro
-from rj-smtr-dev.br_rj_riodejaneiro_onibus_gps_staging.registros_logs as t
+from rj-smtr-staging.br_rj_riodejaneiro_onibus_gps.registros_logs as t
