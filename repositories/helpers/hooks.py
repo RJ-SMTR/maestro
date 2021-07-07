@@ -58,36 +58,39 @@ def upload_logs_to_bq(dataset_id, table_id, filepath, table_config):
     tb.publish(if_exists="pass")
 
 
-@success_hook(required_resource_keys={"basedosdados_config"})
+@success_hook(required_resource_keys={"basedosdados_config", "timezone_config"})
 def upload_success_to_BQ(context: HookContext):
+    if context.solid.name == "get_raw":
+        run_time = context.resources.timezone_config["run_datetime"]
+        df = pd.DataFrame(
+            {"timestamp_captura": [run_time], "sucesso": [True], "erro": [""]}
+        )
+        filepath = f"success_hook_{run_time}.csv"
+        df.to_csv(filepath, index=False)
+        upload_logs_to_bq(
+            dataset_id=context.resources.basedosdados_config["dataset_id"],
+            table_id=context.resources.basedosdados_config["table_id"] + "_logs",
+            filepath=filepath,
+            table_config="pass",
+        )
 
-    df = pd.DataFrame(
-        {"timestamp_captura": [pendulum.now()], "sucesso": [True], "erro": [""]}
-    )
-    filepath = f"success_hook_{pendulum.now()}.csv"
-    df.to_csv(filepath, index=False)
-    upload_logs_to_bq(
-        dataset_id=context.resources.basedosdados_config["dataset_id"],
-        table_id=context.resources.basedosdados_config["table_id"] + "_logs",
-        filepath=filepath,
-        table_config="pass",
-    )
 
-
-@failure_hook(required_resource_keys={"basedosdados_config"})
+@failure_hook(required_resource_keys={"basedosdados_config", "timezone_config"})
 def upload_failure_to_BQ(context: HookContext):
-    df = pd.DataFrame(
-        {
-            "timestamp_captura": [pendulum.now()],
-            "sucesso": [False],
-            "erro": [context.solid_exception],
-        }
-    )
-    filepath = f"failure_hook_{pendulum.now()}.csv"
-    df.to_csv(filepath, index=False)
-    upload_logs_to_bq(
-        dataset_id=context.resources.basedosdados_config["dataset_id"],
-        table_id=context.resources.basedosdados_config["table_id"] + "_logs",
-        filepath=filepath,
-        table_config="replace",
-    )
+    if context.solid.name == "get_raw":
+        run_time = context.resources.timezone_config["run_datetime"]
+        df = pd.DataFrame(
+            {
+                "timestamp_captura": [run_time],
+                "sucesso": [False],
+                "erro": [context.solid_exception],
+            }
+        )
+        filepath = f"failure_hook_{run_time}.csv"
+        df.to_csv(filepath, index=False)
+        upload_logs_to_bq(
+            dataset_id=context.resources.basedosdados_config["dataset_id"],
+            table_id=context.resources.basedosdados_config["table_id"] + "_logs",
+            filepath=filepath,
+            table_config="replace",
+        )

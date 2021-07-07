@@ -1,3 +1,4 @@
+from datetime import time, timezone
 from dagster import (
     solid,
     Output,
@@ -15,6 +16,7 @@ from openpyxl import load_workbook
 import re
 
 import basedosdados as bd
+from basedosdados.table import Table
 
 # Temporario, essa funcao vai ser incorporada a base dos dados
 from repositories.helpers.storage import StoragePlus
@@ -79,8 +81,7 @@ def parse_file_path_and_partitions(context, bucket_path):
 
     # Parse bucket to get partitions
     partitions = re.findall("\/([^\/]*?)=(.*?)(?=\/)", bucket_path)
-    partitions = "/".join(["=".join([field for field in item])
-                          for item in partitions])
+    partitions = "/".join(["=".join([field for field in item]) for item in partitions])
 
     # Get data folder from environment variable
     data_folder = os.getenv("DATA_FOLDER", "data")
@@ -95,26 +96,71 @@ def parse_file_path_and_partitions(context, bucket_path):
     yield Output(partitions, output_name="partitions")
 
 
+def upload_logs_to_bq(dataset_id, table_id, timestamp, error=None):
+    filepath = f"{table_id}_{timestamp}.csv"
+
+    df = pd.DataFrame(
+        {"timestamp": [timestamp], "sucesso": [error is None], "erro": [error]}
+    )
+
+    df.to_csv(filepath, index=False)
+    tb = Table(table_id, dataset_id)
+    tb.create(
+        path=filepath,
+        if_table_exists="replace",
+        if_storage_data_exists="replace",
+        if_table_config_exists="pass",
+    )
+    tb.publish(if_exists="pass")
+    Path(filepath).unlink(missing_ok=True)
+
+
 @solid
 def get_raw(context, url):
 
     data = None
+    error = None
+    dataset_id = context.resources.basedosdados_config["dataset_id"]
+    table_id = context.resources.basedosdados_config["table_id"] + "_logs"
 
     try:
         data = requests.get(url, timeout=60)
     except requests.exceptions.ReadTimeout as e:
+        error = e
         raise e
     except Exception as e:
-        raise Exception(
-            f"Unknown exception while trying to fetch data from {url}: {e}")
+        error = e
+        raise Exception(f"Unknown exception while trying to fetch data from {url}: {e}")
+    finally:
+        timestamp = pendulum.now(timezone=context.resources.timezone_config["timezone"])
+        upload_logs_to_bq(
+            timestamp,
+            dataset_id=dataset_id,
+            table_id=table_id,
+            error=error,
+        )
 
     if data is None:
-        raise Exception(f"Data from API is none!")
+        msg = f"Data from API is none!"
+        upload_logs_to_bq(
+            timestamp,
+            dataset_id=dataset_id,
+            table_id=table_id,
+            error=msg,
+        )
+        raise Exception(msg)
 
     if data.ok:
-        return data
+        return data, timestamp
     else:
-        raise Exception(f"Requests failed with error {data.status_code}")
+        msg = f"Requests failed with error {data.status_code}"
+        upload_logs_to_bq(
+            timestamp,
+            dataset_id=dataset_id,
+            table_id=table_id,
+            error=msg,
+        )
+        raise Exception(msg)
 
 
 @solid
@@ -237,8 +283,7 @@ def upload_file_to_storage(
     context.log.debug(
         f"Uploading file {file_path} to mode {mode} with partitions {partitions}"
     )
-    st.upload(path=file_path, mode=mode,
-              partitions=partitions, if_exists="replace")
+    st.upload(path=file_path, mode=mode, partitions=partitions, if_exists="replace")
 
     return True
 

@@ -1,3 +1,4 @@
+from datetime import time
 from dagster import (
     solid,
     pipeline,
@@ -20,8 +21,6 @@ from repositories.helpers.hooks import (
     discord_message_on_success,
     redis_keepalive_on_failure,
     redis_keepalive_on_succes,
-    upload_success_to_BQ,
-    upload_failure_to_BQ,
 )
 from repositories.capturas.solids import (
     create_current_datetime_partition,
@@ -39,13 +38,13 @@ from repositories.libraries.basedosdados.solids import (
 @solid(
     required_resource_keys={"basedosdados_config", "timezone_config"},
 )
-def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data):
+def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data, timestamp):
 
     timezone = context.resources.timezone_config["timezone"]
 
     data = data.json()
     df = pd.DataFrame(data["veiculos"])
-    timestamp_captura = pd.to_datetime(pendulum.now(timezone).isoformat())
+    timestamp_captura = timestamp
     df["timestamp_captura"] = timestamp_captura
     df["dataHora"] = df["dataHora"].apply(
         lambda ms: pd.to_datetime(
@@ -60,8 +59,6 @@ def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data):
 @discord_message_on_success
 @redis_keepalive_on_failure
 @redis_keepalive_on_succes
-@upload_success_to_BQ
-@upload_failure_to_BQ
 @pipeline(
     mode_defs=[
         ModeDefinition(
