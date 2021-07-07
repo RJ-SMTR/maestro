@@ -44,7 +44,7 @@ def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data, timestamp):
 
     data = data.json()
     df = pd.DataFrame(data["veiculos"])
-    timestamp_captura = timestamp
+    timestamp_captura = pd.to_datetime(timestamp)
     df["timestamp_captura"] = timestamp_captura
     df["dataHora"] = df["dataHora"].apply(
         lambda ms: pd.to_datetime(
@@ -78,11 +78,11 @@ def br_rj_riodejaneiro_brt_gps_registros():
     filename, partitions = create_current_datetime_partition()
     file_path = get_file_path_and_partitions(filename, partitions)
 
-    data = get_raw()
+    data, timestamp = get_raw()
 
     raw_file_path = save_raw_local(data, file_path)
 
-    treated_data = pre_treatment_br_rj_riodejaneiro_brt_gps(data)
+    treated_data = pre_treatment_br_rj_riodejaneiro_brt_gps(data, timestamp)
 
     treated_file_path = save_treated_local(treated_data, file_path)
 
