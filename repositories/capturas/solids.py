@@ -111,11 +111,14 @@ def upload_logs_to_bq(dataset_id, table_id, timestamp, error=None):
         if_storage_data_exists="replace",
         if_table_config_exists="pass",
     )
-    tb.publish(if_exists="pass")
+    tb.publish(if_exists="replace")
     Path(filepath).unlink(missing_ok=True)
 
 
-@solid
+@solid(
+    output_defs=[OutputDefinition(name="data"), OutputDefinition(name="timestamp")],
+    required_resource_keys={"basedosdados_config", "timezone_config"},
+)
 def get_raw(context, url):
 
     data = None
@@ -132,32 +135,33 @@ def get_raw(context, url):
         error = e
         raise Exception(f"Unknown exception while trying to fetch data from {url}: {e}")
     finally:
-        timestamp = pendulum.now(timezone=context.resources.timezone_config["timezone"])
+        timestamp = pendulum.now(context.resources.timezone_config["timezone"])
         upload_logs_to_bq(
-            timestamp,
             dataset_id=dataset_id,
             table_id=table_id,
+            timestamp=timestamp,
             error=error,
         )
 
     if data is None:
         msg = f"Data from API is none!"
         upload_logs_to_bq(
-            timestamp,
             dataset_id=dataset_id,
             table_id=table_id,
+            timestamp=timestamp,
             error=msg,
         )
         raise Exception(msg)
 
     if data.ok:
-        return data, timestamp
+        yield Output(data, output_name="data")
+        yield Output(timestamp.isoformat(), output_name="timestamp")
     else:
         msg = f"Requests failed with error {data.status_code}"
         upload_logs_to_bq(
-            timestamp,
             dataset_id=dataset_id,
             table_id=table_id,
+            timestamp=timestamp,
             error=msg,
         )
         raise Exception(msg)
