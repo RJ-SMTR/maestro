@@ -62,7 +62,7 @@ class RedisPalWdt (RedisPal):
 
 if __name__ == "__main__":
     try:
-        wdt = RedisPalWdt(host="redis")
+        wdt = RedisPalWdt(host="dagster-redis-master")
         wdt.setup()
         wdt.cooldown()
         while True:
