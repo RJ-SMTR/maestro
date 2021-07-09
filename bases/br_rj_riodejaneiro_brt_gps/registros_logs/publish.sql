@@ -19,10 +19,10 @@ TIPOS:
 
 */
 
-CREATE VIEW rj-smtr-dev.br_rj_riodejaneiro_brt_gps.registros_logs AS
+CREATE VIEW rj-smtr.br_rj_riodejaneiro_brt_gps.registros_logs AS
 SELECT 
-SAFE_CAST(DATETiME(TIMESTAMP(timestamp_captura), "America/Sao_Paulo") AS DATETIME) timestamp_captura,
+SAFE_CAST(DATETIME(TIMESTAMP(timestamp_captura), "America/Sao_Paulo") AS DATETIME) timestamp_captura,
 SAFE_CAST(sucesso AS BOOLEAN) sucesso,
 SAFE_CAST(erro AS STRING) erro,
 SAFE_CAST(data AS DATE) data
-from rj-smtr-dev.br_rj_riodejaneiro_brt_gps_staging.registros_logs as t
+from rj-smtr-staging.br_rj_riodejaneiro_brt_gps.registros_logs as t

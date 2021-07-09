@@ -1,6 +1,6 @@
-source_bucket_name: rj-smtr-dev
-project_id_staging: rj-smtr-dev
-project_id_prod: rj-smtr-dev
+source_bucket_name: rj-smtr-staging
+project_id_staging: rj-smtr-staging
+project_id_prod: rj-smtr
 table_id: registros_logs # AUTO GENERATED
 dataset_id: br_rj_riodejaneiro_brt_gps # AUTO GENERATED
 
