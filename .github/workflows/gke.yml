@@ -54,6 +54,7 @@ jobs:
           propertyPath: "deployments.0.image.repository"
           value: gcr.io/$PROJECT_ID/$IMAGE
           commitChange: false
+          updateFile: true
 
       - name: Update image tag on values.yaml for dagster-user-deployments
         uses: fjogeleit/yaml-update-action@master
@@ -62,6 +63,7 @@ jobs:
           propertyPath: "deployments.0.image.tag"
           value: $GITHUB_SHA
           commitChange: false
+          updateFile: true
 
       - name: Deploy
         run: |-
