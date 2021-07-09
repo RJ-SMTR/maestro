@@ -10,7 +10,7 @@ resources:
       dataset_id: br_rj_riodejaneiro_onibus_gps
   timezone_config:
     config:
-      timezone: ""
+      timezone: "America/Sao_Paulo"
   discord_webhook:
     config:
       url: "{{ '' | env_override('SPPO_DISCORD_WEBHOOK')}}"

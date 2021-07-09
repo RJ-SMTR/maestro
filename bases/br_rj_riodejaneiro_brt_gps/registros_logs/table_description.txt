@@ -15,6 +15,10 @@ Código: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejanei
 -----------
 Nome: <nome>
 
+Partições (Filtre a tabela por essas colunas para economizar dinheiro e tempo)
+---------
+- data
+
 
 
 
