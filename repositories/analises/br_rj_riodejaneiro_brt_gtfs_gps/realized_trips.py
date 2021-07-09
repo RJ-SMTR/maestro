@@ -3,7 +3,7 @@ import pandas as pd
 import basedosdados as bd
 import google.api_core.exceptions
 from dagster import solid, pipeline, ModeDefinition
-from basedosdados.table import Table
+from basedosdados import Table
 from pathlib import Path
 from datetime import datetime
 from rgtfs import simple

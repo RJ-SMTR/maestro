@@ -2,7 +2,7 @@ dagster
 dagit
 pandas
 alembic
-basedosdados==1.5.0
+basedosdados==1.5.5a2
 dagster-postgres
 openpyxl
 xlrd
