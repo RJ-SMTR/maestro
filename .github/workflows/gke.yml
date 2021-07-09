@@ -51,7 +51,7 @@ jobs:
         uses: fjogeleit/yaml-update-action@master
         with:
           valueFile: "gke/dagster-user-deployments-values.yaml"
-          propertyPath: "deployments[0].image.repository"
+          propertyPath: "deployments.0.image.repository"
           value: gcr.io/$PROJECT_ID/$IMAGE
           commitChange: false
 
@@ -59,7 +59,7 @@ jobs:
         uses: fjogeleit/yaml-update-action@master
         with:
           valueFile: "gke/dagster-user-deployments-values.yaml"
-          propertyPath: "deployments[0].image.tag"
+          propertyPath: "deployments.0.image.tag"
           value: $GITHUB_SHA
           commitChange: false
 
