@@ -21,7 +21,7 @@ TIPOS:
 
 CREATE VIEW rj-smtr-dev.br_rj_riodejaneiro_onibus_gps.registros_logs AS
 SELECT 
-SAFE_CAST(DATETME(TIMESTAMP(timestamp_captura), "America/Sao_Paulo") AS DATETIME) timestamp_captura,
+SAFE_CAST(DATETiME(TIMESTAMP(timestamp_captura), "America/Sao_Paulo") AS DATETIME) timestamp_captura,
 SAFE_CAST(sucesso AS BOOLEAN) sucesso,
 SAFE_CAST(erro AS STRING) erro,
 SAFE_CAST(data AS DATE) data
