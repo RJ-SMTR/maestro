@@ -11,12 +11,13 @@ import json
 import pendulum
 import pandas as pd
 from pathlib import Path
+import shutil
 import os
 from openpyxl import load_workbook
 import re
 
 import basedosdados as bd
-from basedosdados.table import Table
+from basedosdados import Table
 
 # Temporario, essa funcao vai ser incorporada a base dos dados
 from repositories.helpers.storage import StoragePlus
@@ -97,22 +98,32 @@ def parse_file_path_and_partitions(context, bucket_path):
 
 
 def upload_logs_to_bq(dataset_id, table_id, timestamp, error=None):
-    filepath = f"{table_id}_{timestamp}.csv"
-
+    filepath = Path(f"{table_id}/data={timestamp.date()}/{table_id}_{timestamp}.csv")
+    # create partition directory
+    filepath.parent.mkdir(exist_ok=True,parents=True)
+    # create dataframe to be uploaded
     df = pd.DataFrame(
-        {"timestamp": [timestamp], "sucesso": [error is None], "erro": [error]}
+        {"timestamp_captura": [pd.to_datetime(timestamp.isoformat())], "sucesso": [error is None], "erro": [error]}
     )
-
+    # save local
     df.to_csv(filepath, index=False)
+    # BD Table object
     tb = Table(table_id, dataset_id)
-    tb.create(
-        path=filepath,
-        if_table_exists="replace",
-        if_storage_data_exists="replace",
-        if_table_config_exists="pass",
-    )
-    tb.publish(if_exists="replace")
-    Path(filepath).unlink(missing_ok=True)
+    # create and publish if table does not exist, append to it otherwise
+    if not tb.table_exists("staging"):
+        tb.create(
+            path=table_id,
+            if_table_exists="replace",
+            if_storage_data_exists="replace",
+            if_table_config_exists="pass",
+        )
+        tb.publish(if_exists="replace")
+    else:
+        tb.append(filepath=table_id,if_exists='replace')
+
+    # delete local file
+    shutil.rmtree(table_id)
+    
 
 
 @solid(
@@ -125,7 +136,7 @@ def get_raw(context, url):
     error = None
     dataset_id = context.resources.basedosdados_config["dataset_id"]
     table_id = context.resources.basedosdados_config["table_id"] + "_logs"
-
+    timestamp = pendulum.now(context.resources.timezone_config["timezone"])
     try:
         data = requests.get(url, timeout=60)
     except requests.exceptions.ReadTimeout as e:
@@ -135,7 +146,6 @@ def get_raw(context, url):
         error = e
         raise Exception(f"Unknown exception while trying to fetch data from {url}: {e}")
     finally:
-        timestamp = pendulum.now(context.resources.timezone_config["timezone"])
         upload_logs_to_bq(
             dataset_id=dataset_id,
             table_id=table_id,
@@ -144,27 +154,27 @@ def get_raw(context, url):
         )
 
     if data is None:
-        msg = f"Data from API is none!"
+        error = f"Data from API is none!"
         upload_logs_to_bq(
             dataset_id=dataset_id,
             table_id=table_id,
             timestamp=timestamp,
-            error=msg,
+            error=error,
         )
-        raise Exception(msg)
+        raise Exception(error)
 
     if data.ok:
         yield Output(data, output_name="data")
         yield Output(timestamp.isoformat(), output_name="timestamp")
     else:
-        msg = f"Requests failed with error {data.status_code}"
+        error = f"Requests failed with error {data.status_code}"
         upload_logs_to_bq(
             dataset_id=dataset_id,
             table_id=table_id,
             timestamp=timestamp,
-            error=msg,
+            error=error,
         )
-        raise Exception(msg)
+        raise Exception(error)
 
 
 @solid
