@@ -117,6 +117,7 @@ def upload_logs_to_bq(dataset_id, table_id, timestamp, error=None):
             if_storage_data_exists="replace",
             if_table_config_exists="pass",
         )
+    elif not tb.table_exists("prod"):
         tb.publish(if_exists="replace")
     else:
         tb.append(filepath=table_id,if_exists='replace')
