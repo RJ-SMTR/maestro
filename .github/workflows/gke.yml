@@ -52,7 +52,7 @@ jobs:
         with:
           valueFile: "gke/dagster-user-deployments-values.yaml"
           propertyPath: "deployments.0.image.repository"
-          value: gcr.io/$PROJECT_ID/$IMAGE
+          value: gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE }}
           commitChange: false
           updateFile: true
 
@@ -61,7 +61,7 @@ jobs:
         with:
           valueFile: "gke/dagster-user-deployments-values.yaml"
           propertyPath: "deployments.0.image.tag"
-          value: $GITHUB_SHA
+          value: ${{ env.GITHUB_SHA }}
           commitChange: false
           updateFile: true
 
