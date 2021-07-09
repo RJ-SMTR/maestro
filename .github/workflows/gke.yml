@@ -9,7 +9,7 @@ on:
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
-  GKE_CLUSTER: sandbox
+  GKE_CLUSTER: ${{ secrets.GKE_CLUSTER_NAME }}
   GKE_ZONE: us-central1-c
   IMAGE: maestro-user-code
 
@@ -46,3 +46,24 @@ jobs:
       - name: Publish Docker image
         run: |-
           docker push "gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA"
+
+      - name: Update image repository on values.yaml for dagster-user-deployments
+        uses: fjogeleit/yaml-update-action@master
+        with:
+          valueFile: "gke/dagster-user-deployments-values.yaml"
+          propertyPath: "deployments[0].image.repository"
+          value: gcr.io/$PROJECT_ID/$IMAGE
+          commitChange: false
+
+      - name: Update image tag on values.yaml for dagster-user-deployments
+        uses: fjogeleit/yaml-update-action@master
+        with:
+          valueFile: "gke/dagster-user-deployments-values.yaml"
+          propertyPath: "deployments[0].image.tag"
+          value: $GITHUB_SHA
+          commitChange: false
+
+      - name: Deploy
+        run: |-
+          helm upgrade --install user-code ./helm/dagster-user-deployments/ -f gke/dagster-user-deployments-values.yaml -n dagster
+          kubectl get services -n dagster -o wide

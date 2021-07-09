@@ -1,0 +1,20 @@
+apiVersion: v2
+appVersion: 0.11.15
+description: A chart to deploy Dagster User Code deployments.
+icon: https://dagster.io/images/logo.png
+keywords:
+- analytics
+- data-orchestrator
+- data-pipelines
+- etl
+- workflow
+kubeVersion: '>= 1.15.0-0'
+maintainers:
+- email: rex@elementl.com
+  name: Rex Ledesma
+  url: https://dagster.io
+name: dagster-user-deployments
+sources:
+- https://github.com/dagster-io/dagster/tree/master/helm/dagster/charts/dagster-user-deployments
+type: application
+version: 0.11.15
