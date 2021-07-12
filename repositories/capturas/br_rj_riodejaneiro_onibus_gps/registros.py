@@ -24,6 +24,7 @@ from repositories.capturas.solids import (
     get_raw,
     save_raw_local,
     save_treated_local,
+    upload_logs_to_bq,
 )
 
 from repositories.libraries.basedosdados.solids import (
@@ -71,7 +72,9 @@ def br_rj_riodejaneiro_onibus_gps_registros():
     filename, partitions = create_current_datetime_partition()
     file_path = get_file_path_and_partitions(filename, partitions)
 
-    data, timestamp = get_raw()
+    data, timestamp, error = get_raw()
+
+    upload_logs_to_bq(timestamp,error)
 
     raw_file_path = save_raw_local(data, file_path)
 
