@@ -10,7 +10,7 @@ WITH paradas as (
 onibus_parados AS (
   select
     *, ST_GEOGPOINT(longitude, latitude) ponto_carro
-  from `rj-smtr.dashboard_monitoramento_brt.velocidade_carro` 
+  from `rj-smtr.br_rj_riodejaneiro_brt_gps.aux_registros_velocidade_carro` 
   ),
 distancia AS (
   SELECT 
