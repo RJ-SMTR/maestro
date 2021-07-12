@@ -95,14 +95,22 @@ def parse_file_path_and_partitions(context, bucket_path):
     yield Output(file_path, output_name="file_path")
     yield Output(partitions, output_name="partitions")
 
+def output_error(timestamp,error):
+    yield Output(timestamp.isoformat(), output_name="timestamp")
+    yield Output(error, output_name="error")
 
-def upload_logs_to_bq(dataset_id, table_id, timestamp, error=None):
-    filepath = Path(f"{table_id}/data={timestamp.date()}/{table_id}_{timestamp}.csv")
+@solid(required_resource_keys = {'basedosdados_config', 'timezone_config'})
+def upload_logs_to_bq(context,timestamp, error):
+    
+    dataset_id = context.resources.basedosdados_config['dataset_id']
+    table_id = context.resources.basedosdados_config['table_id'] + "_logs"
+
+    filepath = Path(f"{table_id}/data={pendulum.parse(timestamp).date()}/{table_id}_{timestamp}.csv")
     # create partition directory
     filepath.parent.mkdir(exist_ok=True,parents=True)
     # create dataframe to be uploaded
     df = pd.DataFrame(
-        {"timestamp_captura": [pd.to_datetime(timestamp.isoformat())], "sucesso": [error is None], "erro": [error]}
+        {"timestamp_captura": [pd.to_datetime(timestamp)], "sucesso": [error is None], "erro": [error]}
     )
     # save local
     df.to_csv(filepath, index=False)
@@ -122,58 +130,42 @@ def upload_logs_to_bq(dataset_id, table_id, timestamp, error=None):
         tb.append(filepath=table_id,if_exists='replace')
 
     # delete local file
-    shutil.rmtree(table_id)
+    Path(filepath).unlink(missing_ok=True)
     
 
 
 @solid(
-    output_defs=[OutputDefinition(name="data"), OutputDefinition(name="timestamp")],
+    output_defs=[OutputDefinition(name="data"), OutputDefinition(name="timestamp"),OutputDefinition(name="error")],
     required_resource_keys={"basedosdados_config", "timezone_config"},
 )
 def get_raw(context, url):
 
     data = None
     error = None
-    dataset_id = context.resources.basedosdados_config["dataset_id"]
-    table_id = context.resources.basedosdados_config["table_id"] + "_logs"
     timestamp = pendulum.now(context.resources.timezone_config["timezone"])
     try:
         data = requests.get(url, timeout=60)
     except requests.exceptions.ReadTimeout as e:
         error = e
+        output_error(timestamp,error)
         raise e
     except Exception as e:
         error = e
+        output_error(timestamp,error)
         raise Exception(f"Unknown exception while trying to fetch data from {url}: {e}")
-    finally:
-        upload_logs_to_bq(
-            dataset_id=dataset_id,
-            table_id=table_id,
-            timestamp=timestamp,
-            error=error,
-        )
 
     if data is None:
         error = f"Data from API is none!"
-        upload_logs_to_bq(
-            dataset_id=dataset_id,
-            table_id=table_id,
-            timestamp=timestamp,
-            error=error,
-        )
+        output_error(timestamp,error)
         raise Exception(error)
 
     if data.ok:
         yield Output(data, output_name="data")
         yield Output(timestamp.isoformat(), output_name="timestamp")
+        yield Output(error, output_name="error")
     else:
         error = f"Requests failed with error {data.status_code}"
-        upload_logs_to_bq(
-            dataset_id=dataset_id,
-            table_id=table_id,
-            timestamp=timestamp,
-            error=error,
-        )
+        output_error(timestamp,error)
         raise Exception(error)
 
 
