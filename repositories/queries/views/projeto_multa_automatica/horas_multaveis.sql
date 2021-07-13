@@ -5,7 +5,7 @@ SELECT
     COUNT(distinct timestamp_captura) as capturas,
     COUNT(CASE WHEN sucesso = false THEN 1 END) falhas,
     COUNT(CASE WHEN erro like "%Read timed out.%" THEN 1 END) timeouts
-FROM `rj-smtr-dev.br_rj_riodejaneiro_onibus_gps.registros_logs` 
+FROM rj-smtr.br_rj_riodejaneiro_onibus_gps.registros_logs 
 group by data, hora
 )
 
@@ -16,8 +16,8 @@ SELECT
         falhas,
         timeouts,
         CASE
-            WHEN hora between 5 and 8 THEN "manhã"
-            WHEN hora between 16 and 19 THEN "noite"
+            WHEN hora between 5 AND 8 THEN "manhã"
+            WHEN hora between 16 AND 19 THEN "noite"
         END as pico,
         CASE
             WHEN capturas < 45 THEN false
@@ -25,4 +25,4 @@ SELECT
             ELSE false
         END as hora_multavel
 FROM logs
-order by data, hora
+ORDER BY data, hora

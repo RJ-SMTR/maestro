@@ -14,6 +14,7 @@ group by data, pico
 )
 
 SELECT * 
-from comparativo_frota 
-inner join horas_multaveis
-on comparativo_frota.data = horas_multaveis.data AND comparativo_frota.pico = horas_multaveis.pico
+FROM comparativo_frota 
+INNER JOIN horas_multaveis
+ON      comparativo_frota.data = horas_multaveis.data 
+        AND comparativo_frota.pico = horas_multaveis.pico
