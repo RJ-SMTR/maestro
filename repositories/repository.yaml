@@ -27,7 +27,6 @@ capturas:
   sensors:
     - module: repositories.capturas.sensors
       objects:
-        - rdo_sensor
         - gtfs_sensor
         - ftps_sensor
 

@@ -1,3 +1,4 @@
+from repositories.helpers.io import get_blob
 from dagster import (
     solid,
     Output,
@@ -5,6 +6,7 @@ from dagster import (
     composite_solid,
 )
 
+import io
 import requests
 import json
 import pendulum
@@ -13,6 +15,8 @@ from pathlib import Path
 import os
 from openpyxl import load_workbook
 import re
+from google.oauth2 import service_account
+from google.cloud import storage
 
 import basedosdados as bd
 
@@ -241,6 +245,54 @@ def upload_file_to_storage(
               partitions=partitions, if_exists="replace")
 
     return True
+
+
+@solid(
+    required_resource_keys={"basedosdados_config"},
+)
+def upload_blob_to_storage(
+    context, blob_path, partitions=None, mode="raw", table_id=None, bucket_name="",
+):
+    # Extracted from basedosdados
+    def _resolve_partitions(self, partitions):
+        if isinstance(partitions, dict):
+            return "/".join(f"{k}={v}" for k, v in partitions.items()) + "/"
+        elif isinstance(partitions, str):
+            if partitions.endswith("/"):
+                partitions = partitions[:-1]
+            # If there is no partition
+            if len(partitions) == 0:
+                return ""
+            # It should fail if there is folder which is not a partition
+            try:
+                # check if it fits rule
+                {b.split("=")[0]: b.split("=")[1]
+                 for b in partitions.split("/")}
+            except IndexError:
+                raise Exception(
+                    f"The path {partitions} is not a valid partition")
+            return partitions + "/"
+        else:
+            raise Exception(
+                f"Partitions format or type not accepted: {partitions}")
+
+    if not table_id:
+        table_id = context.resources.basedosdados_config["table_id"]
+    dataset_id = context.resources.basedosdados_config["dataset_id"]
+    credentials = service_account.Credentials.from_service_account_file(
+        Path.home() / ".basedosdados/credentials/prod.json")
+    client = storage.Client(credentials=credentials)
+    blob_name = f"{mode}/{dataset_id}/{table_id}/"
+    if partitions is not None:
+        blob_name += _resolve_partitions(partitions)
+    blob_name += blob_path.split("/")[-1]
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+    input_blob = get_blob(blob_path, bucket_name)
+    context.log.debug(
+        f"Uploading blob {blob_path} to mode {mode} with partitions {partitions}"
+    )
+    blob.upload_from_file(io.BytesIO(input_blob.download_as_bytes()))
 
 
 @solid

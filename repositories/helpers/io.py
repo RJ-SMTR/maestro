@@ -1,5 +1,39 @@
 import os
+import time
+from pathlib import Path
+from datetime import datetime
+
+from google.oauth2 import service_account
+from google.cloud import storage
+from google.cloud.storage.blob import Blob
+
 from repositories.helpers.implicit_ftp import ImplicitFTP_TLS
+
+
+def get_list_of_blobs(prefix: str, bucket_name: str) -> list:
+    """Gets list of blobs from `bucket_name` with `prefix`, which can be a path"""
+    credentials = service_account.Credentials.from_service_account_file(
+        Path.home() / ".basedosdados/credentials/prod.json")
+    client = storage.Client(credentials=credentials)
+    l: list = client.list_blobs(bucket_name, prefix=prefix)
+    l = [blob for blob in l if not blob.name.endswith("/")]
+    return l
+
+
+def get_blob(name: str, bucket_name: str) -> Blob:
+    """Gets a single blob from `bucket_name`"""
+    credentials = service_account.Credentials.from_service_account_file(
+        Path.home() / ".basedosdados/credentials/prod.json")
+    client = storage.Client(credentials=credentials)
+    bucket = client.get_bucket(bucket_name)
+    return bucket.get_blob(name)
+
+
+def filter_blobs_by_modification_time(l: list, ref: float, after: bool = True):
+    """Filters blobs by modification time.
+    - `after` == True -> blob.updated >= ref
+    - `after` == False -> blob.updated < ref"""
+    return [blob for blob in l if not((time.mktime(blob.updated.timetuple()) >= ref) != after)]
 
 
 def get_list_of_files(dirName):
