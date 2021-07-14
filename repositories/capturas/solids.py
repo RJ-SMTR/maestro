@@ -10,11 +10,13 @@ import json
 import pendulum
 import pandas as pd
 from pathlib import Path
+import shutil
 import os
 from openpyxl import load_workbook
 import re
 
 import basedosdados as bd
+from basedosdados import Table
 
 # Temporario, essa funcao vai ser incorporada a base dos dados
 from repositories.helpers.storage import StoragePlus
@@ -79,8 +81,7 @@ def parse_file_path_and_partitions(context, bucket_path):
 
     # Parse bucket to get partitions
     partitions = re.findall("\/([^\/]*?)=(.*?)(?=\/)", bucket_path)
-    partitions = "/".join(["=".join([field for field in item])
-                          for item in partitions])
+    partitions = "/".join(["=".join([field for field in item]) for item in partitions])
 
     # Get data folder from environment variable
     data_folder = os.getenv("DATA_FOLDER", "data")
@@ -94,27 +95,79 @@ def parse_file_path_and_partitions(context, bucket_path):
     yield Output(file_path, output_name="file_path")
     yield Output(partitions, output_name="partitions")
 
+@solid(required_resource_keys = {'basedosdados_config', 'timezone_config'})
+def upload_logs_to_bq(context,timestamp, error):
+    
+    dataset_id = context.resources.basedosdados_config['dataset_id']
+    table_id = context.resources.basedosdados_config['table_id'] + "_logs"
 
-@solid
+    filepath = Path(f"{timestamp}/{table_id}/data={pendulum.parse(timestamp).date()}/{table_id}_{timestamp}.csv")
+    # create partition directory
+    filepath.parent.mkdir(exist_ok=True,parents=True)
+    # create dataframe to be uploaded
+    df = pd.DataFrame(
+        {"timestamp_captura": [pd.to_datetime(timestamp)], "sucesso": [error is None], "erro": [error]}
+    )
+    # save local
+    df.to_csv(filepath, index=False)
+    # BD Table object
+    tb = Table(table_id, dataset_id)
+    # create and publish if table does not exist, append to it otherwise
+    if not tb.table_exists("staging"):
+        tb.create(
+            path=f"{timestamp}/{table_id}",
+            if_table_exists="replace",
+            if_storage_data_exists="replace",
+            if_table_config_exists="pass",
+        )
+    elif not tb.table_exists("prod"):
+        tb.publish(if_exists="replace")
+    else:
+        tb.append(filepath=f"{timestamp}/{table_id}",if_exists='replace')
+
+    # delete local file
+    shutil.rmtree(f"{timestamp}")
+    
+
+def test_raise():
+    raise Exception("Exception Teste")
+
+@solid(
+    output_defs=[
+        OutputDefinition(name="data", is_required=False),
+        OutputDefinition(name="timestamp",is_required=False),
+        OutputDefinition(name="error",is_required=False)],
+    required_resource_keys={"basedosdados_config", "timezone_config"},
+)
 def get_raw(context, url):
 
     data = None
-
+    error = None
+    timestamp = pendulum.now(context.resources.timezone_config["timezone"])
     try:
         data = requests.get(url, timeout=60)
     except requests.exceptions.ReadTimeout as e:
-        raise e
+        error = e
     except Exception as e:
-        raise Exception(
-            f"Unknown exception while trying to fetch data from {url}: {e}")
+        error = e
+        # raise Exception(f"Unknown exception while trying to fetch data from {url}: {e}")
 
     if data is None:
-        raise Exception(f"Data from API is none!")
-
-    if data.ok:
-        return data
+        error = f"Data from API is none!"
+        # raise Exception(error)
+    
+    if error:
+        yield Output(timestamp.isoformat(), output_name="timestamp")
+        yield Output(error, output_name="error")
+    elif data.ok:
+        yield Output(data, output_name="data")
+        yield Output(timestamp.isoformat(), output_name="timestamp")
+        yield Output(error, output_name="error")
     else:
-        raise Exception(f"Requests failed with error {data.status_code}")
+        error = f"Requests failed with error {data.status_code}"
+        yield Output(timestamp.isoformat(), output_name="timestamp")
+        yield Output(error, output_name="error")
+        # raise Exception(error)
 
 
 @solid
@@ -237,8 +290,7 @@ def upload_file_to_storage(
     context.log.debug(
         f"Uploading file {file_path} to mode {mode} with partitions {partitions}"
     )
-    st.upload(path=file_path, mode=mode,
-              partitions=partitions, if_exists="replace")
+    st.upload(path=file_path, mode=mode, partitions=partitions, if_exists="replace")
 
     return True
 

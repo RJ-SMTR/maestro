@@ -15,15 +15,15 @@ def discord_message_on_success(context: HookContext):
     post_time = cron_itr.get_prev(datetime)
     if run_time.strftime("%Y-%m-%d %H:%M") == post_time.strftime("%Y-%m-%d %H:%M"):
         message = f"Solid {context.solid.name} finished successfully"
-        url = context.resources.discord_webhook['url']
-        requests.post(url, data={'content': message})
+        url = context.resources.discord_webhook["url"]
+        requests.post(url, data={"content": message})
 
 
 @failure_hook(required_resource_keys={"discord_webhook"})
 def discord_message_on_failure(context: HookContext):
     message = f"Solid {context.solid.name} failed"
-    url = context.resources.discord_webhook['url']
-    requests.post(url, data={'content': message})
+    url = context.resources.discord_webhook["url"]
+    requests.post(url, data={"content": message})
 
 
 @success_hook(required_resource_keys={"keepalive_key"})
@@ -37,5 +37,6 @@ def redis_keepalive_on_failure(context: HookContext):
     rp = RedisPal(host="dagster-redis-master")
     rp.set(context.resources.keepalive_key['key'], 1)
     message = f"Although solid {context.solid.name} has failed, a keep-alive was sent to Redis!"
-    url = context.resources.discord_webhook['url']
-    requests.post(url, data={'content': message})
+    url = context.resources.discord_webhook["url"]
+    requests.post(url, data={"content": message})
+
