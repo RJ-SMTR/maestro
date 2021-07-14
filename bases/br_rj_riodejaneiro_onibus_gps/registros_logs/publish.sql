@@ -25,4 +25,4 @@ SAFE_CAST(DATETIME(TIMESTAMP(timestamp_captura), "America/Sao_Paulo") AS DATETIM
 SAFE_CAST(sucesso AS BOOLEAN) sucesso,
 SAFE_CAST(erro AS STRING) erro,
 SAFE_CAST(data AS DATE) data
-from rj-smtr-staging.br_rj_riodejaneiro_onibus_gps.registros_logs as t
+from rj-smtr-staging.br_rj_riodejaneiro_onibus_gps_staging.registros_logs as t
