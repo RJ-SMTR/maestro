@@ -101,7 +101,7 @@ def upload_logs_to_bq(context,timestamp, error):
     dataset_id = context.resources.basedosdados_config['dataset_id']
     table_id = context.resources.basedosdados_config['table_id'] + "_logs"
 
-    filepath = Path(f"{table_id}/data={pendulum.parse(timestamp).date()}/{table_id}_{timestamp}.csv")
+    filepath = Path(f"{timestamp}/{table_id}/data={pendulum.parse(timestamp).date()}/{table_id}_{timestamp}.csv")
     # create partition directory
     filepath.parent.mkdir(exist_ok=True,parents=True)
     # create dataframe to be uploaded
@@ -115,7 +115,7 @@ def upload_logs_to_bq(context,timestamp, error):
     # create and publish if table does not exist, append to it otherwise
     if not tb.table_exists("staging"):
         tb.create(
-            path=table_id,
+            path=f"{timestamp}/{table_id}",
             if_table_exists="replace",
             if_storage_data_exists="replace",
             if_table_config_exists="pass",
@@ -123,10 +123,10 @@ def upload_logs_to_bq(context,timestamp, error):
     elif not tb.table_exists("prod"):
         tb.publish(if_exists="replace")
     else:
-        tb.append(filepath=table_id,if_exists='replace')
+        tb.append(filepath=f"{timestamp}/{table_id}",if_exists='replace')
 
     # delete local file
-    Path(filepath).unlink(missing_ok=True)
+    shutil.rmtree(f"{timestamp}")
     
 
 def test_raise():
