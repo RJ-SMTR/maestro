@@ -95,10 +95,6 @@ def parse_file_path_and_partitions(context, bucket_path):
     yield Output(file_path, output_name="file_path")
     yield Output(partitions, output_name="partitions")
 
-def output_error(timestamp,error):
-    yield Output(timestamp.isoformat(), output_name="timestamp")
-    yield Output(error, output_name="error")
-
 @solid(required_resource_keys = {'basedosdados_config', 'timezone_config'})
 def upload_logs_to_bq(context,timestamp, error):
     
@@ -133,9 +129,14 @@ def upload_logs_to_bq(context,timestamp, error):
     Path(filepath).unlink(missing_ok=True)
     
 
+def test_raise():
+    raise requests.exceptions.ReadTimeout("this is a test timeout of 1s")
 
 @solid(
-    output_defs=[OutputDefinition(name="data"), OutputDefinition(name="timestamp"),OutputDefinition(name="error")],
+    output_defs=[
+        OutputDefinition(name="data", is_required=False),
+        OutputDefinition(name="timestamp",is_required=False),
+        OutputDefinition(name="error",is_required=False)],
     required_resource_keys={"basedosdados_config", "timezone_config"},
 )
 def get_raw(context, url):
@@ -147,26 +148,31 @@ def get_raw(context, url):
         data = requests.get(url, timeout=60)
     except requests.exceptions.ReadTimeout as e:
         error = e
-        output_error(timestamp,error)
-        raise e
+        yield Output(timestamp.isoformat(), output_name="timestamp")
+        yield Output(error, output_name="error")
+        
     except Exception as e:
         error = e
-        output_error(timestamp,error)
-        raise Exception(f"Unknown exception while trying to fetch data from {url}: {e}")
+        yield Output(timestamp.isoformat(), output_name="timestamp")
+        yield Output(error, output_name="error")
+        # raise Exception(f"Unknown exception while trying to fetch data from {url}: {e}")
 
     if data is None:
         error = f"Data from API is none!"
-        output_error(timestamp,error)
-        raise Exception(error)
+        yield Output(timestamp.isoformat(), output_name="timestamp")
+        yield Output(error, output_name="error")
+        # raise Exception(error)
+    
 
-    if data.ok:
+    elif data.ok:
         yield Output(data, output_name="data")
         yield Output(timestamp.isoformat(), output_name="timestamp")
         yield Output(error, output_name="error")
     else:
         error = f"Requests failed with error {data.status_code}"
-        output_error(timestamp,error)
-        raise Exception(error)
+        yield Output(timestamp.isoformat(), output_name="timestamp")
+        yield Output(error, output_name="error")
+        # raise Exception(error)
 
 
 @solid
