@@ -13,7 +13,7 @@ resources:
       timezone: "America/Sao_Paulo"
   discord_webhook:
     config:
-      url: "{{ '' | env_override('SPPO_DISCORD_WEBHOOK')}}"
+      url: "{{ '' | env_override('SPPO_DISCORD_WEBHOOK') }}"
       success_cron: "00 08 * * *"
   keepalive_key:
     config:

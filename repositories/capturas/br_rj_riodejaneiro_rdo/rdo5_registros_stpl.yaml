@@ -2,18 +2,18 @@ resources:
   basedosdados_config:
     config:
       table_id: rdo5_registros_stpl
-      dataset_id: br_rj_riodejaneiro_rdo 
+      dataset_id: br_rj_riodejaneiro_rdo
   timezone_config:
     config:
-      timezone: "America/Sao_Paulo" 
+      timezone: "America/Sao_Paulo"
   discord_webhook:
     config:
-      url: "{{ '' | env_override('SPPO_DISCORD_WEBHOOK')}}"
+      url: "{{ '' | env_override('SPPO_DISCORD_WEBHOOK') }}"
       success_cron: "* * * * *"
 solids:
   parse_file_path_and_partitions:
     inputs:
-      bucket_path: 
+      bucket_path:
         value: raw/br_rj_riodejaneiro_rdo/rdo5_registros_stpl/ano=2021/mes=01/dia=07/RDO_00638_00001_20210307_20210312_045044.csv
   upload_to_bigquery:
     inputs:
@@ -25,48 +25,48 @@ solids:
       publish_config:
         value: replace
       table_config:
-        value: pass 
+        value: pass
   load_and_reindex_csv:
     config:
       read_csv_kwargs:
         delimiter: ";"
         skiprows: 1
         names:
-        - "operadora"
-        - "linha"
-        - "tarifa_valor"
-        - "data_transacao"
-        - "gratuidade_idoso"
-        - "gratuidade_especial"
-        - "gratuidade_estudante_federal"
-        - "gratuidade_estudante_estadual"
-        - "gratuidade_estudante_municipal"
-        - "universitario"
-        - "buc_1a_perna"
-        - "buc_2a_perna"
-        - "buc_receita"
-        - "buc_supervia_1a_perna"
-        - "buc_supervia_2a_perna"
-        - "buc_supervia_receita"
-        - "buc_van_1a_perna"
-        - "buc_van_2a_perna"
-        - "buc_van_receita"
-        - "buc_brt_1a_perna"
-        - "buc_brt_2a_perna"
-        - "buc_brt_3a_perna"
-        - "buc_brt_receita"
-        - "buc_inter_1a_perna"
-        - "buc_inter_2a_perna"
-        - "buc_inter_receita"
-        - "buc_metro_1a_perna"
-        - "buc_metro_2a_perna"
-        - "buc_metro_receita"
-        - "cartao"
-        - "receita_cartao"
-        - "especie_passageiro_transportado"
-        - "especie_receita"
-        - "registro_processado"
-        - "data_processamento"
+          - "operadora"
+          - "linha"
+          - "tarifa_valor"
+          - "data_transacao"
+          - "gratuidade_idoso"
+          - "gratuidade_especial"
+          - "gratuidade_estudante_federal"
+          - "gratuidade_estudante_estadual"
+          - "gratuidade_estudante_municipal"
+          - "universitario"
+          - "buc_1a_perna"
+          - "buc_2a_perna"
+          - "buc_receita"
+          - "buc_supervia_1a_perna"
+          - "buc_supervia_2a_perna"
+          - "buc_supervia_receita"
+          - "buc_van_1a_perna"
+          - "buc_van_2a_perna"
+          - "buc_van_receita"
+          - "buc_brt_1a_perna"
+          - "buc_brt_2a_perna"
+          - "buc_brt_3a_perna"
+          - "buc_brt_receita"
+          - "buc_inter_1a_perna"
+          - "buc_inter_2a_perna"
+          - "buc_inter_receita"
+          - "buc_metro_1a_perna"
+          - "buc_metro_2a_perna"
+          - "buc_metro_receita"
+          - "cartao"
+          - "receita_cartao"
+          - "especie_passageiro_transportado"
+          - "especie_receita"
+          - "registro_processado"
+          - "data_processamento"
         index_col: false
       reindex_kwargs:
         columns:

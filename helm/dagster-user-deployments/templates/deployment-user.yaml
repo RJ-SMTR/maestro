@@ -1,0 +1,114 @@
+{{ range $deployment := .Values.deployments }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dagster.fullname" $ -}}-{{- $deployment.name }}
+  labels:
+    {{- include "dagster.labels" $ | nindent 4 }}
+    component: user-deployments
+    deployment: {{ $deployment.name }}
+  annotations: {{ $deployment.annotations | toYaml | nindent 4 }}
+spec:
+  replicas: {{ $deployment.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "dagster.selectorLabels" $ | nindent 6 }}
+      component: user-deployments
+      deployment: {{ $deployment.name }}
+  template:
+    metadata:
+      labels:
+        {{- include "dagster.selectorLabels" $ | nindent 8 }}
+        component: user-deployments
+        deployment: {{ $deployment.name }}
+      annotations:
+        checksum/dagster-user-deployment: {{ $deployment | toJson | sha256sum }}
+        {{- with $deployment.annotations }}
+        {{- range $key, $value := . }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+        {{- end }}
+    spec:
+      imagePullSecrets: {{ $.Values.imagePullSecrets | toYaml | nindent 8 }}
+      serviceAccountName: {{ include "dagsterUserDeployments.serviceAccountName" $ }}
+      securityContext: {{ $deployment.podSecurityContext | toYaml | nindent 8 }}
+      containers:
+        - name: {{ $.Chart.Name }}
+          securityContext: {{ $deployment.securityContext | toYaml | nindent 12 }}
+          imagePullPolicy: {{ $deployment.image.pullPolicy }}
+          image: {{ include "dagster.dagsterImage.name" (list $ $deployment.image) | quote }}
+          volumeMounts:
+            {{- range $volumeMount := $deployment.volumeMounts }}
+            - {{ $volumeMount | toYaml | nindent 16 }}
+            {{- end }}
+          command: ["dagster"]
+          args: ["api", "grpc", "-h", "0.0.0.0", "-p", "{{ $deployment.port }}", "{{- join "\",\"" $deployment.dagsterApiGrpcArgs }}"]
+          env:
+            - name: DAGSTER_CURRENT_IMAGE
+              value: {{ include "dagster.dagsterImage.name" (list $ $deployment.image) | quote }}
+            - name: DAGSTER_PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "dagsterUserDeployments.postgresql.secretName" $ }}
+                  key: postgresql-password
+          envFrom:
+            - configMapRef:
+                name: {{ include "dagster.fullname" $ }}-{{ $deployment.name }}-user-env
+            {{- range $envConfigMap := $deployment.envConfigMaps }}
+            - configMapRef: {{- $envConfigMap | toYaml | nindent 16 }}
+            {{- end }}
+            {{- range $envSecret := $deployment.envSecrets }}
+            - secretRef: {{- $envSecret | toYaml | nindent 16 }}
+            {{- end }}
+          resources: {{ $deployment.resources | toYaml | nindent 12 }}
+        {{- if $deployment.livenessProbe }}
+          {{- if not $deployment.livenessProbe.exec }}
+          livenessProbe:
+            exec:
+              command: ["dagster", "api", "grpc-health-check", "-p", "{{ $deployment.port }}"]
+            {{- if hasKey $deployment.livenessProbe "initialDelaySeconds" }}
+            initialDelaySeconds:
+              {{- toYaml $deployment.livenessProbe.initialDelaySeconds | nindent 14 }}
+            {{- end }}
+            {{- if hasKey $deployment.livenessProbe "periodSeconds" }}
+            periodSeconds:
+              {{- toYaml $deployment.livenessProbe.periodSeconds | nindent 14 }}
+            {{- end }}
+            {{- if hasKey $deployment.livenessProbe "timeoutSeconds" }}
+            timeoutSeconds:
+              {{- toYaml $deployment.livenessProbe.timeoutSeconds | nindent 14 }}
+            {{- end }}
+            {{- if hasKey $deployment.livenessProbe "successThreshold" }}
+            successThreshold:
+              {{- toYaml $deployment.livenessProbe.successThreshold | nindent 14 }}
+            {{- end }}
+            {{- if hasKey $deployment.livenessProbe "failureThreshold" }}
+            failureThreshold:
+              {{- toYaml $deployment.livenessProbe.failureThreshold | nindent 14 }}
+            {{- end }}
+          {{- else}}
+          livenessProbe: {{ $deployment.livenessProbe | toYaml | nindent 12 }}
+          {{- end }}
+        {{- end }}
+        {{- if $deployment.startupProbe }}
+        {{- if $deployment.startupProbe.enabled }}
+          startupProbe:
+          {{- $startupProbe := omit $deployment.startupProbe "enabled" }}
+            {{- if $startupProbe }}
+              {{- $startupProbe | toYaml | nindent 12 }}
+            {{- end }}
+          {{- if not $deployment.startupProbe.exec }}
+            exec:
+              command: ["dagster", "api", "grpc-health-check", "-p", "{{ $deployment.port }}"]
+          {{- end }}
+        {{- end }}
+        {{- end }}
+      nodeSelector: {{ $deployment.nodeSelector | toYaml | nindent 8 }}
+      affinity: {{ $deployment.affinity | toYaml | nindent 8 }}
+      tolerations: {{- $deployment.tolerations | toYaml | nindent 8 }}
+      volumes:
+        {{- range $volume := $.Values.volumes }}
+        - {{ $volume | toYaml | nindent 12 }}
+        {{- end }}
+---
+{{ end }}
