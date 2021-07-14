@@ -130,7 +130,7 @@ def upload_logs_to_bq(context,timestamp, error):
     
 
 def test_raise():
-    raise requests.exceptions.ReadTimeout("this is a test timeout of 1s")
+    raise Exception("Exception Teste")
 
 @solid(
     output_defs=[
@@ -148,22 +148,17 @@ def get_raw(context, url):
         data = requests.get(url, timeout=60)
     except requests.exceptions.ReadTimeout as e:
         error = e
-        yield Output(timestamp.isoformat(), output_name="timestamp")
-        yield Output(error, output_name="error")
-        
     except Exception as e:
         error = e
-        yield Output(timestamp.isoformat(), output_name="timestamp")
-        yield Output(error, output_name="error")
         # raise Exception(f"Unknown exception while trying to fetch data from {url}: {e}")
 
     if data is None:
         error = f"Data from API is none!"
-        yield Output(timestamp.isoformat(), output_name="timestamp")
-        yield Output(error, output_name="error")
         # raise Exception(error)
     
-
+    if error:
+        yield Output(timestamp.isoformat(), output_name="timestamp")
+        yield Output(error, output_name="error")
     elif data.ok:
         yield Output(data, output_name="data")
         yield Output(timestamp.isoformat(), output_name="timestamp")
