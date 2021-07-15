@@ -127,10 +127,6 @@ def upload_logs_to_bq(context,timestamp, error):
 
     # delete local file
     shutil.rmtree(f"{timestamp}")
-    
-
-def test_raise():
-    raise Exception("Exception Teste")
 
 @solid(
     output_defs=[
@@ -149,12 +145,11 @@ def get_raw(context, url):
     except requests.exceptions.ReadTimeout as e:
         error = e
     except Exception as e:
-        error = e
-        # raise Exception(f"Unknown exception while trying to fetch data from {url}: {e}")
+        error = f"Unknown exception while trying to fetch data from {url}: {e}"
 
     if data is None:
-        error = f"Data from API is none!"
-        # raise Exception(error)
+        if error is None:
+            error = "Data from API is none!"
     
     if error:
         yield Output(timestamp.isoformat(), output_name="timestamp")
@@ -167,7 +162,6 @@ def get_raw(context, url):
         error = f"Requests failed with error {data.status_code}"
         yield Output(timestamp.isoformat(), output_name="timestamp")
         yield Output(error, output_name="error")
-        # raise Exception(error)
 
 
 @solid
