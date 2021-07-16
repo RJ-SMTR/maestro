@@ -36,11 +36,15 @@ analises:
     - module: repositories.analises.schedules
       objects:
         - br_rj_riodejaneiro_brt_gtfs_gps_realized_trips
+        - projeto_multa_automatica_multas_aplicaveis_onibus
 
   pipelines:
     - module: repositories.analises.br_rj_riodejaneiro_brt_gtfs_gps.realized_trips
       objects:
         - br_rj_riodejaneiro_brt_gtfs_gps_realized_trips
+    - module: repositories.analises.projeto_multa_automatica.multas_aplicaveis_onibus
+      objects:
+        - projeto_multa_automatica_multas_aplicaveis_onibus
 
 queries:
   pipelines:
