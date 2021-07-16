@@ -1,16 +1,18 @@
 import os
+import time
 from pathlib import Path
+from google.cloud.storage.blob import Blob
 
 from redis_pal import RedisPal
 from dagster import RunRequest, sensor, SensorExecutionContext
 
 from repositories.helpers.helpers import read_config
-from repositories.helpers.io import build_run_key, get_list_of_files, parse_filepath_to_tablename, parse_run_key
+from repositories.helpers.io import build_run_key, get_list_of_blobs, parse_filepath_to_tablename, parse_run_key
 
-VIEWS_DIRECTORY = os.getenv(
-    "VIEWS_DIRECTORY", "/opt/dagster/app/repositories/queries/views")
-MAT_VIEWS_DIRECTORY = os.getenv(
-    "MAT_VIEWS_DIRECTORY", "/opt/dagster/app/repositories/queries/materialized_views")
+SENSOR_BUCKET = os.getenv("SENSOR_BUCKET", "rj-smtr-dev")
+VIEWS_PREFIX = os.getenv("VIEWS_PREFIX", "queries/views/")
+MATERIALIZED_VIEWS_PREFIX = os.getenv(
+    "MATERIALIZED_VIEWS_PREFIX", "queries/materialized_views/")
 
 
 @sensor(pipeline_name="update_view_on_bigquery", mode="dev")
@@ -28,32 +30,31 @@ def views_sensor(context: SensorExecutionContext):
         1] if context.last_run_key else 0
 
     # Get list of files
-    list_of_files: list = get_list_of_files(VIEWS_DIRECTORY)
+    list_of_blobs: list = get_list_of_blobs("queries/views", SENSOR_BUCKET)
 
     # Get previous set of files from Redis
-    prev_set_of_files: set = rp.get("queries_files_set")
+    prev_set_of_blobs: set = rp.get("queries_files_set")
 
     # Parse current list of files to set
-    set_of_files: set = set(list_of_files)
+    set_of_blobs: set = set([blob.name for blob in list_of_blobs])
 
     # If we've cached a previous list of files
-    if prev_set_of_files is not None:
+    if prev_set_of_blobs is not None:
 
         # Get deleted files
-        deleted: set = prev_set_of_files - set_of_files
-        rp.set("aaa", deleted)
+        deleted: set = prev_set_of_blobs - set_of_blobs
 
         # For every deleted file, delete corresponding view
-        filepath: str = ""
-        for filepath in deleted:
-            if filepath.endswith(".sql"):
+        blob_name: str = None
+        for blob_name in deleted:
+            if blob_name.endswith(".sql"):
 
                 # Extract table name from file path
                 table_name: str = parse_filepath_to_tablename(
-                    filepath.split(VIEWS_DIRECTORY)[1].strip('/'))
+                    "/".join([n for n in blob_name.split(VIEWS_PREFIX)[1].split("/") if n != ""]))
 
                 # Set a run key so we can keep track of changes
-                run_key: str = build_run_key("delete-" + filepath, last_mtime)
+                run_key: str = build_run_key("delete-" + blob_name, last_mtime)
 
                 # Load run configuration
                 config: dict = read_config(
@@ -68,31 +69,28 @@ def views_sensor(context: SensorExecutionContext):
                 yield RunRequest(run_key=run_key, run_config=config)
 
     # Cache current file list
-    rp.set("queries_files_set", set_of_files)
+    rp.set("queries_files_set", set_of_blobs)
 
     # Iterate over all SQL files
-    filepath: str = ""
-    for filepath in list_of_files:
-        if os.path.isfile(filepath):
+    blob: Blob = None
+    for blob in list_of_blobs:
+        if blob.name.endswith(".sql"):
 
             # Get file's last modification timestamp
-            file_mtime = os.stat(filepath).st_mtime
+            file_mtime = time.mktime(blob.updated.timetuple())
 
             # If file has modified
             if file_mtime > last_mtime:
 
                 # Extract table name from file path
                 table_name: str = parse_filepath_to_tablename(
-                    filepath.split(VIEWS_DIRECTORY)[1].strip('/'))
+                    "/".join([n for n in blob.name.split(VIEWS_PREFIX)[1].split("/") if n != ""]))
 
                 # Extract query from file
-                query: str = ""
-                with open(filepath, "r") as f:
-                    query = f.read()
-                    f.close()
+                query: str = blob.download_as_string().decode("utf-8")
 
                 # Set a run key so we can keep track of changes
-                run_key: str = build_run_key(filepath, file_mtime)
+                run_key: str = build_run_key(blob.name, file_mtime)
 
                 # Load run configuration
                 config: dict = read_config(
@@ -105,4 +103,3 @@ def views_sensor(context: SensorExecutionContext):
 
                 # Yield a run request
                 yield RunRequest(run_key=run_key, run_config=config)
-    pass

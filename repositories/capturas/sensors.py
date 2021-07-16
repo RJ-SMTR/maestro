@@ -4,48 +4,19 @@ from pathlib import Path
 from dagster.core.definitions.sensor import SensorExecutionContext
 from dateutil import parser
 import re
+import time
 import jinja2
 from datetime import datetime
 
 from repositories.helpers.helpers import read_config
 from repositories.helpers.logging import logger
-from repositories.helpers.io import get_list_of_files, build_run_key, parse_run_key, connect_ftp
+from repositories.helpers.io import get_list_of_files, build_run_key, parse_run_key, connect_ftp, get_list_of_blobs, filter_blobs_by_modification_time
 
-
-RDO_DIRECTORY = os.getenv("RDO_DATA", "/opt/dagster/app/data/RDO_DATA")
 FTPS_DIRECTORY = os.getenv("FTPS_DATA", "/opt/dagster/app/data/FTPS_DATA")
+SENSOR_BUCKET = os.getenv("SENSOR_BUCKET", "rj-smtr-dev")
+GTFS_BLOBS_PREFIX = os.getenv("GTFS_BLOBS_PREFIX", "gtfs/")
 GTFS_DIRECTORY = os.getenv("GTFS_DATA", "/opt/dagster/app/data/GTFS_DATA")
 ALLOWED_FOLDERS = ["SPPO", "STPL"]
-
-
-@sensor(pipeline_name="br_rj_riodejaneiro_rdo_registros", mode="dev")
-def rdo_sensor(context: SensorExecutionContext):
-    last_mtime = parse_run_key(context.last_run_key)[
-        1] if context.last_run_key else 0
-
-    for filepath in get_list_of_files(RDO_DIRECTORY):
-        if os.path.isfile(filepath):
-            fstats = os.stat(filepath)
-            _file_name = filepath.split(RDO_DIRECTORY)[1].strip('/')
-            file_mtime = fstats.st_mtime
-            if file_mtime > last_mtime:
-                # the run key should include mtime if we want to kick off new runs based on file modifications
-                run_key = build_run_key(filepath, file_mtime)
-
-                # Parse mode, dataset_id and table_id
-                path_list = _file_name.split('/')
-                dataset_id = path_list[1]
-                table_id = path_list[2]
-                filename = path_list[-1].split(".")[0]
-
-                config = read_config(
-                    Path(__file__).parent / f'{dataset_id}/{table_id}.yaml')
-                config['solids']['parse_file_path_and_partitions']['inputs']['bucket_path']['value'] = _file_name
-                config['solids']['upload_file_to_storage'] = {
-                    "inputs": {"file_path": {"value": filepath}}}
-                config['resources']['basedosdados_config'] = {"config": {"dataset_id": dataset_id,
-                                                                         "table_id": table_id}}
-                yield RunRequest(run_key=run_key, run_config=config)
 
 
 @sensor(pipeline_name="br_rj_riodejaneiro_gtfs_planned_feed", mode="dev")
@@ -53,36 +24,31 @@ def gtfs_sensor(context):
     last_mtime = parse_run_key(context.last_run_key)[
         1] if context.last_run_key else 0
 
-    for filepath in get_list_of_files(GTFS_DIRECTORY):
-        if os.path.isfile(filepath):
-            fstats = os.stat(filepath)
-            _file_name = filepath.split(GTFS_DIRECTORY)[1].strip('/')
-            file_mtime = fstats.st_mtime
-            if file_mtime > last_mtime:
-                # the run key should include mtime if we want to kick off new runs based on file modifications
-                run_key = build_run_key(filepath, file_mtime)
+    for blob in filter_blobs_by_modification_time(
+        get_list_of_blobs(GTFS_BLOBS_PREFIX, SENSOR_BUCKET), last_mtime, after=True
+    ):
+        run_key: str = build_run_key(
+            blob.name, time.mktime(blob.updated.timetuple()))
 
-                # Parse mode, dataset_id and table_id
-                path_list = _file_name.split('/')
-                dataset_id = path_list[0]
-                table_id = path_list[1]
-                # filename = path_list[-1].split(".")[0]
+        # Parse dataset_id and table_id
+        path_list: list = [n for n in blob.name.split(
+            GTFS_BLOBS_PREFIX)[1].split("/") if n != ""]
+        dataset_id: str = path_list[0]
+        table_id: str = path_list[1]
 
-                config = read_config(
-                    Path(__file__).parent / f'{dataset_id}/{table_id}.yaml')
-                config['solids']['create_gtfs_version_partition'] = {'inputs': {'original_filepath': {
-                    'value': filepath}}}
-                config['solids']['get_gtfs_files'] = {'inputs': {'original_filepath': {
-                    'value': filepath}}}
-                config['solids']['open_gtfs_feed'] = {'inputs': {'original_filepath': {
-                    'value': filepath}}}
-                config['solids']['upload_file_to_storage'] = {'inputs': {'file_path': {
-                    'value': filepath}}}
-                config['solids']['get_realized_trips'] = {'inputs': {'file_path': {
-                    'value': filepath}}}
-                config['resources']['basedosdados_config'] = {"config": {"dataset_id": dataset_id,
-                                                                         "table_id": table_id}}
-                yield RunRequest(run_key=run_key, run_config=config)
+        # Set run configs
+        config: dict = read_config(
+            Path(__file__).parent / f'{dataset_id}/{table_id}.yaml')
+        config['solids']['save_blob_to_tempfile'] = {'inputs': {'blob_path': {
+            'value': blob.name}, 'bucket_name': {'value': SENSOR_BUCKET}}}
+        config['solids']['create_gtfs_version_partition'] = {'inputs': {'original_filepath': {
+            'value': blob.name}, 'bucket_name': {'value': SENSOR_BUCKET}}}
+        config['solids']['upload_blob_to_storage'] = {'inputs': {'blob_path': {
+            'value': blob.name}, 'bucket_name': {'value': SENSOR_BUCKET}}}
+        config['resources']['basedosdados_config'] = {
+            "config": {"dataset_id": dataset_id, "table_id": table_id}}
+
+        yield RunRequest(run_key=run_key, run_config=config)
 
 
 @sensor(pipeline_name="br_rj_riodejaneiro_rdo_registros", mode="dev")
