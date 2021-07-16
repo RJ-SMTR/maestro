@@ -5,7 +5,7 @@ import google.api_core.exceptions
 from dagster import solid, pipeline, ModeDefinition
 from basedosdados import Table
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from repositories.libraries.basedosdados.resources import basedosdados_config, bd_client
 from repositories.analises.resources import schedule_run_date
 
@@ -15,7 +15,11 @@ from repositories.analises.resources import schedule_run_date
     required_resource_keys={"basedosdados_config", "bd_client", "schedule_run_date"},
 )
 def get_daily_data(context):
-    run_date = context.resources.schedule_run_date["date"]
+    run_date = (
+        datetime.strptime(context.resources.schedule_run_date["date"], "%Y-%m-%d")
+        - timedelta(days=1)
+    ).strftime("%Y-%m-%d")
+
     dataset_id = context.resources.basedosdados_config["dataset_id"]
     project = context.resources.bd_client.project
     paths = {}
@@ -41,6 +45,12 @@ def get_daily_data(context):
     return paths
 
 
+def drop_csv_columns(path, columns):
+    df = pd.read_csv(path)
+    df.drop(columns, axis=1, inplace=True)
+    df.to_csv(path, index=False)
+
+
 @solid(
     config_schema={"query_tables": list},
     required_resource_keys={"basedosdados_config", "bd_client", "schedule_run_date"},
@@ -54,6 +64,8 @@ def upload_table(context, paths):
         )
         tb_dir = paths[table_id].parent.parent
 
+        drop_csv_columns(paths[table_id], columns="data")
+
         if not tb.table_exists("staging"):
             tb.create(
                 path=tb_dir,
@@ -65,6 +77,9 @@ def upload_table(context, paths):
             tb.publish(if_exists="replace")
         else:
             tb.append(filepath=tb_dir, if_exists="replace")
+
+    # Delete local files
+    shutil.rmtree(tb_dir.parent)
 
 
 @pipeline(
