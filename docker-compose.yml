@@ -9,7 +9,7 @@ services:
   dagster_pipelines:
     build:
       context: .
-      dockerfile: ./Dockerfile_pipelines
+      dockerfile: ./Dockerfile.pipelines
     container_name: dagster_pipelines
     ports:
       - "4000:4000"
@@ -18,25 +18,28 @@ services:
       DAGSTER_POSTGRES_PASSWORD: "${DAGSTER_POSTGRES_PASSWORD}"
       DAGSTER_POSTGRES_HOST: "${DAGSTER_POSTGRES_HOST}"
       DAGSTER_POSTGRES_DB: "${DAGSTER_POSTGRES_DB}"
-      DAGSTER_CURRENT_IMAGE: "${COMPOSE_PROJECT_NAME}_dagster_pipelines"
       MODE: "${MODE}"
       BRT_DISCORD_WEBHOOK: "${BRT_DISCORD_WEBHOOK}"
       SPPO_DISCORD_WEBHOOK: "${SPPO_DISCORD_WEBHOOK}"
+      QUERIES_DISCORD_WEBHOOK: "${QUERIES_DISCORD_WEBHOOK}"
+      WDT_DISCORD_WEBHOOK: "${WDT_DISCORD_WEBHOOK}"
       FTPS_HOST: "${FTPS_HOST}"
       FTPS_USERNAME: "${FTPS_USERNAME}"
       FTPS_PWD: "${FTPS_PWD}"
       BQ_PROJECT_NAME: "${BQ_PROJECT_NAME}"
-      QUERIES_DISCORD_WEBHOOK: "${QUERIES_DISCORD_WEBHOOK}"
+      BASEDOSDADOS_CONFIG: "${BASEDOSDADOS_CONFIG}"
+      BASEDOSDADOS_CREDENTIALS_PROD: "${BASEDOSDADOS_CREDENTIALS_PROD}"
+      BASEDOSDADOS_CREDENTIALS_STAGING: "${BASEDOSDADOS_CREDENTIALS_STAGING}"
+      SENSOR_BUCKET: "${SENSOR_BUCKET}"
+      GTFS_BLOBS_PREFIX: "${GTFS_BLOBS_PREFIX}"
+      VIEWS_PREFIX: "${VIEWS_PREFIX}"
+      MATERIALIZED_VIEWS_PREFIX: "${MATERIALIZED_VIEWS_PREFIX}"
     networks:
       - dagster_network
     volumes:
       - /home/${USER}/.basedosdados_dagster:/root/.basedosdados
       - /home/${USER}/maestro/repositories:/opt/dagster/app/repositories
-      - /home/${USER}/maestro/data:/opt/dagster/app/data
       - /home/${USER}/maestro/bases:/opt/dagster/app/bases
-      - /home/${USER}/RDO_DATA:/opt/dagster/app/data/RDO_DATA
-      - /home/${USER}/GTFS_DATA:/opt/dagster/app/data/GTFS_DATA
-      - /home/${USER}/FTPS_DATA:/opt/dagster/app/data/FTPS_DATA
 
 
   # This service runs dagit, which loads the pipelines from the user code container.
@@ -45,7 +48,7 @@ services:
   dagster_dagit:
     build:
       context: .
-      dockerfile: ./Dockerfile_dagster
+      dockerfile: ./Dockerfile.dagster
     entrypoint:
       - dagit
       - -h
@@ -67,11 +70,19 @@ services:
       MODE: "${MODE}"
       BRT_DISCORD_WEBHOOK: "${BRT_DISCORD_WEBHOOK}"
       SPPO_DISCORD_WEBHOOK: "${SPPO_DISCORD_WEBHOOK}"
+      QUERIES_DISCORD_WEBHOOK: "${QUERIES_DISCORD_WEBHOOK}"
+      WDT_DISCORD_WEBHOOK: "${WDT_DISCORD_WEBHOOK}"
       FTPS_HOST: "${FTPS_HOST}"
       FTPS_USERNAME: "${FTPS_USERNAME}"
       FTPS_PWD: "${FTPS_PWD}"
       BQ_PROJECT_NAME: "${BQ_PROJECT_NAME}"
-      QUERIES_DISCORD_WEBHOOK: "${QUERIES_DISCORD_WEBHOOK}"
+      BASEDOSDADOS_CONFIG: "${BASEDOSDADOS_CONFIG}"
+      BASEDOSDADOS_CREDENTIALS_PROD: "${BASEDOSDADOS_CREDENTIALS_PROD}"
+      BASEDOSDADOS_CREDENTIALS_STAGING: "${BASEDOSDADOS_CREDENTIALS_STAGING}"
+      SENSOR_BUCKET: "${SENSOR_BUCKET}"
+      GTFS_BLOBS_PREFIX: "${GTFS_BLOBS_PREFIX}"
+      VIEWS_PREFIX: "${VIEWS_PREFIX}"
+      MATERIALIZED_VIEWS_PREFIX: "${MATERIALIZED_VIEWS_PREFIX}"
     networks:
       - dagster_network
     depends_on:
@@ -82,7 +93,7 @@ services:
   dagster_daemon:
     build:
       context: .
-      dockerfile: ./Dockerfile_dagster
+      dockerfile: ./Dockerfile.dagster
     entrypoint:
       - dagster-daemon
       - run
@@ -92,15 +103,22 @@ services:
       DAGSTER_POSTGRES_PASSWORD: "${DAGSTER_POSTGRES_PASSWORD}"
       DAGSTER_POSTGRES_HOST: "${DAGSTER_POSTGRES_HOST}"
       DAGSTER_POSTGRES_DB: "${DAGSTER_POSTGRES_DB}"
-      DAGSTER_POSTGRES_DB: "${DAGSTER_POSTGRES_DB}"
       MODE: "${MODE}"
       BRT_DISCORD_WEBHOOK: "${BRT_DISCORD_WEBHOOK}"
       SPPO_DISCORD_WEBHOOK: "${SPPO_DISCORD_WEBHOOK}"
+      QUERIES_DISCORD_WEBHOOK: "${QUERIES_DISCORD_WEBHOOK}"
+      WDT_DISCORD_WEBHOOK: "${WDT_DISCORD_WEBHOOK}"
       FTPS_HOST: "${FTPS_HOST}"
       FTPS_USERNAME: "${FTPS_USERNAME}"
       FTPS_PWD: "${FTPS_PWD}"
       BQ_PROJECT_NAME: "${BQ_PROJECT_NAME}"
-      QUERIES_DISCORD_WEBHOOK: "${QUERIES_DISCORD_WEBHOOK}"
+      BASEDOSDADOS_CONFIG: "${BASEDOSDADOS_CONFIG}"
+      BASEDOSDADOS_CREDENTIALS_PROD: "${BASEDOSDADOS_CREDENTIALS_PROD}"
+      BASEDOSDADOS_CREDENTIALS_STAGING: "${BASEDOSDADOS_CREDENTIALS_STAGING}"
+      SENSOR_BUCKET: "${SENSOR_BUCKET}"
+      GTFS_BLOBS_PREFIX: "${GTFS_BLOBS_PREFIX}"
+      VIEWS_PREFIX: "${VIEWS_PREFIX}"
+      MATERIALIZED_VIEWS_PREFIX: "${MATERIALIZED_VIEWS_PREFIX}"
     volumes: # Make docker client accessible so we can launch containers using host docker
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
@@ -111,33 +129,14 @@ services:
 
   # This serves a Redis (https://redis.io/) server, which is used by pipelines
   # in order to tell the watchdog they're healthy.
-  redis:
+  dagster-redis-master:
     image: redis:6
     restart: unless-stopped
-    container_name: redis
+    container_name: dagster-redis-master
     ports:
       - 6379:6379
     networks:
       - dagster_network
-
-  # This serves the watchdog service itself. It checks Redis keys and restart
-  # dagster containers if needed
-  watchdog:
-    build:
-      context: ./watchdog
-    restart: unless-stopped
-    container_name: watchdog
-    environment:
-      PYTHONUNBUFFERED: 1
-      WDT_DISCORD_WEBHOOK: "${WDT_DISCORD_WEBHOOK}"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /home/${USER}/maestro/watchdog_config.yaml:/app/watchdog_config.yaml:ro
-    networks:
-      - dagster_network
-    depends_on:
-      - redis
-
 
 networks:
   dagster_network:

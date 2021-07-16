@@ -4,10 +4,15 @@ on:
   push:
     branches:
       - "*"
+  pull_request:
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
   GKE_CLUSTER: ${{ secrets.GKE_CLUSTER_NAME }}
+  POSTGRESQL_DATABASE: ${{ secrets.POSTGRESQL_DATABASE }}
+  POSTGRESQL_HOST: ${{ secrets.POSTGRESQL_HOST }}
+  POSTGRESQL_PASSWORD: ${{ secrets.POSTGRESQL_PASSWORD }}
+  POSTGRESQL_USERNAME: ${{ secrets.POSTGRESQL_USERNAME }}
   GKE_ZONE: us-central1-c
   IMAGE: maestro-user-code
 
@@ -62,6 +67,7 @@ jobs:
 
   build:
     needs: [lint, tests]
+    name: Build and update deployments
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
@@ -95,6 +101,59 @@ jobs:
         run: |-
           docker push "gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA"
 
+      - name: Update kube-cleanup-operator
+        run: |-
+          kubectl apply -f gke/kube-cleanup-operator-rbac.yaml
+          kubectl apply -f gke/kube-cleanup-operator-deployment.yaml
+
+      - name: Update PostgreSQL database on values.yaml for Dagster Helm chart
+        uses: fjogeleit/yaml-update-action@master
+        with:
+          valueFile: "gke/dagster-values.yaml"
+          propertyPath: "postgresql.postgresqlDatabase"
+          value: ${{ env.POSTGRESQL_DATABASE }}
+          commitChange: false
+          updateFile: true
+
+      - name: Update PostgreSQL host on values.yaml for Dagster Helm chart
+        uses: fjogeleit/yaml-update-action@master
+        with:
+          valueFile: "gke/dagster-values.yaml"
+          propertyPath: "postgresql.postgresqlHost"
+          value: ${{ env.POSTGRESQL_HOST }}
+          commitChange: false
+          updateFile: true
+
+      - name: Update PostgreSQL password on values.yaml for Dagster Helm chart
+        uses: fjogeleit/yaml-update-action@master
+        with:
+          valueFile: "gke/dagster-values.yaml"
+          propertyPath: "postgresql.postgresqlPassword"
+          value: ${{ env.POSTGRESQL_PASSWORD }}
+          commitChange: false
+          updateFile: true
+
+      - name: Update PostgreSQL username on values.yaml for Dagster Helm chart
+        uses: fjogeleit/yaml-update-action@master
+        with:
+          valueFile: "gke/dagster-values.yaml"
+          propertyPath: "postgresql.postgresqlUsername"
+          value: ${{ env.POSTGRESQL_USERNAME }}
+          commitChange: false
+          updateFile: true
+
+      - name: Deploy Dagster
+        run: |-
+          helm upgrade --install dagster dagster/dagster -f gke/dagster-values.yaml -n dagster
+
+      - name: Wait until Dagster deployment is ready
+        run: |-
+          kubectl rollout status deployment dagster-daemon -n dagster
+
+      - name: Update Dagit read-only Ingress
+        run: |-
+          kubectl apply -f gke/dagit-readonly-ingress.yaml -n dagster
+
       - name: Update image repository on values.yaml for dagster-user-deployments
         uses: fjogeleit/yaml-update-action@master
         with:
@@ -113,7 +172,11 @@ jobs:
           commitChange: false
           updateFile: true
 
-      - name: Deploy
+      - name: Deploy User Code
         run: |-
           helm upgrade --install user-code ./helm/dagster-user-deployments/ -f gke/dagster-user-deployments-values.yaml -n dagster
           kubectl get services -n dagster -o wide
+
+      - name: Wait until User Code deployment is ready
+        run: |-
+          kubectl rollout status deployment user-code-dagster-user-deployments-dagster-pipelines -n dagster
