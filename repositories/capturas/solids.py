@@ -15,13 +15,13 @@ from pathlib import Path
 import os
 from openpyxl import load_workbook
 import re
-from google.oauth2 import service_account
 from google.cloud import storage
 
 import basedosdados as bd
 
 # Temporario, essa funcao vai ser incorporada a base dos dados
 from repositories.helpers.storage import StoragePlus
+from repositories.helpers.io import get_credentials_from_env
 
 
 @solid(
@@ -279,8 +279,7 @@ def upload_blob_to_storage(
     if not table_id:
         table_id = context.resources.basedosdados_config["table_id"]
     dataset_id = context.resources.basedosdados_config["dataset_id"]
-    credentials = service_account.Credentials.from_service_account_file(
-        Path.home() / ".basedosdados/credentials/prod.json")
+    credentials = get_credentials_from_env()
     client = storage.Client(credentials=credentials)
     blob_name = f"{mode}/{dataset_id}/{table_id}/"
     if partitions is not None:
