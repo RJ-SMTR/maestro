@@ -254,7 +254,7 @@ def upload_blob_to_storage(
     context, blob_path, partitions=None, mode="raw", table_id=None, bucket_name="",
 ):
     # Extracted from basedosdados
-    def _resolve_partitions(self, partitions):
+    def _resolve_partitions(partitions):
         if isinstance(partitions, dict):
             return "/".join(f"{k}={v}" for k, v in partitions.items()) + "/"
         elif isinstance(partitions, str):
@@ -284,7 +284,7 @@ def upload_blob_to_storage(
     client = storage.Client(credentials=credentials)
     blob_name = f"{mode}/{dataset_id}/{table_id}/"
     if partitions is not None:
-        blob_name += _resolve_partitions(partitions)
+        blob_name += _resolve_partitions(partitions=partitions)
     blob_name += blob_path.split("/")[-1]
     bucket = client.bucket(bucket_name)
     blob = bucket.blob(blob_name)

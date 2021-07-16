@@ -12,6 +12,8 @@ from dagster.experimental import (
     DynamicOutputDefinition,
 )
 import io
+from uuid import uuid4
+from google.cloud.storage.blob import Blob
 import zipfile
 import gtfs_kit as gk
 from datetime import datetime
@@ -45,6 +47,18 @@ def open_gtfs_feed(context, original_filepath):
     feed = gk.read_feed(original_filepath, dist_units='km')
 
     return feed
+
+
+@solid
+def save_blob_to_tempfile(context, blob_path: str, bucket_name: str) -> str:
+    tempfile_name: str = f"/tmp/{uuid4()}.zip"
+    context.log.debug(
+        f"Saving {blob_path} to temporary file with name {tempfile_name}")
+    blob: Blob = get_blob(blob_path, bucket_name)
+    with open(tempfile_name, "wb") as tempfile:
+        tempfile.write(blob.download_as_bytes())
+        tempfile.close()
+    return tempfile_name
 
 
 @solid(
@@ -141,19 +155,20 @@ def get_realized_trips(file_path):
 def br_rj_riodejaneiro_gtfs_planned_feed():
 
     # TODO: Adapt this pipeline for GCS
-    feed = open_gtfs_feed()
+    tmp_filename = save_blob_to_tempfile()
+    feed = open_gtfs_feed(tmp_filename)
     partitions = create_gtfs_version_partition(feed=feed)
     upload_blob_to_storage(partitions=partitions)
 
     # GTFS
-    files = get_gtfs_files()
+    files = get_gtfs_files(tmp_filename)
     files.map(lambda file: process_gtfs_files(
         feed=feed, file=file, partitions=partitions))
 
     # Realized trips
     realized_file_path = get_file_path_and_partitions.alias(
         'realized_get_file_path_and_partitions')(partitions=partitions)
-    realized_trips = get_realized_trips()
+    realized_trips = get_realized_trips(tmp_filename)
     realized_treated_file_path = save_treated_local.alias('realized_save_treated_local')(
         realized_trips,
         realized_file_path)
