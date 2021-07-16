@@ -61,7 +61,7 @@ jobs:
         with:
           valueFile: "gke/dagster-user-deployments-values.yaml"
           propertyPath: "deployments.0.image.tag"
-          value: ${{ env.GITHUB_SHA }}
+          value: ${{ github.sha }}
           commitChange: false
           updateFile: true
 
