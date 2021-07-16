@@ -24,6 +24,7 @@ from repositories.capturas.solids import (
     get_raw,
     save_raw_local,
     save_treated_local,
+    upload_logs_to_bq,
 )
 
 from repositories.libraries.basedosdados.solids import (
@@ -34,13 +35,13 @@ from repositories.libraries.basedosdados.solids import (
 @solid(
     required_resource_keys={"basedosdados_config", "timezone_config"},
 )
-def pre_treatment_br_rj_riodejaneiro_onibus_gps(context, data):
+def pre_treatment_br_rj_riodejaneiro_onibus_gps(context, data, timestamp):
 
     timezone = context.resources.timezone_config["timezone"]
 
     data = data.json()
     df = pd.DataFrame(data)
-    timestamp_captura = pd.to_datetime(pendulum.now(timezone).isoformat())
+    timestamp_captura = pd.to_datetime(timestamp)
     df["timestamp_captura"] = timestamp_captura
     # Remove timezone and force it to be config timezone
     df["datahora"] = df["datahora"].astype(float).apply(
@@ -71,11 +72,13 @@ def br_rj_riodejaneiro_onibus_gps_registros():
     filename, partitions = create_current_datetime_partition()
     file_path = get_file_path_and_partitions(filename, partitions)
 
-    data = get_raw()
+    data, timestamp, error = get_raw()
+
+    upload_logs_to_bq(timestamp,error)
 
     raw_file_path = save_raw_local(data, file_path)
 
-    treated_data = pre_treatment_br_rj_riodejaneiro_onibus_gps(data)
+    treated_data = pre_treatment_br_rj_riodejaneiro_onibus_gps(data,timestamp)
 
     treated_file_path = save_treated_local(treated_data, file_path)
 

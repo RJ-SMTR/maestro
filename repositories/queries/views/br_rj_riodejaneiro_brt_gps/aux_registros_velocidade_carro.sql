@@ -1,7 +1,7 @@
 WITH wrows AS (
   SELECT ST_GEOGPOINT(longitude, latitude) point, timestamp_captura, timestamp_gps, latitude, longitude, placa,
         ROW_NUMBER() OVER (PARTITION BY placa ORDER BY timestamp_captura) n_row
-  from `rj-smtr.dashboard_monitoramento_brt.registros_filtrada`),  
+  from `rj-smtr.br_rj_riodejaneiro_brt_gps.registros_tratada_8_dias`),  
 distances AS (
   SELECT
     t1.timestamp_captura ts1, 
@@ -19,7 +19,7 @@ times AS (
   FROM (
     SELECT
         CAST(MIN(data) AS TIMESTAMP) min_date, TIMESTAMP_ADD(CAST(MAX(data) AS TIMESTAMP), INTERVAL 1 DAY) max_date
-    FROM `rj-smtr.dashboard_monitoramento_brt.registros_filtrada`) t 
+    FROM `rj-smtr.br_rj_riodejaneiro_brt_gps.registros_tratada_8_dias`) t 
   JOIN UNNEST(GENERATE_TIMESTAMP_ARRAY(t.min_date, t.max_date, INTERVAL 10 MINUTE)) ts
 ),
 speed AS (
