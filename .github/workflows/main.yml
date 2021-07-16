@@ -142,6 +142,11 @@ jobs:
           commitChange: false
           updateFile: true
 
+      - name: Add Dagster Helm repository
+        run: |-
+          helm repo add dagster https://dagster-io.github.io/helm
+          helm repo update
+
       - name: Deploy Dagster
         run: |-
           helm upgrade --install dagster dagster/dagster -f gke/dagster-values.yaml -n dagster
