@@ -10,12 +10,12 @@ from dagster import (
 )
 
 from google.cloud import bigquery
-from google.oauth2 import service_account
 from google.api_core.exceptions import Conflict
 from pathlib import Path
 import basedosdados as bd
 
 from repositories.libraries.jinja2.solids import render
+from repositories.helpers.io import get_credentials_from_env
 
 
 @solid(retry_policy=RetryPolicy(max_retries=3, delay=5))
@@ -30,8 +30,7 @@ def update_view(context: SolidExecutionContext, view_sql: str, table_name: str, 
         raise Exception("Query can't be None or empty!")
 
     # Setup credentials and BQ client
-    credentials = service_account.Credentials.from_service_account_file(
-        Path.home() / ".basedosdados/credentials/prod.json")
+    credentials = get_credentials_from_env()
     client = bigquery.Client(credentials=credentials)
 
     # Delete

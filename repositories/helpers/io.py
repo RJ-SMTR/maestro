@@ -1,5 +1,7 @@
 import os
 import time
+import json
+import base64
 from pathlib import Path
 from datetime import datetime
 
@@ -10,10 +12,21 @@ from google.cloud.storage.blob import Blob
 from repositories.helpers.implicit_ftp import ImplicitFTP_TLS
 
 
+def get_credentials_from_env(mode: str = "prod") -> service_account.Credentials:
+    """Gets credentials from env vars"""
+    if mode not in ["prod", "staging"]:
+        raise ValueError("Mode must be 'prod' or 'staging'")
+    env: str = os.getenv(f"BASEDOSDADOS_CREDENTIALS_{mode.upper()}", "")
+    if env == "":
+        raise ValueError(
+            f"BASEDOSDADOS_CREDENTIALS_{mode.upper()} env var not set!")
+    info: dict = json.loads(base64.b64decode(env))
+    return service_account.Credentials.from_service_account_info(info)
+
+
 def get_list_of_blobs(prefix: str, bucket_name: str) -> list:
     """Gets list of blobs from `bucket_name` with `prefix`, which can be a path"""
-    credentials = service_account.Credentials.from_service_account_file(
-        Path.home() / ".basedosdados/credentials/prod.json")
+    credentials = get_credentials_from_env()
     client = storage.Client(credentials=credentials)
     l: list = client.list_blobs(bucket_name, prefix=prefix)
     l = [blob for blob in l if not blob.name.endswith("/")]
@@ -22,8 +35,7 @@ def get_list_of_blobs(prefix: str, bucket_name: str) -> list:
 
 def get_blob(name: str, bucket_name: str) -> Blob:
     """Gets a single blob from `bucket_name`"""
-    credentials = service_account.Credentials.from_service_account_file(
-        Path.home() / ".basedosdados/credentials/prod.json")
+    credentials = get_credentials_from_env()
     client = storage.Client(credentials=credentials)
     bucket = client.get_bucket(bucket_name)
     return bucket.get_blob(name)

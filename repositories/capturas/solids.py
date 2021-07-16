@@ -16,7 +16,6 @@ import shutil
 import os
 from openpyxl import load_workbook
 import re
-from google.oauth2 import service_account
 from google.cloud import storage
 
 import basedosdados as bd
@@ -24,6 +23,7 @@ from basedosdados import Table
 
 # Temporario, essa funcao vai ser incorporada a base dos dados
 from repositories.helpers.storage import StoragePlus
+from repositories.helpers.io import get_credentials_from_env
 
 
 @solid(
@@ -85,7 +85,8 @@ def parse_file_path_and_partitions(context, bucket_path):
 
     # Parse bucket to get partitions
     partitions = re.findall("\/([^\/]*?)=(.*?)(?=\/)", bucket_path)
-    partitions = "/".join(["=".join([field for field in item]) for item in partitions])
+    partitions = "/".join(["=".join([field for field in item])
+                          for item in partitions])
 
     # Get data folder from environment variable
     data_folder = os.getenv("DATA_FOLDER", "data")
@@ -99,18 +100,21 @@ def parse_file_path_and_partitions(context, bucket_path):
     yield Output(file_path, output_name="file_path")
     yield Output(partitions, output_name="partitions")
 
-@solid(required_resource_keys = {'basedosdados_config', 'timezone_config'})
-def upload_logs_to_bq(context,timestamp, error):
-    
+
+@solid(required_resource_keys={'basedosdados_config', 'timezone_config'})
+def upload_logs_to_bq(context, timestamp, error):
+
     dataset_id = context.resources.basedosdados_config['dataset_id']
     table_id = context.resources.basedosdados_config['table_id'] + "_logs"
 
-    filepath = Path(f"{timestamp}/{table_id}/data={pendulum.parse(timestamp).date()}/{table_id}_{timestamp}.csv")
+    filepath = Path(
+        f"{timestamp}/{table_id}/data={pendulum.parse(timestamp).date()}/{table_id}_{timestamp}.csv")
     # create partition directory
-    filepath.parent.mkdir(exist_ok=True,parents=True)
+    filepath.parent.mkdir(exist_ok=True, parents=True)
     # create dataframe to be uploaded
     df = pd.DataFrame(
-        {"timestamp_captura": [pd.to_datetime(timestamp)], "sucesso": [error is None], "erro": [error]}
+        {"timestamp_captura": [pd.to_datetime(timestamp)], "sucesso": [
+            error is None], "erro": [error]}
     )
     # save local
     df.to_csv(filepath, index=False)
@@ -127,16 +131,17 @@ def upload_logs_to_bq(context,timestamp, error):
     elif not tb.table_exists("prod"):
         tb.publish(if_exists="replace")
     else:
-        tb.append(filepath=f"{timestamp}/{table_id}",if_exists='replace')
+        tb.append(filepath=f"{timestamp}/{table_id}", if_exists='replace')
 
     # delete local file
     shutil.rmtree(f"{timestamp}")
 
+
 @solid(
     output_defs=[
         OutputDefinition(name="data", is_required=False),
-        OutputDefinition(name="timestamp",is_required=False),
-        OutputDefinition(name="error",is_required=False)],
+        OutputDefinition(name="timestamp", is_required=False),
+        OutputDefinition(name="error", is_required=False)],
     required_resource_keys={"basedosdados_config", "timezone_config"},
 )
 def get_raw(context, url):
@@ -154,7 +159,7 @@ def get_raw(context, url):
     if data is None:
         if error is None:
             error = "Data from API is none!"
-    
+
     if error:
         yield Output(timestamp.isoformat(), output_name="timestamp")
         yield Output(error, output_name="error")
@@ -288,7 +293,8 @@ def upload_file_to_storage(
     context.log.debug(
         f"Uploading file {file_path} to mode {mode} with partitions {partitions}"
     )
-    st.upload(path=file_path, mode=mode, partitions=partitions, if_exists="replace")
+    st.upload(path=file_path, mode=mode,
+              partitions=partitions, if_exists="replace")
 
     return True
 
@@ -325,8 +331,7 @@ def upload_blob_to_storage(
     if not table_id:
         table_id = context.resources.basedosdados_config["table_id"]
     dataset_id = context.resources.basedosdados_config["dataset_id"]
-    credentials = service_account.Credentials.from_service_account_file(
-        Path.home() / ".basedosdados/credentials/prod.json")
+    credentials = get_credentials_from_env()
     client = storage.Client(credentials=credentials)
     blob_name = f"{mode}/{dataset_id}/{table_id}/"
     if partitions is not None:
