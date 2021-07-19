@@ -278,7 +278,7 @@ def delete_file(file_path):
 @solid
 def download_file_from_ftp(ftp_path: str, local_path: str) -> None:
     """Downloads a file from FTP to the local storage"""
-    Path(local_path).mkdir(parents=True, exist_ok=True)
+    Path(local_path).parent.mkdir(parents=True, exist_ok=True)
     ftp_client = connect_ftp(os.getenv("FTPS_HOST"), os.getenv(
         "FTPS_USERNAME"), os.getenv("FTPS_PWD"))
     ftp_client.retrbinary(
