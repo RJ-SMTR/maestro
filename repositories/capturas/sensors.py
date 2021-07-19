@@ -95,15 +95,17 @@ def ftps_sensor(context):
                         local_filepath = Path(
                             FTPS_DIRECTORY, relative_filepath)
                         Path(local_filepath).mkdir(parents=True, exist_ok=True)
-                        with open(f'{local_filepath}/{filename}', 'wb') as local_file:
-                            ftp_client.retrbinary(
-                                'RETR ' + f'{folder_name}/{filename}', local_file.write)
+
+                        ftp_path = Path(folder_name, filename)
+                        local_path = Path(local_filepath, filename)
 
                         # Run pipeline
+                        config['solids']['download_file_from_ftp']['inputs'] = {
+                            'ftp_path': {'value': ftp_path}, 'local_path': {'value': local_path}}
                         config['solids']['parse_file_path_and_partitions']['inputs'][
                             'bucket_path']['value'] = f'{relative_filepath}/{filename}'
                         config['solids']['upload_file_to_storage'] = {"inputs": {
-                            "file_path": {"value": f'{local_filepath}/{filename}'}}}
+                            "file_path": {"value": local_path}}}
                         yield RunRequest(run_key=run_key, run_config=config)
 
                     except jinja2.TemplateNotFound as err:

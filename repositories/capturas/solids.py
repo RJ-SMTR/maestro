@@ -1,4 +1,4 @@
-from repositories.helpers.io import get_blob
+from repositories.helpers.io import connect_ftp, get_blob
 from dagster import (
     solid,
     Output,
@@ -273,6 +273,16 @@ def save_local(data, file_path="tmp", file_name="tmp"):
 
 def delete_file(file_path):
     return Path(file_path).unlink(missing_ok=True)
+
+
+@solid
+def download_file_from_ftp(ftp_path: str, local_path: str) -> None:
+    """Downloads a file from FTP to the local storage"""
+    ftp_client = connect_ftp(os.getenv("FTPS_HOST"), os.getenv(
+        "FTPS_USERNAME"), os.getenv("FTPS_PWD"))
+    ftp_client.retrbinary(
+        "RETR " + ftp_path, open(local_path, "wb").write)
+    ftp_client.quit()
 
 
 @solid(
