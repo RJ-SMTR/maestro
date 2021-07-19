@@ -20,6 +20,7 @@ from repositories.capturas.solids import (
     upload_file_to_storage,
     parse_file_path_and_partitions,
     save_treated_local,
+    download_file_from_ftp,
 )
 from repositories.libraries.basedosdados.solids import (
     upload_to_bigquery,
@@ -71,6 +72,9 @@ def divide_columns(context, df, cols_to_divide=None, value=100):
     # tags={"dagster/priority": "-1"}
 )
 def br_rj_riodejaneiro_rdo_registros():
+
+    # Get file from FTPS and save it locally
+    download_file_from_ftp()
 
     filename, filetype, file_path, partitions = parse_file_path_and_partitions()
 
