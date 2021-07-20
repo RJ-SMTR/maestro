@@ -1,0 +1,20 @@
+solids:
+  get_daily_data:
+    config:
+      query_tables:
+        - sumario_multas_linha_onibus
+        - sumario_multas_gps_onibus
+        - detalhes_multas_linha_onibus
+        - detalhes_multas_veiculo_onibus
+  upload_table:
+    config:
+      query_tables:
+        - sumario_multas_linha_onibus
+        - sumario_multas_gps_onibus
+        - detalhes_multas_linha_onibus
+        - detalhes_multas_veiculo_onibus
+resources:
+  basedosdados_config:
+    config:
+      table_id: sumario_multas_linha_onibus
+      dataset_id: projeto_multa_automatica
