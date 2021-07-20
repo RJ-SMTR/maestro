@@ -96,8 +96,8 @@ def ftps_sensor(context):
                             FTPS_DIRECTORY, relative_filepath)
                         Path(local_filepath).mkdir(parents=True, exist_ok=True)
 
-                        ftp_path = Path(folder_name, filename)
-                        local_path = Path(local_filepath, filename)
+                        ftp_path = str(Path(folder_name, filename))
+                        local_path = str(Path(local_filepath, filename))
 
                         # Run pipeline
                         config['solids']['download_file_from_ftp']['inputs'] = {
