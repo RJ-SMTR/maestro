@@ -11,6 +11,12 @@ resources:
       url: "{{ '' | env_override('SPPO_DISCORD_WEBHOOK') }}"
       success_cron: "* * * * *"
 solids:
+  download_file_from_ftp:
+    inputs:
+      ftp_path:
+        value: SPPO/ARQUIVO.TXT
+      local_path:
+        value: /tmp/ARQUIVO.TXT
   parse_file_path_and_partitions:
     inputs:
       bucket_path:
