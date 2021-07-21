@@ -1,0 +1,10 @@
+solids:
+  get_routes:
+    inputs:
+      url:
+        value: http://webapibrt.rio.rj.gov.br/api/v1/brt
+resources:
+  basedosdados_config:
+    config:
+      table_id: routes
+      dataset_id: br_rj_riodejaneiro_sigmob
