@@ -28,7 +28,7 @@ def get_routes(context, url):
 def pre_treatment_br_rj_riodejaneiro_sigmob(context, data):
     run_date = context.resources.schedule_run_date["date"]
     path = Path(
-        f"{context.resources.basedosdados_config['table_id']}/data_versao={run_date}/routes_version_date-{run_date}.csv"
+        f"{context.resources.basedosdados_config['table_id']}/data_versao={run_date}/routes_version-{run_date}.csv"
     )
     df = pd.DataFrame()
     df["route_id"] = [piece["route_id"] for piece in data]
@@ -53,10 +53,11 @@ def upload_to_bq(context, path):
             if_storage_data_exists="replace",
             if_table_config_exists="pass",
         )
-    elif not tb.table_exists("prod"):
-        tb.publish(if_exists="pass")
     else:
         tb.append(filepath=tb_dir, if_exists="replace")
+
+    if not tb.table_exists("prod"):
+        tb.publish(if_exists="pass")
 
     return tb_dir
 
