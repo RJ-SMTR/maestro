@@ -58,7 +58,7 @@ def upload_to_bq(context, path):
     else:
         tb.append(filepath=tb_dir, if_exists="replace")
 
-    return tb_dir.parent
+    return tb_dir
 
 
 @solid
