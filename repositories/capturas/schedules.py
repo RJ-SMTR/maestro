@@ -47,7 +47,7 @@ def br_rj_riodejaneiro_onibus_gps_registros(context):
 )
 def br_rj_riodejaneiro_sigmob_routes(date):
     config = read_config(
-        Path(__file__).parent / "br_rj_riodejaneiro_brt_gtfs_gps/realized_trips.yaml"
+        Path(__file__).parent / "br_rj_riodejaneiro_sigmob/routes.yaml"
     )
     config["resources"]["schedule_run_date"] = {
         "config": {"date": date.strftime("%Y-%m-%d")}

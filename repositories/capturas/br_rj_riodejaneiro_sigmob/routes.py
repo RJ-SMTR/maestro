@@ -24,19 +24,21 @@ def get_routes(context):
         return data["result"]
 
 
-@solid(required_resource_keys=["basedosdados_config", "schedule_run_date"])
+@solid(required_resource_keys={"basedosdados_config", "schedule_run_date"})
 def pre_treatment_br_rj_riodejaneiro_sigmob(context, data):
     data = data.json()
     run_date = context.resources.schedule_run_date["date"]
-    path = f"{context.resources.basedosdados_config['table_id']}/data_versao={run_date}/routes_version_date={run_date}.csv"
+    path = Path(
+        f"{context.resources.basedosdados_config['table_id']}/data_versao={run_date}/routes_version_date={run_date}.csv"
+    )
     df = pd.DataFrame()
     df["route_id"] = [piece["route_id"] for piece in data]
     df["info"] = [piece for piece in data]
     df.to_csv(path, index=False)
-    return Path(path)
+    return path
 
 
-@solid(required_resource_keys=["basedosdados_config", "schedule_run_date"])
+@solid(required_resource_keys={"basedosdados_config", "schedule_run_date"})
 def upload_to_bq(context, path):
     tb = bd.Table(
         context.resources.basedosdados_config["table_id"],
