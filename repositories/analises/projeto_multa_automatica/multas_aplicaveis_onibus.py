@@ -60,7 +60,7 @@ def upload_table(context, paths):
     for table_id in context.solid_config["query_tables"]:
         tb = bd.Table(
             dataset_id=context.resources.basedosdados_config["dataset_id"],
-            table_id=table_id,
+            table_id="pipeline_" + table_id,
         )
         tb_dir = paths[table_id].parent.parent
 
