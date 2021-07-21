@@ -11,22 +11,21 @@ from repositories.libraries.basedosdados.resources import basedosdados_config, b
 from repositories.analises.resources import schedule_run_date
 
 
-@solid(config_schema={"url": Any})
-def get_routes(context):
+@solid
+def get_routes(context, url):
     data = None
 
     try:
-        data = requests.get(context.solid_config["url"])
+        data = requests.get(url)
     except Exception as e:
         raise e
 
     if data.ok:
-        return data["result"]
+        return data.json()["result"]
 
 
 @solid(required_resource_keys={"basedosdados_config", "schedule_run_date"})
 def pre_treatment_br_rj_riodejaneiro_sigmob(context, data):
-    data = data.json()
     run_date = context.resources.schedule_run_date["date"]
     path = Path(
         f"{context.resources.basedosdados_config['table_id']}/data_versao={run_date}/routes_version_date={run_date}.csv"
@@ -34,6 +33,7 @@ def pre_treatment_br_rj_riodejaneiro_sigmob(context, data):
     df = pd.DataFrame()
     df["route_id"] = [piece["route_id"] for piece in data]
     df["info"] = [piece for piece in data]
+    path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(path, index=False)
     return path
 
@@ -58,7 +58,12 @@ def upload_to_bq(context, path):
     else:
         tb.append(filepath=tb_dir, if_exists="replace")
 
-    return shutil.rmtree(tb_dir.parent)
+    return tb_dir.parent
+
+
+@solid
+def cleanup_local(context, path):
+    shutil.rmtree(path)
 
 
 @pipeline(
@@ -74,4 +79,4 @@ def upload_to_bq(context, path):
     ]
 )
 def br_rj_riodejaneiro_sigmob_routes():
-    upload_to_bq(pre_treatment_br_rj_riodejaneiro_sigmob(get_routes()))
+    cleanup_local(upload_to_bq(pre_treatment_br_rj_riodejaneiro_sigmob(get_routes())))
