@@ -28,7 +28,7 @@ def get_routes(context, url):
 def pre_treatment_br_rj_riodejaneiro_sigmob(context, data):
     run_date = context.resources.schedule_run_date["date"]
     path = Path(
-        f"{context.resources.basedosdados_config['table_id']}/data_versao={run_date}/routes_version_date={run_date}.csv"
+        f"{context.resources.basedosdados_config['table_id']}/data_versao={run_date}/routes_version_date-{run_date}.csv"
     )
     df = pd.DataFrame()
     df["route_id"] = [piece["route_id"] for piece in data]
