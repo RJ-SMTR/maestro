@@ -66,7 +66,7 @@ def get_daily_data(context, run_date):
                 from_file=True,
                 index=False,
             )
-            paths[table_id.replace("view", "")] = path
+            paths[table_id.replace("view_", "")] = path
         except Exception as e:
             raise Exception(f"unable to download {table_id}: {e}") from e
     return paths
