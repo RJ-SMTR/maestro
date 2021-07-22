@@ -1,4 +1,4 @@
-from dagster import schedule, weekly_schedule
+from dagster import schedule, daily_schedule
 from pathlib import Path
 from repositories.helpers.helpers import read_config
 from datetime import datetime, time
@@ -36,12 +36,11 @@ def br_rj_riodejaneiro_onibus_gps_registros(context):
     return config
 
 
-@weekly_schedule(
+@daily_schedule(
     pipeline_name="br_rj_riodejaneiro_sigmob_routes",
     start_date=datetime(2021, 1, 1),
     name="br_rj_riodejaneiro_sigmob_routes",
-    execution_day_of_week=1,
-    execution_time=time(10, 0),
+    execution_time=time(5, 0),
     mode="dev",
     execution_timezone="America/Sao_Paulo",
 )
