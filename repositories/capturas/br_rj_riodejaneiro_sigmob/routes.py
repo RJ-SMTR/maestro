@@ -29,7 +29,7 @@ def pre_treatment_br_rj_riodejaneiro_sigmob(context, data):
     )
     df = pd.DataFrame()
     df["route_id"] = [piece["route_id"] for piece in data]
-    df["info"] = [piece for piece in data]
+    df["content"] = [piece for piece in data]
     path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(path, index=False)
     return path

@@ -22,6 +22,6 @@ TIPOS:
 CREATE VIEW rj-smtr.br_rj_riodejaneiro_sigmob.routes AS
 SELECT 
 SAFE_CAST(route_id AS STRING) route_id,
-SAFE_CAST(info AS STRING) info,
+REPLACE(content, "None", '') content,
 SAFE_CAST(data_versao AS DATE) data_versao
 from rj-smtr-staging.br_rj_riodejaneiro_sigmob_staging.routes as t
