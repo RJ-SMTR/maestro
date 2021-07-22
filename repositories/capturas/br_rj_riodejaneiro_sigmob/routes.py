@@ -1,10 +1,7 @@
 import shutil
-from typing import Any
 import pandas as pd
-import basedosdados as bd
-import google.api_core.exceptions
 import requests
-from dagster import solid, pipeline, Output, ModeDefinition, OutputDefinition
+from dagster import solid, pipeline, ModeDefinition
 from basedosdados import Table
 from pathlib import Path
 from repositories.libraries.basedosdados.resources import basedosdados_config, bd_client
@@ -40,7 +37,7 @@ def pre_treatment_br_rj_riodejaneiro_sigmob(context, data):
 
 @solid(required_resource_keys={"basedosdados_config", "schedule_run_date"})
 def upload_to_bq(context, path):
-    tb = bd.Table(
+    tb = Table(
         context.resources.basedosdados_config["table_id"],
         context.resources.basedosdados_config["dataset_id"],
     )
