@@ -26,20 +26,28 @@ def request_data(context, api_keys):
 @solid(required_resource_keys={"basedosdados_config", "schedule_run_date"})
 def pre_treatment_br_rj_riodejaneiro_sigmob(context, contents):
     run_date = context.resources.schedule_run_date["date"]
+    key_columns = {
+        "routes": "route_id",
+        "linhas": "linha_id",
+        "trips": "trip_id",
+        "agency": "agency_id",
+        "stop_times": "stop_id",
+    }
     paths = {}
+
     for key in contents.keys():
         path = Path(
             f"{run_date}/{key}/data_versao={run_date}/{key}_version-{run_date}.csv"
         )
-        df = pd.DataFrame()
-        if key == "routes":
-            df["route_id"] = [piece["route_id"] for piece in contents[key]]
-        if key == "linhas":
-            df["linha_id"] = [piece["linha_id"] for piece in contents[key]]
 
+        df = pd.DataFrame()
+        df[key_columns[key]] = [piece[key_columns[key]] for piece in contents[key]]
         df["content"] = [piece for piece in contents[key]]
+
         path.parent.mkdir(parents=True, exist_ok=True)
+
         df.to_csv(path, index=False)
+
         paths[key] = path
     return paths
 
