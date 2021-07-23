@@ -1,0 +1,11 @@
+solids:
+  request_data:
+    inputs:
+      api_keys:
+        - value: http://jeap.rio.rj.gov.br/MOB/get_routes.rule?sys=MOB
+        - value: http://jeap.rio.rj.gov.br/MOB/get_linhas.rule?sys=MOB
+resources:
+  basedosdados_config:
+    config:
+      table_id: routes
+      dataset_id: br_rj_riodejaneiro_sigmob
