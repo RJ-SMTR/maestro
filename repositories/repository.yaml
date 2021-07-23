@@ -4,7 +4,7 @@ capturas:
       objects:
         - br_rj_riodejaneiro_brt_gps_registros
         - br_rj_riodejaneiro_onibus_gps_registros
-        - br_rj_riodejaneiro_sigmob_routes
+        - br_rj_riodejaneiro_sigmob_data
 
   pipelines:
     - module: repositories.capturas.br_rj_riodejaneiro_brt_gps.registros
@@ -24,9 +24,9 @@ capturas:
         - br_rj_riodejaneiro_gtfs_realized_trips
         - daily_partition_set
         - daily_schedule
-    - module: repositories.capturas.br_rj_riodejaneiro_sigmob.routes
+    - module: repositories.capturas.br_rj_riodejaneiro_sigmob.data
       objects:
-        - br_rj_riodejaneiro_sigmob_routes
+        - br_rj_riodejaneiro_sigmob_data
 
   sensors:
     - module: repositories.capturas.sensors
