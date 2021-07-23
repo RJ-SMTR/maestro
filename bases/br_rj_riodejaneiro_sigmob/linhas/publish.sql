@@ -19,9 +19,9 @@ TIPOS:
 
 */
 
-CREATE VIEW rj-smtr-dev.br_rj_riodejaneiro_sigmob.linhas AS
+CREATE VIEW rj-smtr.br_rj_riodejaneiro_sigmob.linhas AS
 SELECT 
 SAFE_CAST(linha_id AS STRING) linha_id,
 REPLACE(content,"None","") content,
 SAFE_CAST(data_versao AS STRING) data_versao
-from rj-smtr-dev.br_rj_riodejaneiro_sigmob_staging.linhas as t
+from rj-smtr-staging.br_rj_riodejaneiro_sigmob_staging.linhas as t
