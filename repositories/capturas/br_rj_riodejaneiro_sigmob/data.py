@@ -34,10 +34,10 @@ def pre_treatment_br_rj_riodejaneiro_sigmob(context, contents):
         df = pd.DataFrame()
         if key == "routes":
             df["route_id"] = [piece["route_id"] for piece in contents[key]]
-            df["content"] = [piece for piece in contents[key]]
         if key == "linhas":
             df["linha_id"] = [piece["linha_id"] for piece in contents[key]]
-            df["content"] = [piece for piece in contents[key]]
+
+        df["content"] = [piece for piece in contents[key]]
         path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(path, index=False)
         paths[key] = path
