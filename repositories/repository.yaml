@@ -51,3 +51,14 @@ queries:
     - module: repositories.queries.sensors
       objects:
         - views_sensor
+
+maintenance:
+  pipelines:
+    - module: repositories.maintenance.pipelines
+      objects:
+        - wipe_history
+
+  schedules:
+    - module: repositories.maintenance.schedules
+      objects:
+        - wipe_history_daily

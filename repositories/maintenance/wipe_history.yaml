@@ -1,0 +1,20 @@
+resources:
+  timezone_config:
+    config:
+      timezone: "America/Sao_Paulo"
+  discord_webhook:
+    config:
+      url: "{{ '' | env_override('MAINTENANCE_DISCORD_WEBHOOK') }}"
+      success_cron: "* * * * *"
+solids:
+  get_compare_timestamp:
+    inputs:
+      minutes: 1
+  get_info_for_event_logs:
+    inputs:
+      table_name:
+        value: "event_log"
+  get_info_for_runs:
+    inputs:
+      table_name:
+        value: "runs"
