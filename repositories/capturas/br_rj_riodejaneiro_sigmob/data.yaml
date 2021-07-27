@@ -7,6 +7,14 @@ solids:
         - value: http://jeap.rio.rj.gov.br/MOB/get_trips.rule?sys=MOB
         - value: http://jeap.rio.rj.gov.br/MOB/get_agency.rule?sys=MOB
         - value: http://jeap.rio.rj.gov.br/MOB/get_stop_times.rule?sys=MOB
+  pre_treatment_br_rj_riodejaneiro_sigmob:
+    config:
+      key_columns:
+        routes: route_id
+        linhas: linha_id
+        trips: trip_id
+        agency: agency_id
+        stop_times: stop_id
 resources:
   basedosdados_config:
     config:

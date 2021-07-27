@@ -23,16 +23,13 @@ def request_data(context, api_keys):
     return contents
 
 
-@solid(required_resource_keys={"basedosdados_config", "schedule_run_date"})
+@solid(
+    config_schema={"key_columns": dict},
+    required_resource_keys={"basedosdados_config", "schedule_run_date"},
+)
 def pre_treatment_br_rj_riodejaneiro_sigmob(context, contents):
     run_date = context.resources.schedule_run_date["date"]
-    key_columns = {
-        "routes": "route_id",
-        "linhas": "linha_id",
-        "trips": "trip_id",
-        "agency": "agency_id",
-        "stop_times": "stop_id",
-    }
+    key_columns = context.solid_config["key_columns"]
     paths = {}
 
     for key in contents.keys():
