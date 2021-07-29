@@ -1,3 +1,4 @@
+from repositories.capturas.resources import endpoints
 import shutil
 import pandas as pd
 import requests
@@ -8,28 +9,29 @@ from repositories.libraries.basedosdados.resources import basedosdados_config, b
 from repositories.analises.resources import schedule_run_date
 
 
-@solid(input_defs=[InputDefinition(name="api_keys", dagster_type=list)])
-def request_data(context, api_keys):
+@solid(required_resource_keys={"endpoints"})
+def request_data(context):
     data = None
     contents = {}
-    for url in api_keys:
-        key = url.split("get_")[1].split(".")[0]
+    endpoints = context.resources.endpoints["endpoints"]
+    for key in endpoints.keys():
         try:
-            data = requests.get(url)
+            data = requests.get(endpoints[key]["url"])
         except Exception as e:
             raise e
         if data.ok:
-            contents[key] = data.json()["result"]
+            contents[key] = {
+                "data": data.json()["result"],
+                "key_column": endpoints[key]["key_column"],
+            }
     return contents
 
 
 @solid(
-    config_schema={"key_columns": dict},
     required_resource_keys={"basedosdados_config", "schedule_run_date"},
 )
 def pre_treatment_br_rj_riodejaneiro_sigmob(context, contents):
     run_date = context.resources.schedule_run_date["date"]
-    key_columns = context.solid_config["key_columns"]
     paths = {}
 
     for key in contents.keys():
@@ -38,8 +40,10 @@ def pre_treatment_br_rj_riodejaneiro_sigmob(context, contents):
         )
 
         df = pd.DataFrame()
-        df[key_columns[key]] = [piece[key_columns[key]] for piece in contents[key]]
-        df["content"] = [piece for piece in contents[key]]
+        df[contents[key]["key_column"]] = [
+            piece[contents[key]["key_column"]] for piece in contents[key]["data"]
+        ]
+        df["content"] = [piece for piece in contents[key]["data"]]
 
         path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -87,6 +91,7 @@ def cleanup_local(context, path):
                 "basedosdados_config": basedosdados_config,
                 "bd_client": bd_client,
                 "schedule_run_date": schedule_run_date,
+                "endpoints": endpoints,
             },
         )
     ]
