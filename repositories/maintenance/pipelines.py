@@ -1,7 +1,13 @@
-from dagster import pipeline
+from dagster import pipeline, PipelineRun
 from dagster.core.definitions.mode import ModeDefinition
 
-from repositories.maintenance.solids import wipe_table_history, get_info_for_table, get_compare_timestamp
+from repositories.maintenance.solids import (
+    get_compare_timestamp,
+    get_dagster_instance,
+    get_runs,
+    filter_runs,
+    delete_runs,
+)
 from repositories.capturas.resources import discord_webhook, timezone_config
 from repositories.helpers.hooks import discord_message_on_failure, discord_message_on_success
 
@@ -15,21 +21,8 @@ from repositories.helpers.hooks import discord_message_on_failure, discord_messa
 ],
 )
 def wipe_history():
-
     compare_timestamp = get_compare_timestamp()
-
-    table_event_logs, compare_col_event_logs = get_info_for_table.alias(
-        'get_info_for_event_logs')()
-    wipe_table_history.alias('wipe_event_logs')(
-        table_event_logs, compare_col_event_logs, compare_timestamp)
-
-    table_runs, compare_col_runs = get_info_for_table.alias(
-        'get_info_for_runs')()
-    wipe_table_history.alias('wipe_runs')(
-        table_runs, compare_col_runs, compare_timestamp)
-
-    # wipe_table_history.alias('wipe_runs')(
-    #     RunsTable, "create_timestamp", compare_timestamp)
-
-    # TODO: RunTagsTable
-    # TODO: SnapshotsTable
+    instance = get_dagster_instance()
+    all_runs = get_runs(instance)
+    runs_to_wipe = filter_runs(instance, all_runs, compare_timestamp)
+    delete_runs(instance, runs_to_wipe)
