@@ -8,8 +8,17 @@ from datetime import datetime
 from google.oauth2 import service_account
 from google.cloud import storage
 from google.cloud.storage.blob import Blob
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 from repositories.helpers.implicit_ftp import ImplicitFTP_TLS
+
+
+def get_session_builder() -> sessionmaker:
+    """Returns a session builder for the SQLAlchemy engine"""
+    db_uri = f'postgresql://{os.getenv("DAGSTER_POSTGRES_USER")}:{os.getenv("DAGSTER_POSTGRES_PASSWORD")}@{os.getenv("DAGSTER_POSTGRES_HOST")}/{os.getenv("DAGSTER_POSTGRES_DB")}'
+    engine = create_engine(db_uri, echo=False)
+    return sessionmaker(bind=engine)
 
 
 def get_credentials_from_env(mode: str = "prod") -> service_account.Credentials:

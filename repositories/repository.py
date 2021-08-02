@@ -27,6 +27,14 @@ def queries():
     return repository_list
 
 
+@repository
+def maintenance():
+    repository_list = load_repository(
+        Path(__file__).parent / "repository.yaml", "maintenance"
+    )
+    return repository_list
+
+
 # @repository
 # def examples():
 #     repository_list = load_repository(
