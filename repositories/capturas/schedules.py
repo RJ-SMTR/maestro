@@ -40,7 +40,7 @@ def br_rj_riodejaneiro_onibus_gps_registros(context):
     pipeline_name="br_rj_riodejaneiro_sigmob_data",
     start_date=datetime(2021, 1, 1),
     name="br_rj_riodejaneiro_sigmob_data",
-    execution_time=time(5, 0),
+    execution_time=time(0, 0),
     mode="dev",
     execution_timezone="America/Sao_Paulo",
 )
