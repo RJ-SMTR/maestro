@@ -25,15 +25,15 @@ def filter_runs(context, instance: DagsterInstance, runs, compare_timestamp: dat
         if run_stats is None:
             context.log.warning(f'Failed to get run stats for ID {run.run_id}')
             continue
-        enqueued_time = run_stats.enqueued_time
-        if enqueued_time is None:
+        launch_time = run_stats.launch_time
+        if launch_time is None:
             context.log.warning(
                 f'Failed to get enqueued time for ID {run.run_id}')
             continue
-        enqueued_time = convert_unix_time_to_datetime(
-            enqueued_time
+        launch_time = convert_unix_time_to_datetime(
+            launch_time
         )
-        if enqueued_time <= compare_timestamp:
+        if launch_time <= compare_timestamp:
             filtered_runs.append(run)
     return filtered_runs
 
