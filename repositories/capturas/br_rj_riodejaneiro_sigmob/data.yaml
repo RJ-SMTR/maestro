@@ -1,0 +1,23 @@
+resources:
+  basedosdados_config:
+    config:
+      table_id: routes
+      dataset_id: br_rj_riodejaneiro_sigmob
+  endpoints:
+    config:
+      endopints:
+        linhas:
+          url: http://jeap.rio.rj.gov.br/MOB/get_linhas.rule?sys=MOB
+          key_column: linha_id
+        routes:
+          url: http://jeap.rio.rj.gov.br/MOB/get_routes.rule?sys=MOB
+          key_column: route_id
+        agency:
+          url: http://jeap.rio.rj.gov.br/MOB/get_agency.rule?sys=MOB
+          key_column: agency_id
+        trips:
+          url: http://jeap.rio.rj.gov.br/MOB/get_trips.rule?sys=MOB
+          key_column: trip_id
+        stop_times:
+          url: http://jeap.rio.rj.gov.br/MOB/get_stop_times.rule?sys=MOB
+          key_column: stop_id

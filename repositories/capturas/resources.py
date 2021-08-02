@@ -12,6 +12,19 @@ def timezone_config(context):
 
 @resource(
     {
+        "endpoints": Field(
+            dict,
+            is_required=True,
+            description="dicts of endpoint and key_column keyed by table_id",
+        )
+    }
+)
+def endpoints(context):
+    return context.resource_config
+
+
+@resource(
+    {
         "url": Field(str, is_required=True, description="Discord webhook URL"),
         "success_cron": Field(
             str, is_required=False, description="Cron expression to post success hooks"
