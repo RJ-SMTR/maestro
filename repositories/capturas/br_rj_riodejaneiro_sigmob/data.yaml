@@ -5,7 +5,7 @@ resources:
       dataset_id: br_rj_riodejaneiro_sigmob
   endpoints:
     config:
-      endopints:
+      endpoints:
         linhas:
           url: http://jeap.rio.rj.gov.br/MOB/get_linhas.rule?sys=MOB
           key_column: linha_id
