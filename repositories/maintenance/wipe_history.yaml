@@ -9,4 +9,4 @@ resources:
 solids:
   get_compare_timestamp:
     inputs:
-      days: 30
+      days: 14
