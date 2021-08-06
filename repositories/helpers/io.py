@@ -2,16 +2,46 @@ import os
 import time
 import json
 import base64
-from pathlib import Path
-from datetime import datetime
 
 from google.oauth2 import service_account
-from google.cloud import storage
+from google.cloud import storage, bigquery
+from google.cloud.exceptions import NotFound
 from google.cloud.storage.blob import Blob
+from google.cloud.bigquery.table import RowIterator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from repositories.helpers.implicit_ftp import ImplicitFTP_TLS
+
+
+def get_bigquery_client() -> bigquery.Client:
+    """Returns a BigQuery client"""
+    credentials = get_credentials_from_env()
+    return bigquery.Client(project=os.getenv("BQ_PROJECT_NAME"), credentials=credentials)
+
+
+def run_query(query: str):
+    """Runs a query on BigQuery"""
+    client = get_bigquery_client()
+    return client.query(query).result()
+
+
+def insert_results_to_table(row_iterator: RowIterator, table_name: str) -> list:
+    """Inserts a row iterator into a table"""
+    client = get_bigquery_client()
+    table = client.get_table(table_name)
+    errors = client.insert_rows(table, row_iterator)
+    return errors
+
+
+def check_if_table_exists(table_name: str):
+    """Checks if a table exists in BigQuery"""
+    client = get_bigquery_client()
+    try:
+        client.get_table(table_name)
+        return True
+    except NotFound:
+        return False
 
 
 def get_session_builder() -> sessionmaker:

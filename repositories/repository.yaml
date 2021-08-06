@@ -50,11 +50,15 @@ queries:
     - module: repositories.queries.pipelines
       objects:
         - update_view_on_bigquery
+        - update_managed_materialized_views
+        - materialize_view
 
   sensors:
     - module: repositories.queries.sensors
       objects:
         - views_sensor
+        - materialized_views_update_sensor
+        - materialized_views_execute_sensor
 
 maintenance:
   pipelines:

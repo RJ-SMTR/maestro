@@ -1,0 +1,41 @@
+solids:
+  delete_table_on_query_change:
+    inputs:
+      table_name:
+        value: ""
+      changed:
+        value: false
+  create_table_if_not_exists:
+    inputs:
+      base_query:
+        value: ""
+      base_params:
+        value: ""
+      query_params:
+        value: ""
+      table_name:
+        value: ""
+      now:
+        value: ""
+  insert_into_table_if_already_existed:
+    inputs:
+      base_query:
+        value: ""
+      base_params:
+        value: ""
+      query_params:
+        value: ""
+      table_name:
+        value: ""
+      last_run:
+        value: ""
+      now:
+        value: ""
+resources:
+  timezone_config:
+    config:
+      timezone: "America/Sao_Paulo"
+  discord_webhook:
+    config:
+      url: "{{ '' | env_override('QUERIES_DISCORD_WEBHOOK') }}"
+      success_cron: "* * * * *"
