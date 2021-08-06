@@ -21,10 +21,10 @@ def get_bigquery_client() -> bigquery.Client:
     return bigquery.Client(project=os.getenv("BQ_PROJECT_NAME"), credentials=credentials)
 
 
-def run_query(query: str):
+def run_query(query: str, timeout: float = None):
     """Runs a query on BigQuery"""
     client = get_bigquery_client()
-    return client.query(query).result()
+    return client.query(query, timeout=timeout).result()
 
 
 def insert_results_to_table(row_iterator: RowIterator, table_name: str) -> list:

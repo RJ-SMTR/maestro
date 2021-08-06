@@ -1,6 +1,6 @@
 import jinja2
-from dagster import solid
 from redis_pal import RedisPal
+from dagster import solid, RetryPolicy
 
 from repositories.helpers.constants import constants
 from repositories.helpers.io import (
@@ -39,19 +39,19 @@ def update_materialized_view_on_redis(context, blob_name: str, cron_expression: 
     rp.set("managed_materialized_views", materialized_views)
 
 
-@solid
+@solid(retry_policy=RetryPolicy(max_retries=3, delay=5))
 def delete_table_on_query_change(context, table_name: str, changed: bool):
     if check_if_table_exists(table_name) and changed:
         context.log.info(f"Deleting table {table_name}")
         context.log.info(f"Running query: DROP TABLE {table_name}")
-        run_query(f"DROP TABLE {table_name}")
+        run_query(f"DROP TABLE {table_name}", timeout=300)
     else:
         context.log.info(
             f"Skipping table {table_name} as it does not exist or query hasn't changed")
     return True
 
 
-@solid
+@solid(retry_policy=RetryPolicy(max_retries=3, delay=5))
 def create_table_if_not_exists(context, base_query: str, base_params: dict, query_params: dict, table_name: str, now: str, last_step_done: bool):
     """Creates a table if it doesn't exist"""
 
@@ -86,7 +86,7 @@ def create_table_if_not_exists(context, base_query: str, base_params: dict, quer
 
         # Run query
         context.log.info(f"Running query: {create_table_query}")
-        run_query(create_table_query)
+        run_query(create_table_query, timeout=1800)
         return False
 
     # If table exists
@@ -96,7 +96,7 @@ def create_table_if_not_exists(context, base_query: str, base_params: dict, quer
         return True
 
 
-@solid
+@solid(retry_policy=RetryPolicy(max_retries=3, delay=5))
 def insert_into_table_if_already_existed(context, base_query: str, base_params: dict, query_params: dict, table_name: str, last_run: str, now: str, already_existed: bool):
     """Creates a table if it doesn't exist"""
 
@@ -118,7 +118,7 @@ def insert_into_table_if_already_existed(context, base_query: str, base_params: 
 
         # Execute query
         context.log.info(f"Running query: {query}")
-        results = run_query(query)
+        results = run_query(query, timeout=1800)
 
         # Insert results to table and check for errors
         if (results.total_rows == 0):
