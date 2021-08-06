@@ -1,5 +1,4 @@
-# TODO: fill these in pipeline
-run id: ""
+run_key: ""
 run_timestamp: ""
 maestro_sha: ""
 maestro_bq_sha: ""

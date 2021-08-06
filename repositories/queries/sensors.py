@@ -11,7 +11,14 @@ from dagster import RunRequest, sensor, SensorExecutionContext
 from repositories.helpers.helpers import read_config
 from repositories.helpers.constants import constants
 from repositories.helpers.datetime import determine_whether_to_execute_or_not, convert_datetime_to_datetime_string
-from repositories.helpers.io import build_run_key, get_blob, get_list_of_blobs, parse_filepath_to_tablename, parse_run_key
+from repositories.helpers.io import (
+    build_run_key,
+    get_blob,
+    get_list_of_blobs,
+    parse_filepath_to_tablename,
+    parse_run_key,
+    fetch_branch_sha,
+)
 
 SENSOR_BUCKET = os.getenv("SENSOR_BUCKET", "rj-smtr-dev")
 VIEWS_PREFIX = os.getenv("VIEWS_PREFIX", "queries/views/")
@@ -243,8 +250,16 @@ def materialized_views_execute_sensor(context: SensorExecutionContext):
             view_config["query_modified"] = False
 
             # Get base configs
+            run_key = build_run_key(blob_name, now)
             with open(str(Path(__file__).parent / "materialized_views_base_config.yaml"), "r") as f:
                 base_config: dict = yaml.safe_load(f)
+            base_config["run_timestamp"] = "'{}'".format(
+                convert_datetime_to_datetime_string(now))
+            base_config["maestro_sha"] = "'{}'".format(fetch_branch_sha(
+                constants.MAESTRO_REPOSITORY.value, constants.MAESTRO_DEFAULT_BRANCH.value))
+            base_config["maestro_bq_sha"] = "'{}'".format(fetch_branch_sha(
+                constants.MAESTRO_BQ_REPOSITORY.value, constants.MAESTRO_BQ_DEFAULT_BRANCH.value))
+            base_config["run_key"] = "'{}'".format(run_key)
 
             # Set inputs
             config["solids"]["delete_table_on_query_change"]["inputs"]["table_name"]["value"] = table_name
@@ -265,7 +280,7 @@ def materialized_views_execute_sensor(context: SensorExecutionContext):
                 view_config["last_run"])
 
             yield RunRequest(
-                run_key=build_run_key(blob_name, now),
+                run_key=run_key,
                 run_config=config
             )
 

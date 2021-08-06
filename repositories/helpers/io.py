@@ -2,6 +2,7 @@ import os
 import time
 import json
 import base64
+import requests
 
 from google.oauth2 import service_account
 from google.cloud import storage, bigquery
@@ -153,3 +154,17 @@ def parse_filepath_to_tablename(filepath: str) -> str:
 
     # Returns full BQ name
     return ".".join([prefix, dataset_name, table_name])
+
+
+def fetch_branch_sha(github_repo_name: str, branch_name: str):
+    """Fetches the SHA of a branch from Github"""
+    url = f"https://api.github.com/repos/{github_repo_name}/git/refs"
+    response = requests.get(url)
+    if response.status_code != 200:
+        return None
+    else:
+        branches = response.json()
+        for branch in branches:
+            if branch["ref"] == f"refs/heads/{branch_name}":
+                return branch["object"]["sha"]
+    return None
