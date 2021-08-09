@@ -1,2 +1,0 @@
-The sum of car prices is {{ cars | sum(attribute='price') }}
-This is from env {{ "MODE" | env_override("USER") }}
