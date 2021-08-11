@@ -33,18 +33,18 @@ def get_credentials_from_env(mode: str = "prod") -> service_account.Credentials:
     return service_account.Credentials.from_service_account_info(info)
 
 
-def get_list_of_blobs(prefix: str, bucket_name: str) -> list:
+def get_list_of_blobs(prefix: str, bucket_name: str, mode: str = "prod") -> list:
     """Gets list of blobs from `bucket_name` with `prefix`, which can be a path"""
-    credentials = get_credentials_from_env()
+    credentials = get_credentials_from_env(mode=mode)
     client = storage.Client(credentials=credentials)
     l: list = client.list_blobs(bucket_name, prefix=prefix)
     l = [blob for blob in l if not blob.name.endswith("/")]
     return l
 
 
-def get_blob(name: str, bucket_name: str) -> Blob:
+def get_blob(name: str, bucket_name: str, mode: str = "prod") -> Blob:
     """Gets a single blob from `bucket_name`"""
-    credentials = get_credentials_from_env()
+    credentials = get_credentials_from_env(mode=mode)
     client = storage.Client(credentials=credentials)
     bucket = client.get_bucket(bucket_name)
     return bucket.get_blob(name)

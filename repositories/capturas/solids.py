@@ -314,7 +314,7 @@ def upload_file_to_storage(
     required_resource_keys={"basedosdados_config"},
 )
 def upload_blob_to_storage(
-    context, blob_path, partitions=None, mode="raw", table_id=None, bucket_name="",
+    context, blob_path, partitions=None, mode="raw", table_id=None, bucket_name="", credential_mode="staging"
 ):
     # Extracted from basedosdados
     def _resolve_partitions(partitions):
@@ -342,7 +342,7 @@ def upload_blob_to_storage(
     if not table_id:
         table_id = context.resources.basedosdados_config["table_id"]
     dataset_id = context.resources.basedosdados_config["dataset_id"]
-    credentials = get_credentials_from_env()
+    credentials = get_credentials_from_env(mode=credential_mode)
     client = storage.Client(credentials=credentials)
     blob_name = f"{mode}/{dataset_id}/{table_id}/"
     if partitions is not None:
@@ -350,7 +350,7 @@ def upload_blob_to_storage(
     blob_name += blob_path.split("/")[-1]
     bucket = client.bucket(bucket_name)
     blob = bucket.blob(blob_name)
-    input_blob = get_blob(blob_path, bucket_name)
+    input_blob = get_blob(blob_path, bucket_name, mode=credential_mode)
     context.log.debug(
         f"Uploading blob {blob_path} to mode {mode} with partitions {partitions}"
     )
