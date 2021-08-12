@@ -54,7 +54,7 @@ def save_blob_to_tempfile(context, blob_path: str, bucket_name: str) -> str:
     tempfile_name: str = f"/tmp/{uuid4()}.zip"
     context.log.debug(
         f"Saving {blob_path} to temporary file with name {tempfile_name}")
-    blob: Blob = get_blob(blob_path, bucket_name)
+    blob: Blob = get_blob(blob_path, bucket_name, mode="staging")
     with open(tempfile_name, "wb") as tempfile:
         tempfile.write(blob.download_as_bytes())
         tempfile.close()
@@ -81,7 +81,7 @@ def create_gtfs_version_partition(context, feed, original_filepath, bucket_name)
         version_partition = feed.feed_info('feed_version')
     # Otherwise, use txt modification date
     else:
-        blob = get_blob(original_filepath, bucket_name)
+        blob = get_blob(original_filepath, bucket_name, mode="staging")
         single_file = zipfile.ZipFile(io.BytesIO(
             blob.download_as_bytes()), 'r').infolist()[0]
         version_partition = datetime(*single_file.date_time).strftime("%Y%m%d")

@@ -25,7 +25,7 @@ def gtfs_sensor(context):
         1] if context.last_run_key else 0
 
     for blob in filter_blobs_by_modification_time(
-        get_list_of_blobs(GTFS_BLOBS_PREFIX, SENSOR_BUCKET), last_mtime, after=True
+        get_list_of_blobs(GTFS_BLOBS_PREFIX, SENSOR_BUCKET), last_mtime, after=True, mode="staging"
     ):
         run_key: str = build_run_key(
             blob.name, time.mktime(blob.updated.timetuple()))
