@@ -3,9 +3,10 @@ import time
 import yaml
 import datetime
 from pathlib import Path
-from google.cloud.storage.blob import Blob
 
 from redis_pal import RedisPal
+from google.cloud.storage.blob import Blob
+from dagster.core.definitions.run_request import SkipReason
 from dagster import RunRequest, sensor, SensorExecutionContext
 
 from repositories.helpers.helpers import read_config
@@ -266,68 +267,34 @@ def materialized_views_execute_sensor(context: SensorExecutionContext):
     # Get current timestamp
     now = datetime.datetime.now()
 
-    # Iterate over all managed materialized views
-    for blob_name, view_config in managed_materialized_views.items():
-        if view_config["last_run"] is None or determine_whether_to_execute_or_not(view_config["cron_expression"], now, view_config["last_run"]):
+    # Iterate over all managed materialized views, storing a list
+    # of all queries to be executed
+    queries_to_execute: list = []
+    for blob_name, view_config in managed_materialized_views["views"].items():
+        if (view_config["last_run"] is None or
+                determine_whether_to_execute_or_not(
+                view_config["cron_expression"], now, view_config["last_run"])
+                ) and (view_config["materialized"]):
+            # Add to list of queries to execute
+            queries_to_execute.append(blob_name)
 
-            # Load run configuration
-            config: dict = read_config(
-                Path(__file__).parent / "materialized_views_execute.yaml")
+    # Launch run if we have any queries to execute
+    if queries_to_execute:
+        # Get run configuration
+        config: dict = read_config(
+            Path(__file__).parent / "materialized_views_execute.yaml")
 
-            # Get query
-            blob: Blob = get_blob(blob_name.split(
-                ".y")[0] + ".sql", SENSOR_BUCKET)
-            query: str = blob.download_as_string().decode("utf-8")
+        # Get run key
+        run_key = build_run_key("materialized_views_execute", now)
 
-            # Extract table name from blob path
-            table_name: str = parse_filepath_to_tablename(
-                "/".join([n for n in blob.name.split(MATERIALIZED_VIEWS_PREFIX)[1].split("/") if n != ""]))
+        # Set inputs
+        config["solids"]["resolve_dependencies_and_execute"]["inputs"]["queries_names"]["value"] = queries_to_execute
 
-            # Get query configs
-            blob: Blob = get_blob(blob_name, SENSOR_BUCKET)
-            query_config: dict = yaml.safe_load(
-                blob.download_as_string().decode("utf-8"))
+        yield RunRequest(
+            run_key=run_key,
+            run_config=config
+        )
 
-            # Checks if query is modified and then reset it on Redis
-            query_modified = view_config["query_modified"]
-            view_config["query_modified"] = False
-
-            # Get base configs
-            run_key = build_run_key(blob_name, now)
-            with open(str(Path(__file__).parent / "materialized_views_base_config.yaml"), "r") as f:
-                base_config: dict = yaml.safe_load(f)
-            base_config["run_timestamp"] = "'{}'".format(
-                convert_datetime_to_datetime_string(now))
-            base_config["maestro_sha"] = "'{}'".format(fetch_branch_sha(
-                constants.MAESTRO_REPOSITORY.value, constants.MAESTRO_DEFAULT_BRANCH.value))
-            base_config["maestro_bq_sha"] = "'{}'".format(fetch_branch_sha(
-                constants.MAESTRO_BQ_REPOSITORY.value, constants.MAESTRO_BQ_DEFAULT_BRANCH.value))
-            base_config["run_key"] = "'{}'".format(run_key)
-
-            # Set inputs
-            config["solids"]["delete_table_on_query_change"]["inputs"]["table_name"]["value"] = table_name
-            config["solids"]["delete_table_on_query_change"]["inputs"]["changed"]["value"] = query_modified
-            config["solids"]["create_table_if_not_exists"]["inputs"]["base_query"]["value"] = query
-            config["solids"]["create_table_if_not_exists"]["inputs"]["table_name"]["value"] = table_name
-            config["solids"]["create_table_if_not_exists"]["inputs"]["base_params"]["value"] = base_config
-            config["solids"]["create_table_if_not_exists"]["inputs"]["query_params"]["value"] = query_config
-            config["solids"]["create_table_if_not_exists"]["inputs"]["now"]["value"] = convert_datetime_to_datetime_string(
-                now)
-            config["solids"]["insert_into_table_if_already_existed"]["inputs"]["base_query"]["value"] = query
-            config["solids"]["insert_into_table_if_already_existed"]["inputs"]["table_name"]["value"] = table_name
-            config["solids"]["insert_into_table_if_already_existed"]["inputs"]["base_params"]["value"] = base_config
-            config["solids"]["insert_into_table_if_already_existed"]["inputs"]["query_params"]["value"] = query_config
-            config["solids"]["insert_into_table_if_already_existed"]["inputs"]["now"]["value"] = convert_datetime_to_datetime_string(
-                now)
-            config["solids"]["insert_into_table_if_already_existed"]["inputs"]["last_run"]["value"] = convert_datetime_to_datetime_string(
-                view_config["last_run"])
-
-            yield RunRequest(
-                run_key=run_key,
-                run_config=config
-            )
-
-            view_config["last_run"] = now
-
-    # Update Redis with new last run times
-    rp.set("managed_materialized_views", managed_materialized_views)
+    # Tell Dagit a reason we skipped it
+    else:
+        yield SkipReason("No materialization requested for now")

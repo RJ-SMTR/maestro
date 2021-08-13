@@ -6,9 +6,9 @@ from repositories.libraries.basedosdados.solids import update_view
 from repositories.helpers.hooks import discord_message_on_failure, discord_message_on_success
 from repositories.queries.solids import (
     update_materialized_view_on_redis,
-    create_table_if_not_exists,
-    delete_table_on_query_change,
-    insert_into_table_if_already_existed,
+    resolve_dependencies_and_execute,
+    get_configs_for_materialized_view,
+    materialize
 )
 
 
@@ -45,22 +45,6 @@ def update_managed_materialized_views():
 ],
 )
 def materialize_view():
-
-    # Delete table if query has changed
-    # Steps:
-    # 1. Check if table exists
-    # 2. If exists, check if query has changed
-    # 3. If changed, delete table
-    done_1 = delete_table_on_query_change()
-
-    # Create table and run query if table does not exist
-    # Steps:
-    # - If table exists, return
-    # - If table does not exist, create table
-    already_existed = create_table_if_not_exists(last_step_done=done_1)
-
-    # Run query if table already existed
-    # Steps:
-    # - If table exists, run query
-    # - If table does not exist, return
-    insert_into_table_if_already_existed(already_existed=already_existed)
+    views = resolve_dependencies_and_execute()
+    configs = views.map(get_configs_for_materialized_view)
+    configs.map(materialize)
