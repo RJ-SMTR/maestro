@@ -153,7 +153,12 @@ def materialized_views_update_sensor(context: SensorExecutionContext):
 
                 # Set a run key so we can keep track of changes
                 run_key: str = build_run_key(
-                    "delete-materialized-" + blob_name, last_mtime)
+                    "delete-view-" + blob_name, last_mtime)
+
+                # Get dataset name
+                blob_path = "/".join([n for n in blob_name.split("/")
+                                      if n != ""][:-1])
+                dataset_name: str = blob_path.split("/")[-1]
 
                 # Load run configuration
                 config: dict = read_config(
@@ -161,8 +166,8 @@ def materialized_views_update_sensor(context: SensorExecutionContext):
 
                 # Set inputs
                 config["solids"]["update_materialized_view_on_redis"]["inputs"]["blob_name"]["value"] = blob_name
-                config["solids"]["update_materialized_view_on_redis"]["inputs"]["cron_expression"]["value"] = ""
                 config["solids"]["update_materialized_view_on_redis"]["inputs"]["delete"]["value"] = True
+                config["solids"]["update_materialized_view_on_redis"]["inputs"]["dataset_name"]["value"] = dataset_name
 
                 # Yield a run request
                 yield RunRequest(run_key=run_key, run_config=config)
@@ -170,31 +175,45 @@ def materialized_views_update_sensor(context: SensorExecutionContext):
     # Cache current file list
     rp.set("materialized_views_files_set", set_of_blobs)
 
-    # Iterate over all YAML files
+    # Iterate over all files
     blob: Blob = None
     for blob in list_of_blobs:
-        if blob.name.endswith(".yaml") or blob.name.endswith(".yml"):
 
-            # Get file's last modification timestamp
-            file_mtime = time.mktime(blob.updated.timetuple())
+        # Get file's last modification timestamp
+        file_mtime = time.mktime(blob.updated.timetuple())
 
-            # If file has modified
-            if file_mtime > last_mtime:
+        # If file has modified
+        if file_mtime > last_mtime:
 
-                # Extract query from file
+            # Check for updated yaml files
+            if blob.name.endswith(".yaml") or blob.name.endswith(".yml"):
+
+                # Extract configs from file
                 materialized_view_config: dict = yaml.safe_load(
                     blob.download_as_string().decode("utf-8"))
 
-                # Set a run key so we can keep track of changes
-                run_key: str = build_run_key(blob.name, file_mtime)
+                # Is defaults.yaml
+                defaults_yaml = blob.name.endswith("defaults.yaml")
 
-                # Check if query has also changed
-                query_blob_name = blob.name.split(".y")[0] + ".sql"
-                query_blob = get_blob(query_blob_name, SENSOR_BUCKET)
-                if query_blob is not None and time.mktime(query_blob.updated.timetuple()) > last_mtime:
-                    query_modified = True
+                # Get dataset name
+                blob_path = "/".join([n for n in blob.name.split("/")
+                                      if n != ""][:-1])
+                dataset_name: str = blob_path.split("/")[-1]
+
+                # Get cron expression
+                if defaults_yaml:
+                    cron_expression: str = ""
+                    defaults_dict: dict = materialized_view_config
                 else:
-                    query_modified = False
+                    cron_expression: str = materialized_view_config["scheduling"]["cron"]
+                    defaults_path = blob_path + "/defaults.yaml"
+                    defaults_blob = get_blob(defaults_path, SENSOR_BUCKET)
+                    defaults_dict: dict = yaml.safe_load(
+                        defaults_blob.download_as_string().decode("utf-8"))
+
+                # Set a run key so we can keep track of changes
+                run_key: str = build_run_key(
+                    "update-config-" + blob.name, file_mtime)
 
                 # Load run configuration
                 config: dict = read_config(
@@ -202,10 +221,34 @@ def materialized_views_update_sensor(context: SensorExecutionContext):
 
                 # Set inputs
                 config["solids"]["update_materialized_view_on_redis"]["inputs"]["blob_name"]["value"] = blob.name
-                config["solids"]["update_materialized_view_on_redis"]["inputs"][
-                    "cron_expression"]["value"] = materialized_view_config["scheduling"]["cron"]
-                config["solids"]["update_materialized_view_on_redis"]["inputs"]["delete"]["value"] = False
-                config["solids"]["update_materialized_view_on_redis"]["inputs"]["query_modified"]["value"] = query_modified
+                config["solids"]["update_materialized_view_on_redis"]["inputs"]["cron_expression"]["value"] = cron_expression
+                config["solids"]["update_materialized_view_on_redis"]["inputs"]["defaults_yaml"]["value"] = defaults_yaml
+                config["solids"]["update_materialized_view_on_redis"]["inputs"]["defaults_dict"]["value"] = defaults_dict
+                config["solids"]["update_materialized_view_on_redis"]["inputs"]["dataset_name"]["value"] = dataset_name
+
+                # Yield a run request
+                yield RunRequest(run_key=run_key, run_config=config)
+
+            # Check for updated sql files
+            elif blob.name.endswith(".sql"):
+
+                # Set a run key so we can keep track of changes
+                run_key: str = build_run_key(
+                    "update-query-" + blob.name, file_mtime)
+
+                # Get dataset name
+                blob_path = "/".join([n for n in blob.name.split("/")
+                                      if n != ""][:-1])
+                dataset_name: str = blob_path.split("/")[-1]
+
+                # Load run configuration
+                config: dict = read_config(
+                    Path(__file__).parent / "materialized_views_update.yaml")
+
+                # Set inputs
+                config["solids"]["update_materialized_view_on_redis"]["inputs"]["blob_name"]["value"] = blob.name
+                config["solids"]["update_materialized_view_on_redis"]["inputs"]["query_modified"]["value"] = True
+                config["solids"]["update_materialized_view_on_redis"]["inputs"]["dataset_name"]["value"] = dataset_name
 
                 # Yield a run request
                 yield RunRequest(run_key=run_key, run_config=config)

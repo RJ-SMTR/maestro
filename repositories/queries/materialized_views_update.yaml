@@ -9,6 +9,12 @@ solids:
         value: false
       query_modified:
         value: false
+      defaults_yaml:
+        value: false
+      defaults_dict:
+        value: {}
+      dataset_name:
+        value: ""
 resources:
   timezone_config:
     config:

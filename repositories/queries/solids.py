@@ -1,9 +1,14 @@
+import yaml
 import jinja2
+from redis import Redis
+from pottery import Redlock
 from redis_pal import RedisPal
 from dagster import solid, RetryPolicy
 
 from repositories.helpers.constants import constants
+from repositories.queries.sensors import SENSOR_BUCKET
 from repositories.helpers.io import (
+    get_blob,
     run_query,
     check_if_table_exists,
     insert_results_to_table
@@ -11,32 +16,71 @@ from repositories.helpers.io import (
 
 
 @solid
-def update_materialized_view_on_redis(context, blob_name: str, cron_expression: str, delete: bool, query_modified: bool):
+def update_materialized_view_on_redis(
+    context,
+    blob_name: str,
+    cron_expression: str,
+    delete: bool,
+    query_modified: bool,
+    defaults_yaml: bool,
+    defaults_dict: dict,
+    dataset_name: str,
+):
+    r = Redis(constants.REDIS_HOST.value)
     rp = RedisPal(constants.REDIS_HOST.value)
-    materialized_views: dict = rp.get("managed_materialized_views")
-    materialized_views = materialized_views if materialized_views else {}
-    if query_modified:
-        context.log.info(f"Query has been modified!")
-    else:
-        context.log.info(f"Query has NOT been modified!")
-    if (delete and blob_name in materialized_views):
-        del materialized_views[blob_name]
-        context.log.info(f"Deleted materialized view {blob_name}")
-    elif (not delete):
-        if (blob_name in materialized_views):
-            materialized_views[blob_name]["cron_expression"] = cron_expression
-            materialized_views[blob_name]["query_modified"] = query_modified
-        else:
-            materialized_views[blob_name] = {
-                "cron_expression": cron_expression,
-                "last_run": None,
-                "query_modified": query_modified,
-            }
-        context.log.info(f"Updated materialized view {blob_name}")
-    else:
-        context.log.warning(
-            f"Materialized view {blob_name} does not exist, skipping...")
-    rp.set("managed_materialized_views", materialized_views)
+    lock = Redlock(key="lock_managed_materialized_views", masters=[r])
+    defaults_dict = defaults_dict["value"]
+    blob_path = "/".join(blob_name.split("/")[:-1])
+    blob_name_without_dataset = ".".join(blob_name.split(".")[:-1])
+    blob_name = f'{dataset_name}.{blob_name_without_dataset.split("/")[-1]}'
+
+    with lock:
+        materialized_views: dict = rp.get("managed_materialized_views")
+        materialized_views = materialized_views if materialized_views else {
+            "views": {}}
+        # Modified YAML files
+        # If defaults.yaml
+        if defaults_yaml:
+            for key in defaults_dict["views"].keys():
+                m_key = f"{dataset_name}.{key}"
+                materialized_views["views"][m_key] = {
+                    "cron_expression": defaults_dict["scheduling"]["cron"],
+                    "last_run": None,
+                    "materialized": defaults_dict["views"][key]["materialized"],
+                    "query_modified": False,
+                    "depends_on": defaults_dict["views"][key]["depends_on"],
+                }
+                blob = get_blob(blob_path + key + ".yaml", SENSOR_BUCKET)
+                if blob:
+                    specific = yaml.safe_load(
+                        blob.download_as_string().decode("utf-8"))
+                    materialized_views["views"][m_key]["cron_expression"] = specific[
+                        "scheduling"]["cron"]
+        # Any other YAML file will provide a cron_expression
+        # Also valid for modified SQL files
+        elif cron_expression != "" or query_modified:
+            # Check if it exists on dict
+            if blob_name in materialized_views["views"]:
+                # If exists, update it
+                if cron_expression:
+                    materialized_views["views"][blob_name]["cron_expression"] = cron_expression
+                else:
+                    materialized_views["views"][blob_name]["query_modified"] = query_modified
+            else:
+                # If not, create it
+                cron_expression = cron_expression if cron_expression != "" else defaults_dict[
+                    "scheduling"]["cron"]
+                materialized_views["views"][blob_name] = {
+                    "cron_expression": cron_expression,
+                    "last_run": None,
+                    "materialized": defaults_dict[blob_name]["materialized"],
+                    "query_modified": query_modified,
+                    "depends_on": defaults_dict[blob_name]["depends_on"],
+                }
+        # If deleted SQL file
+        elif delete and blob_name in materialized_views["views"]:
+            del materialized_views["views"][blob_name]
+        rp.set("managed_materialized_views", materialized_views)
 
 
 @solid(retry_policy=RetryPolicy(max_retries=3, delay=5))
