@@ -4,6 +4,7 @@ import yaml
 import datetime
 from pathlib import Path
 
+import pytz
 from redis_pal import RedisPal
 from google.cloud.storage.blob import Blob
 from dagster.core.definitions.run_request import SkipReason
@@ -272,7 +273,7 @@ def materialized_views_execute_sensor(context: SensorExecutionContext):
     managed_materialized_views: dict = rp.get("managed_materialized_views")
 
     # Get current timestamp
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(pytz.timezone("America/Sao_Paulo"))
 
     # Iterate over all managed materialized views, storing a list
     # of all queries to be executed

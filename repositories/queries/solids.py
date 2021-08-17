@@ -1,5 +1,5 @@
+import pytz
 import yaml
-import time
 import jinja2
 import datetime
 import networkx as nx
@@ -231,7 +231,7 @@ def get_configs_for_materialized_view(context, query_name: str) -> dict:
     query_params = {**defaults_dict, **view_dict}
 
     # Build base configs
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(pytz.timezone("America/Sao_Paulo"))
     run_key = build_run_key(query_name, now)
     with open(str(Path(__file__).parent / "materialized_views_base_config.yaml"), "r") as f:
         base_params: dict = yaml.safe_load(f)
