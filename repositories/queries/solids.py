@@ -136,7 +136,7 @@ def materialize(context, config_dict: dict):
         # Get params
         custom_params = {
             "date_range_start": "'{}'".format(query_params["backfill"]["start_timestamp"]),
-            "date_range_end": "'{}'".format(now)
+            "date_range_end": "'{}'".format(convert_datetime_to_datetime_string(now))
         }  # Backfill parameters
 
         # Build query for data
@@ -177,8 +177,8 @@ def materialize(context, config_dict: dict):
 
         # Get params
         custom_params = {
-            "date_range_start": "'{}'".format(last_run),
-            "date_range_end": "'{}'".format(now)
+            "date_range_start": "'{}'".format(convert_datetime_to_datetime_string(last_run)),
+            "date_range_end": "'{}'".format(convert_datetime_to_datetime_string(now))
         }  # Backfill parameters
 
         # Build query for data
