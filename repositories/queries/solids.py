@@ -59,7 +59,8 @@ def update_materialized_view_on_redis(
                     "query_modified": False,
                     "depends_on": defaults_dict["views"][key]["depends_on"],
                 }
-                blob = get_blob(blob_path + key + ".yaml", SENSOR_BUCKET)
+                blob = get_blob(blob_path + key + ".yaml",
+                                SENSOR_BUCKET, mode="staging")
                 if blob:
                     specific = yaml.safe_load(
                         blob.download_as_string().decode("utf-8"))
@@ -218,8 +219,8 @@ def get_configs_for_materialized_view(context, query_name: str) -> dict:
     # Load configs from GCS
     view_yaml = f'queries/materialized_views/{dataset_name}/{view_name}.yaml'
     defaults_yaml = f'queries/materialized_views/{dataset_name}/defaults.yaml'
-    defaults_blob = get_blob(defaults_yaml, SENSOR_BUCKET)
-    view_blob = get_blob(view_yaml, SENSOR_BUCKET)
+    defaults_blob = get_blob(defaults_yaml, SENSOR_BUCKET, mode="staging")
+    view_blob = get_blob(view_yaml, SENSOR_BUCKET, mode="staging")
     defaults_dict = yaml.safe_load(defaults_blob.download_as_string())
     if view_blob:
         view_dict = yaml.safe_load(view_blob.download_as_string())
@@ -258,7 +259,7 @@ def get_configs_for_materialized_view(context, query_name: str) -> dict:
 
     # Get query on GCS
     query_file = f'queries/materialized_views/{dataset_name}/{view_name}.sql'
-    query_blob = get_blob(query_file, SENSOR_BUCKET)
+    query_blob = get_blob(query_file, SENSOR_BUCKET, mode="staging")
     base_query = query_blob.download_as_string().decode("utf-8")
 
     # Build configs

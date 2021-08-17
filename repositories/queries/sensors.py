@@ -207,7 +207,8 @@ def materialized_views_update_sensor(context: SensorExecutionContext):
                     defaults_dict: dict = materialized_view_config
                 else:
                     defaults_path = blob_path + "/defaults.yaml"
-                    defaults_blob = get_blob(defaults_path, SENSOR_BUCKET)
+                    defaults_blob = get_blob(
+                        defaults_path, SENSOR_BUCKET, mode="staging")
                     defaults_dict: dict = yaml.safe_load(
                         defaults_blob.download_as_string().decode("utf-8"))
                     if "scheduling" in materialized_view_config:
@@ -280,7 +281,7 @@ def materialized_views_execute_sensor(context: SensorExecutionContext):
         if (view_config["last_run"] is None or
                 determine_whether_to_execute_or_not(
                 view_config["cron_expression"], now, view_config["last_run"])
-                ) and (view_config["materialized"]):
+            ) and (view_config["materialized"]):
             # Add to list of queries to execute
             queries_to_execute.append(blob_name)
 
