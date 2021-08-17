@@ -206,11 +206,17 @@ def materialized_views_update_sensor(context: SensorExecutionContext):
                     cron_expression: str = ""
                     defaults_dict: dict = materialized_view_config
                 else:
-                    cron_expression: str = materialized_view_config["scheduling"]["cron"]
                     defaults_path = blob_path + "/defaults.yaml"
                     defaults_blob = get_blob(defaults_path, SENSOR_BUCKET)
                     defaults_dict: dict = yaml.safe_load(
                         defaults_blob.download_as_string().decode("utf-8"))
+                    if "scheduling" in materialized_view_config:
+                        if "cron" in materialized_view_config["scheduling"]:
+                            cron_expression: str = materialized_view_config["scheduling"]["cron"]
+                        else:
+                            cron_expression: str = defaults_dict["scheduling"]["cron"]
+                    else:
+                        cron_expression: str = defaults_dict["scheduling"]["cron"]
 
                 # Set a run key so we can keep track of changes
                 run_key: str = build_run_key(
