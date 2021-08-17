@@ -1,12 +1,20 @@
 solids:
-  update_view:
+  update_materialized_view_on_redis:
     inputs:
-      view_sql:
+      blob_name:
         value: ""
-      table_name:
+      cron_expression:
         value: ""
       delete:
         value: false
+      query_modified:
+        value: false
+      defaults_yaml:
+        value: false
+      defaults_dict:
+        value: {}
+      dataset_name:
+        value: ""
 resources:
   timezone_config:
     config:

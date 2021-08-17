@@ -4,6 +4,7 @@ import requests
 from croniter import croniter
 from datetime import datetime
 from redis_pal import RedisPal
+from repositories.helpers.constants import constants
 
 
 @success_hook(required_resource_keys={"discord_webhook", "timezone_config"})
@@ -28,15 +29,14 @@ def discord_message_on_failure(context: HookContext):
 
 @success_hook(required_resource_keys={"keepalive_key"})
 def redis_keepalive_on_succes(context: HookContext):
-    rp = RedisPal(host="dagster-redis-master")
+    rp = RedisPal(host=constants.REDIS_HOST.value)
     rp.set(context.resources.keepalive_key['key'], 1)
 
 
 @failure_hook(required_resource_keys={"discord_webhook", "keepalive_key"})
 def redis_keepalive_on_failure(context: HookContext):
-    rp = RedisPal(host="dagster-redis-master")
+    rp = RedisPal(host=constants.REDIS_HOST.value)
     rp.set(context.resources.keepalive_key['key'], 1)
     message = f"Although solid {context.solid.name} has failed, a keep-alive was sent to Redis!"
     url = context.resources.discord_webhook["url"]
     requests.post(url, data={"content": message})
-

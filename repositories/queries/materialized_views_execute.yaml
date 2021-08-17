@@ -1,12 +1,8 @@
 solids:
-  update_view:
+  resolve_dependencies_and_execute:
     inputs:
-      view_sql:
-        value: ""
-      table_name:
-        value: ""
-      delete:
-        value: false
+      queries_names:
+        value: []
 resources:
   timezone_config:
     config:

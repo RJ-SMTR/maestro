@@ -2,16 +2,47 @@ import os
 import time
 import json
 import base64
-from pathlib import Path
-from datetime import datetime
+import requests
 
 from google.oauth2 import service_account
-from google.cloud import storage
+from google.cloud import storage, bigquery
+from google.cloud.exceptions import NotFound
 from google.cloud.storage.blob import Blob
+from google.cloud.bigquery.table import RowIterator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from repositories.helpers.implicit_ftp import ImplicitFTP_TLS
+
+
+def get_bigquery_client() -> bigquery.Client:
+    """Returns a BigQuery client"""
+    credentials = get_credentials_from_env()
+    return bigquery.Client(project=os.getenv("BQ_PROJECT_NAME"), credentials=credentials)
+
+
+def run_query(query: str, timeout: float = None):
+    """Runs a query on BigQuery"""
+    client = get_bigquery_client()
+    return client.query(query, timeout=timeout).result()
+
+
+def insert_results_to_table(row_iterator: RowIterator, table_name: str) -> list:
+    """Inserts a row iterator into a table"""
+    client = get_bigquery_client()
+    table = client.get_table(table_name)
+    errors = client.insert_rows(table, row_iterator)
+    return errors
+
+
+def check_if_table_exists(table_name: str):
+    """Checks if a table exists in BigQuery"""
+    client = get_bigquery_client()
+    try:
+        client.get_table(table_name)
+        return True
+    except NotFound:
+        return False
 
 
 def get_session_builder() -> sessionmaker:
@@ -123,3 +154,17 @@ def parse_filepath_to_tablename(filepath: str) -> str:
 
     # Returns full BQ name
     return ".".join([prefix, dataset_name, table_name])
+
+
+def fetch_branch_sha(github_repo_name: str, branch_name: str):
+    """Fetches the SHA of a branch from Github"""
+    url = f"https://api.github.com/repos/{github_repo_name}/git/refs"
+    response = requests.get(url)
+    if response.status_code != 200:
+        return None
+    else:
+        branches = response.json()
+        for branch in branches:
+            if branch["ref"] == f"refs/heads/{branch_name}":
+                return branch["object"]["sha"]
+    return None
