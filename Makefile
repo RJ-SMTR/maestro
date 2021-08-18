@@ -1,42 +1,18 @@
+SHELL=/bin/bash
+CONDA_ACTIVATE=source $$(conda info --base)/etc/profile.d/conda.sh ; conda activate ; conda activate
 
-
-.PHONY: create-env update-env
+.PHONY: install-env run-daemon run-dagit run-grpc
 
 REPO=$(shell basename $(CURDIR))
 
-setup-os:
-	sudo apt-get install git gcc libpq-dev  python-dev  python-pip python3-dev python3-pip python3-venv python3-wheel -y
-
-create-env:
-	python3 -m venv .$(REPO);
-
-# Needed when installing on a new machine on Google Cloud
-install-grpcio:
-	. .$(REPO)/bin/activate; \
-			pip3 install --upgrade wheel; \
-			pip3 install --upgrade pip; \
-			python3 -m pip install --upgrade setuptools; \
-			pip3 install --no-cache-dir  --force-reinstall -Iv grpcio;
-
 install-env:
-	. .$(REPO)/bin/activate; \
-			pip install -U pip \
-			pip3 install --upgrade  -r requirements-dev.txt; \
-			python setup.py develop;
-
-update-env:
-	. .$(REPO)/bin/activate; \
-	pip install -U pip \
-	pip install --upgrade -r requirements-dev.txt;
-
-attach-kernel:
-	. .$(REPO)/bin/activate; python -m ipykernel install --user --name=$(REPO);
-
-setup-workspace:
-	mkdir data
+	($(CONDA_ACTIVATE) smtr; pip3 install -U -r requirements.txt)
 
 run-daemon: 
-	. .$(REPO)/bin/activate; set -a;. $$(pwd)/.env_make; set +a; DAGSTER_HOME=$$(pwd)/.dagster_workspace dagster-daemon run
+	($(CONDA_ACTIVATE) smtr; set -a; . $$(pwd)/.env_local; set +a; DAGSTER_HOME=$$(pwd)/.dagster_workspace dagster-daemon run)
 
 run-dagit:
-	. .$(REPO)/bin/activate; set -a;. $$(pwd)/.env_make; set +a; DAGSTER_HOME=$$(pwd)/.dagster_workspace dagit
+	($(CONDA_ACTIVATE) smtr; set -a; . $$(pwd)/.env_local; set +a; DAGSTER_HOME=$$(pwd)/.dagster_workspace dagit)
+
+run-grpc:
+	($(CONDA_ACTIVATE) smtr; set -a; . $$(pwd)/.env_local; set +a; DAGSTER_HOME=$$(pwd)/.dagster_workspace dagster api grpc -h 0.0.0.0 -p 4000 -f repositories/repository.py)
