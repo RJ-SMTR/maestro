@@ -1,18 +1,26 @@
 import os
 import time
 import json
+import yaml
 import base64
+import datetime
 import requests
+from pathlib import Path
 
+import pytz
+import jinja2
 from google.oauth2 import service_account
 from google.cloud import storage, bigquery
 from google.cloud.exceptions import NotFound
 from google.cloud.storage.blob import Blob
 from google.cloud.bigquery.table import RowIterator
+from google.api_core.exceptions import Conflict
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from repositories.helpers.constants import constants
 from repositories.helpers.implicit_ftp import ImplicitFTP_TLS
+from repositories.helpers.datetime import convert_datetime_to_datetime_string
 
 
 def get_bigquery_client() -> bigquery.Client:
@@ -168,3 +176,78 @@ def fetch_branch_sha(github_repo_name: str, branch_name: str):
             if branch["ref"] == f"refs/heads/{branch_name}":
                 return branch["object"]["sha"]
     return None
+
+
+def update_view(table_name: str, defaults_dict: dict, dataset_name: str, view_name: str, view_yaml: str, delete: bool = False):
+
+    from repositories.queries.sensors import SENSOR_BUCKET
+    from repositories.queries.sensors import MATERIALIZED_VIEWS_PREFIX
+
+    # Table ID can't be empty
+    if table_name is None or table_name == "":
+        raise Exception("Table name can't be None or empty!")
+
+    # Setup credentials and BQ client
+    credentials = get_credentials_from_env()
+    client = bigquery.Client(credentials=credentials)
+
+    # Delete
+    if (delete):
+        client.delete_table(table_name, not_found_ok=True)
+
+    # Create/update
+    else:
+        # Load configs from GCS
+        view_blob = get_blob(
+            view_yaml, SENSOR_BUCKET, mode="staging")
+        if view_blob:
+            view_dict = yaml.safe_load(
+                view_blob.download_as_string())
+        else:
+            view_dict = {}
+
+        # Merge configs
+        query_params = {**defaults_dict, **view_dict}
+
+        # Build base configs
+        now = datetime.datetime.now(
+            pytz.timezone("America/Sao_Paulo"))
+        with open(str(Path(__file__).parent.parent / "queries/materialized_views_base_config.yaml"), "r") as f:
+            base_params: dict = yaml.safe_load(f)
+        base_params["run_timestamp"] = "'{}'".format(
+            convert_datetime_to_datetime_string(now))
+        base_params["maestro_sha"] = "'{}'".format(fetch_branch_sha(
+            constants.MAESTRO_REPOSITORY.value, constants.MAESTRO_DEFAULT_BRANCH.value))
+        base_params["maestro_bq_sha"] = "'{}'".format(fetch_branch_sha(
+            constants.MAESTRO_BQ_REPOSITORY.value, constants.MAESTRO_BQ_DEFAULT_BRANCH.value))
+
+        # Few more params
+        custom_params = {
+            "date_range_start": "'{}'".format(query_params["backfill"]["start_timestamp"]),
+            "date_range_end": "'{}'".format(convert_datetime_to_datetime_string(now))
+        }  # Backfill parameters
+
+        # Get query on GCS
+        query_file = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, dataset_name, view_name)}.sql'
+        query_blob = get_blob(
+            query_file, SENSOR_BUCKET, mode="staging")
+        base_query = query_blob.download_as_string().decode("utf-8")
+
+        # Build query for view
+        template = jinja2.Template(base_query)
+        query = template.render(
+            **base_params, **query_params["parameters"], **custom_params)
+
+        # SQL can't be empty if not removing table
+        if (query is None or query == ""):
+            raise Exception("Query can't be None or empty!")
+
+        table = bigquery.Table(table_name)
+        table.view_query = query
+
+        # Always Overwrite
+        try:
+            client.create_table(table)
+        except Conflict:
+            client.delete_table(table)
+            client.create_table(table)

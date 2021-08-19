@@ -4,7 +4,6 @@ dagster-k8s==0.11.15
 dagster-docker==0.11.15
 dagster-graphql==0.11.15
 dagster-postgres==0.11.15
-pandas
 alembic
 basedosdados==1.5.5a2
 openpyxl

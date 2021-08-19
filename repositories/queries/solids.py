@@ -1,10 +1,12 @@
+import os
+import datetime
+from pathlib import Path
+
 import pytz
 import yaml
 import jinja2
-import datetime
 import networkx as nx
 from redis import Redis
-from pathlib import Path
 from pottery import Redlock
 from redis_pal import RedisPal
 from dagster import solid, RetryPolicy
@@ -12,7 +14,7 @@ from dagster.experimental import DynamicOutputDefinition, DynamicOutput
 
 from repositories.helpers.constants import constants
 from repositories.helpers.datetime import convert_datetime_to_datetime_string
-from repositories.queries.sensors import SENSOR_BUCKET
+from repositories.queries.sensors import MATERIALIZED_VIEWS_PREFIX, SENSOR_BUCKET
 from repositories.helpers.io import (
     build_run_key,
     fetch_branch_sha,
@@ -20,11 +22,12 @@ from repositories.helpers.io import (
     parse_filepath_to_tablename,
     run_query,
     check_if_table_exists,
-    insert_results_to_table
+    insert_results_to_table,
+    update_view,
 )
 
 
-@solid
+@solid(retry_policy=RetryPolicy(max_retries=3, delay=30))
 def update_materialized_view_on_redis(
     context,
     blob_name: str,
@@ -42,6 +45,9 @@ def update_materialized_view_on_redis(
     blob_path = "/".join(blob_name.split("/")[:-1])
     blob_name_without_dataset = ".".join(blob_name.split(".")[:-1])
     blob_name = f'{dataset_name}.{blob_name_without_dataset.split("/")[-1]}'
+    dataset_name, view_name = blob_name.split(".")
+    view_yaml = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, dataset_name, view_name)}.yaml'
+    table_name = parse_filepath_to_tablename(view_yaml)
 
     with lock:
         materialized_views: dict = rp.get("managed_materialized_views")
@@ -78,22 +84,30 @@ def update_materialized_view_on_redis(
                     materialized_views["views"][blob_name]["query_modified"] = query_modified
             else:
                 # If not, create it
+                context.log.info(f"This is NOT a materialized view")
                 cron_expression = cron_expression if cron_expression != "" else defaults_dict[
                     "scheduling"]["cron"]
                 materialized_views["views"][blob_name] = {
                     "cron_expression": cron_expression,
                     "last_run": None,
-                    "materialized": defaults_dict[blob_name]["materialized"],
+                    "materialized": defaults_dict["views"][view_name]["materialized"],
                     "query_modified": query_modified,
-                    "depends_on": defaults_dict[blob_name]["depends_on"],
+                    "depends_on": defaults_dict["views"][view_name]["depends_on"],
                 }
+
         # If deleted SQL file
         elif delete and blob_name in materialized_views["views"]:
             del materialized_views["views"][blob_name]
         rp.set("managed_materialized_views", materialized_views)
 
+    context.log.info(f"{defaults_dict}")
 
-@solid(retry_policy=RetryPolicy(max_retries=3, delay=5))
+    if (not defaults_yaml) and ((not defaults_dict["views"][view_name]["materialized"]) or (delete)):
+        update_view(table_name, defaults_dict,
+                    dataset_name, view_name, view_yaml, delete=delete)
+
+
+@solid(retry_policy=RetryPolicy(max_retries=3, delay=30))
 def materialize(context, config_dict: dict):
 
     ###########
@@ -208,7 +222,7 @@ def materialize(context, config_dict: dict):
 
 
 @solid(
-    retry_policy=RetryPolicy(max_retries=3, delay=5),
+    retry_policy=RetryPolicy(max_retries=3, delay=30),
 )
 def get_configs_for_materialized_view(context, query_name: str) -> dict:
     """Retrieves configs for a materialized view"""
@@ -217,8 +231,8 @@ def get_configs_for_materialized_view(context, query_name: str) -> dict:
     dataset_name, view_name = query_name.split(".")
 
     # Load configs from GCS
-    view_yaml = f'queries/materialized_views/{dataset_name}/{view_name}.yaml'
-    defaults_yaml = f'queries/materialized_views/{dataset_name}/defaults.yaml'
+    view_yaml = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, dataset_name, view_name)}.yaml'
+    defaults_yaml = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, dataset_name)}/defaults.yaml'
     defaults_blob = get_blob(defaults_yaml, SENSOR_BUCKET, mode="staging")
     view_blob = get_blob(view_yaml, SENSOR_BUCKET, mode="staging")
     defaults_dict = yaml.safe_load(defaults_blob.download_as_string())
@@ -258,7 +272,7 @@ def get_configs_for_materialized_view(context, query_name: str) -> dict:
         rp.set("managed_materialized_views", managed)
 
     # Get query on GCS
-    query_file = f'queries/materialized_views/{dataset_name}/{view_name}.sql'
+    query_file = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, dataset_name, view_name)}.sql'
     query_blob = get_blob(query_file, SENSOR_BUCKET, mode="staging")
     base_query = query_blob.download_as_string().decode("utf-8")
 
