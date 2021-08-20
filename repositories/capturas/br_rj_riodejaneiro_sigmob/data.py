@@ -20,10 +20,24 @@ def request_data(context):
         except Exception as e:
             raise e
         if data.ok:
-            contents[key] = {
-                "data": data.json()["result"],
-                "key_column": endpoints[key]["key_column"],
-            }
+            if "next" in data.json().keys():
+                while data.json()["next"] != "EOF":
+                    if key not in contents.keys():
+                        contents[key] = {
+                            "data": data.json()["data"],
+                            "key_column": endpoints[key]["key_column"],
+                        }
+                    else:
+                        contents[key]["data"].extend(data.json()["data"])
+                    try:
+                        data = requests.get(data.json()["next"])
+                    except Exception as e:
+                        raise e
+            else:
+                contents[key] = {
+                    "data": data.json()["result"],
+                    "key_column": endpoints[key]["key_column"],
+                }
     return contents
 
 

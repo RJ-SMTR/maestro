@@ -6,18 +6,24 @@ resources:
   endpoints:
     config:
       endpoints:
+        agency:
+          url: http://jeap.rio.rj.gov.br/MOB/get_agency.rule?sys=MOB
+          key_column: agency_id
         linhas:
           url: http://jeap.rio.rj.gov.br/MOB/get_linhas.rule?sys=MOB
           key_column: linha_id
         routes:
           url: http://jeap.rio.rj.gov.br/MOB/get_routes.rule?sys=MOB
           key_column: route_id
-        agency:
-          url: http://jeap.rio.rj.gov.br/MOB/get_agency.rule?sys=MOB
-          key_column: agency_id
-        trips:
-          url: http://jeap.rio.rj.gov.br/MOB/get_trips.rule?sys=MOB
-          key_column: trip_id
+        shapes:
+          url: http://jeap.rio.rj.gov.br/MOB/get_shapes.rule?sys=MOB&INDICE=0
+          key_column: shape_id
+        stops:
+          url: http://jeap.rio.rj.gov.br/MOB/get_stops.rule?sys=MOB&INDICE=0
+          key_column: stop_id
         stop_times:
           url: http://jeap.rio.rj.gov.br/MOB/get_stop_times.rule?sys=MOB
           key_column: stop_id
+        trips:
+          url: http://jeap.rio.rj.gov.br/MOB/get_trips.rule?sys=MOB
+          key_column: trip_id
