@@ -1,0 +1,25 @@
+<descrição>
+
+
+Para saber mais acesse:
+Website: https://basedosdados.org/dataset/br-rj-riodejaneiro-stpl-gps
+Github: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_stpl_gps
+
+Ajude a manter o projeto :)
+Apoia-se: https://apoia.se/basedosdados
+
+Publicado por
+-------------
+Nome: <nome [você]>
+Código: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_stpl_gps/codeTratado por
+-----------
+Nome: <nome>
+
+Partições (Filtre a tabela por essas colunas para economizar dinheiro e tempo)
+---------
+- data
+- hora
+
+
+
+
