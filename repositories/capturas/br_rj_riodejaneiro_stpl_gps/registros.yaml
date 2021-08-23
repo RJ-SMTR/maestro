@@ -1,0 +1,26 @@
+solids:
+  get_raw:
+    inputs:
+      url:
+        value: http://zn4.m2mcontrol.com.br/api/integracao/veiculos
+      headers:
+        value:
+          Content-Type: application/json
+          idcliente: "{{ '' | env_override('STPL_API_IDCLIENTE') }}"
+          login: "{{ '' | env_override('STPL_API_LOGIN') }}"
+          senha: "{{ '' | env_override('STPL_API_SENHA') }}"
+resources:
+  basedosdados_config:
+    config:
+      table_id: registros
+      dataset_id: br_rj_riodejaneiro_stpl_gps
+  timezone_config:
+    config:
+      timezone: "America/Sao_Paulo"
+  discord_webhook:
+    config:
+      url: "{{ '' | env_override('STPL_DISCORD_WEBHOOK') }}"
+      success_cron: "00 08 * * *"
+  keepalive_key:
+    config:
+      key: "br_rj_riodejaneiro_stpl_gps"

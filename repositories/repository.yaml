@@ -2,11 +2,15 @@ capturas:
   schedules:
     - module: repositories.capturas.schedules
       objects:
+        - br_rj_riodejaneiro_stpl_gps_registros
         - br_rj_riodejaneiro_brt_gps_registros
         - br_rj_riodejaneiro_onibus_gps_registros
         - br_rj_riodejaneiro_sigmob_data
 
   pipelines:
+    - module: repositories.capturas.br_rj_riodejaneiro_stpl_gps.registros
+      objects:
+        - br_rj_riodejaneiro_stpl_gps_registros
     - module: repositories.capturas.br_rj_riodejaneiro_brt_gps.registros
       objects:
         - br_rj_riodejaneiro_brt_gps_registros
