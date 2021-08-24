@@ -71,4 +71,4 @@ maintenance:
   schedules:
     - module: repositories.maintenance.schedules
       objects:
-        - wipe_history_daily
+        - wipe_history_hourly

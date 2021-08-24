@@ -1,0 +1,13 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: citus-workers
+  labels:
+    app: citus-workers
+spec:
+  selector:
+    app: citus-workers
+  clusterIP: None
+  ports:
+    - port: 5432
