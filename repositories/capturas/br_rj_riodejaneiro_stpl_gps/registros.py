@@ -1,11 +1,14 @@
+import traceback
+from datetime import timedelta
+
+import pytz
+import pendulum
+import pandas as pd
 from dagster import (
     solid,
     pipeline,
     ModeDefinition,
 )
-
-import pendulum
-import pandas as pd
 
 from repositories.capturas.resources import (
     keepalive_key,
@@ -18,6 +21,7 @@ from repositories.helpers.hooks import (
     discord_message_on_success,
     redis_keepalive_on_failure,
     redis_keepalive_on_succes,
+    log_critical,
 )
 from repositories.capturas.solids import (
     create_current_datetime_partition,
@@ -44,6 +48,29 @@ def pre_treatment_br_rj_riodejaneiro_stpl_gps(context, data, timestamp):
             pendulum.from_timestamp(ms / 1000.0, timezone).isoformat()
         )
     )
+
+    # Filter data for 0 <= time diff <= 1min
+    try:
+        datahora_col = "dataHora"
+        df_treated = df
+        df_treated[datahora_col] = df_treated[datahora_col].apply(
+            lambda x: x.tz_convert(timezone)
+        )
+        df_treated["timestamp_captura"] = df_treated["timestamp_captura"].apply(
+            lambda x: x.tz_convert(timezone)
+        )
+        mask = (df_treated["timestamp_captura"] - df_treated[datahora_col]).apply(
+            lambda x: timedelta(seconds=0) <= x <= timedelta(minutes=1)
+        )
+        df_treated = df_treated[mask]
+        context.log.info(f"Shape antes da filtragem: {df.shape}")
+        context.log.info(f"Shape após a filtrage: {df_treated.shape}")
+        if df_treated.shape[0] == 0:
+            raise ValueError("After filtering, the dataframe is empty!")
+        df = df_treated
+    except:
+        err = traceback.format_exc()
+        log_critical(f"Failed to filter STPL data: \n{err}")
 
     return df
 
