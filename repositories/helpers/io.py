@@ -14,7 +14,7 @@ from google.cloud import storage, bigquery
 from google.cloud.exceptions import NotFound
 from google.cloud.storage.blob import Blob
 from google.cloud.bigquery.table import RowIterator
-from google.api_core.exceptions import Conflict
+from google.api_core.exceptions import Conflict, GoogleAPICallError
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -26,7 +26,9 @@ from repositories.helpers.datetime import convert_datetime_to_datetime_string
 def get_bigquery_client() -> bigquery.Client:
     """Returns a BigQuery client"""
     credentials = get_credentials_from_env()
-    return bigquery.Client(project=os.getenv("BQ_PROJECT_NAME"), credentials=credentials)
+    return bigquery.Client(
+        project=os.getenv("BQ_PROJECT_NAME"), credentials=credentials
+    )
 
 
 def run_query(query: str, timeout: float = None):
@@ -39,7 +41,13 @@ def insert_results_to_table(row_iterator: RowIterator, table_name: str) -> list:
     """Inserts a row iterator into a table"""
     client = get_bigquery_client()
     table = client.get_table(table_name)
-    errors = client.insert_rows(table, row_iterator)
+    # Try streaming insert
+    try:
+        errors = client.insert_rows(table, row_iterator)
+    except GoogleAPICallError:
+        # If streaming insert fails, try batch insert
+        df = row_iterator.to_dataframe()
+        errors = client.load_table_from_dataframe(df, table)
     return errors
 
 
@@ -66,8 +74,7 @@ def get_credentials_from_env(mode: str = "prod") -> service_account.Credentials:
         raise ValueError("Mode must be 'prod' or 'staging'")
     env: str = os.getenv(f"BASEDOSDADOS_CREDENTIALS_{mode.upper()}", "")
     if env == "":
-        raise ValueError(
-            f"BASEDOSDADOS_CREDENTIALS_{mode.upper()} env var not set!")
+        raise ValueError(f"BASEDOSDADOS_CREDENTIALS_{mode.upper()} env var not set!")
     info: dict = json.loads(base64.b64decode(env))
     return service_account.Credentials.from_service_account_info(info)
 
@@ -93,7 +100,11 @@ def filter_blobs_by_modification_time(l: list, ref: float, after: bool = True):
     """Filters blobs by modification time.
     - `after` == True -> blob.updated >= ref
     - `after` == False -> blob.updated < ref"""
-    return [blob for blob in l if not((time.mktime(blob.updated.timetuple()) >= ref) != after)]
+    return [
+        blob
+        for blob in l
+        if not ((time.mktime(blob.updated.timetuple()) >= ref) != after)
+    ]
 
 
 def get_list_of_files(dirName):
@@ -151,7 +162,10 @@ def parse_filepath_to_tablename(filepath: str) -> str:
     # Assert length matches minimum required (dataset name + table name)
     if len(spl) < 2:
         raise ValueError(
-            "Can't parse file path {} to BigQuery table name. Reason: path too short!".format(filepath))
+            "Can't parse file path {} to BigQuery table name. Reason: path too short!".format(
+                filepath
+            )
+        )
 
     # Extracts dataset and table names
     dataset_name: str = spl[-2]
@@ -178,7 +192,14 @@ def fetch_branch_sha(github_repo_name: str, branch_name: str):
     return None
 
 
-def update_view(table_name: str, defaults_dict: dict, dataset_name: str, view_name: str, view_yaml: str, delete: bool = False):
+def update_view(
+    table_name: str,
+    defaults_dict: dict,
+    dataset_name: str,
+    view_name: str,
+    view_yaml: str,
+    delete: bool = False,
+):
 
     from repositories.queries.sensors import SENSOR_BUCKET
     from repositories.queries.sensors import MATERIALIZED_VIEWS_PREFIX
@@ -192,17 +213,15 @@ def update_view(table_name: str, defaults_dict: dict, dataset_name: str, view_na
     client = bigquery.Client(credentials=credentials)
 
     # Delete
-    if (delete):
+    if delete:
         client.delete_table(table_name, not_found_ok=True)
 
     # Create/update
     else:
         # Load configs from GCS
-        view_blob = get_blob(
-            view_yaml, SENSOR_BUCKET, mode="staging")
+        view_blob = get_blob(view_yaml, SENSOR_BUCKET, mode="staging")
         if view_blob:
-            view_dict = yaml.safe_load(
-                view_blob.download_as_string())
+            view_dict = yaml.safe_load(view_blob.download_as_string())
         else:
             view_dict = {}
 
@@ -210,36 +229,54 @@ def update_view(table_name: str, defaults_dict: dict, dataset_name: str, view_na
         query_params = {**defaults_dict, **view_dict}
 
         # Build base configs
-        now = datetime.datetime.now(
-            pytz.timezone("America/Sao_Paulo"))
-        with open(str(Path(__file__).parent.parent / "queries/materialized_views_base_config.yaml"), "r") as f:
+        now = datetime.datetime.now(pytz.timezone("America/Sao_Paulo"))
+        with open(
+            str(
+                Path(__file__).parent.parent
+                / "queries/materialized_views_base_config.yaml"
+            ),
+            "r",
+        ) as f:
             base_params: dict = yaml.safe_load(f)
         base_params["run_timestamp"] = "'{}'".format(
-            convert_datetime_to_datetime_string(now))
-        base_params["maestro_sha"] = "'{}'".format(fetch_branch_sha(
-            constants.MAESTRO_REPOSITORY.value, constants.MAESTRO_DEFAULT_BRANCH.value))
-        base_params["maestro_bq_sha"] = "'{}'".format(fetch_branch_sha(
-            constants.MAESTRO_BQ_REPOSITORY.value, constants.MAESTRO_BQ_DEFAULT_BRANCH.value))
+            convert_datetime_to_datetime_string(now)
+        )
+        base_params["maestro_sha"] = "'{}'".format(
+            fetch_branch_sha(
+                constants.MAESTRO_REPOSITORY.value,
+                constants.MAESTRO_DEFAULT_BRANCH.value,
+            )
+        )
+        base_params["maestro_bq_sha"] = "'{}'".format(
+            fetch_branch_sha(
+                constants.MAESTRO_BQ_REPOSITORY.value,
+                constants.MAESTRO_BQ_DEFAULT_BRANCH.value,
+            )
+        )
 
         # Few more params
         custom_params = {
-            "date_range_start": "'{}'".format(query_params["backfill"]["start_timestamp"]),
-            "date_range_end": "'{}'".format(convert_datetime_to_datetime_string(now))
+            "date_range_start": "'{}'".format(
+                query_params["backfill"]["start_timestamp"]
+            ),
+            "date_range_end": "'{}'".format(convert_datetime_to_datetime_string(now)),
         }  # Backfill parameters
 
         # Get query on GCS
-        query_file = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, dataset_name, view_name)}.sql'
-        query_blob = get_blob(
-            query_file, SENSOR_BUCKET, mode="staging")
+        query_file = (
+            f"{os.path.join(MATERIALIZED_VIEWS_PREFIX, dataset_name, view_name)}.sql"
+        )
+        query_blob = get_blob(query_file, SENSOR_BUCKET, mode="staging")
         base_query = query_blob.download_as_string().decode("utf-8")
 
         # Build query for view
         template = jinja2.Template(base_query)
         query = template.render(
-            **base_params, **query_params["parameters"], **custom_params)
+            **base_params, **query_params["parameters"], **custom_params
+        )
 
         # SQL can't be empty if not removing table
-        if (query is None or query == ""):
+        if query is None or query == "":
             raise Exception("Query can't be None or empty!")
 
         table = bigquery.Table(table_name)
