@@ -67,3 +67,19 @@ def br_rj_riodejaneiro_sigmob_data(date):
     }
 
     return config
+
+
+@daily_schedule(
+    pipeline_name="br_rj_riodejaneiro_rdo_registros",
+    start_date=datetime(2021, 1, 1),
+    name="ftps_schedule",
+    execution_time=time(11, 30),
+    mode="dev",
+    execution_timezone="America/Sao_Paulo",
+)
+def ftps_schedule(date):
+    config = read_config(Path(__file__).parent / "br_rj_riodejaneiro_rdo/base.yaml")
+    config["solids"]["get_runs"]["inputs"]["execution_date"]["value"] = date.strftime(
+        "%Y-%m-%d"
+    )
+    return config
