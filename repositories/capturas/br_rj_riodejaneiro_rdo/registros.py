@@ -8,12 +8,7 @@ import pendulum
 import pandas as pd
 import basedosdados as bd
 from dateutil import parser
-from dagster import (
-    solid,
-    pipeline,
-    ModeDefinition,
-    PresetDefinition,
-)
+from dagster import solid, pipeline, ModeDefinition, PresetDefinition, RetryPolicy
 from dagster.experimental import DynamicOutputDefinition, DynamicOutput
 
 from repositories.capturas.resources import (
@@ -196,7 +191,10 @@ def fn_save_treated_local(df, file_path, mode="staging"):
     return _file_path
 
 
-@solid(output_defs=[DynamicOutputDefinition(dict)])
+@solid(
+    output_defs=[DynamicOutputDefinition(dict)],
+    retry_policy=RetryPolicy(max_retries=3, delay=30),
+)
 def get_runs(context, execution_date):
     execution_date = datetime.strptime(execution_date, "%Y-%m-%d")
     now = execution_date + timedelta(hours=11, minutes=30)
@@ -280,7 +278,10 @@ def get_runs(context, execution_date):
             continue
 
 
-@solid(required_resource_keys={"timezone_config", "basedosdados_config"},)
+@solid(
+    required_resource_keys={"timezone_config", "basedosdados_config"},
+    retry_policy=RetryPolicy(max_retries=3, delay=30),
+)
 def execute_run(context, run_config: dict):
 
     # Get file from FTPS and save it locally
