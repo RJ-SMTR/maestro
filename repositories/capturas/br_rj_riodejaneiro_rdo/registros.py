@@ -264,7 +264,7 @@ def get_runs(context, execution_date):
                         }
                         yield DynamicOutput(
                             config,
-                            mapping_key=f"{folder_name}_{fileprefix}_{uuid.uuid4()}",
+                            mapping_key=f"{folder_name}_{fileprefix}_{uuid.uuid4().hex}",
                         )
 
                     except jinja2.TemplateNotFound as err:
