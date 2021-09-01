@@ -1,5 +1,6 @@
 import os
 import re
+import uuid
 from pathlib import Path
 from datetime import datetime, timedelta
 
@@ -262,7 +263,8 @@ def get_runs(context, execution_date):
                             "inputs": {"file_path": {"value": local_path}}
                         }
                         yield DynamicOutput(
-                            config, mapping_key=f"{folder_name}_{fileprefix}"
+                            config,
+                            mapping_key=f"{folder_name}_{fileprefix}_{uuid.uuid4()}",
                         )
 
                     except jinja2.TemplateNotFound as err:
