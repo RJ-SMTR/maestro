@@ -6,7 +6,7 @@ from dagster import (
     SolidExecutionContext,
     Nothing,
     Field,
-    RetryPolicy
+    RetryPolicy,
 )
 
 from google.cloud import bigquery
@@ -19,7 +19,9 @@ from repositories.helpers.io import get_credentials_from_env
 
 
 @solid(retry_policy=RetryPolicy(max_retries=3, delay=5))
-def update_view(context: SolidExecutionContext, view_sql: str, table_name: str, delete: bool = False) -> Nothing:
+def update_view(
+    context: SolidExecutionContext, view_sql: str, table_name: str, delete: bool = False
+) -> Nothing:
 
     # Table ID can't be empty
     if table_name is None or table_name == "":
@@ -34,7 +36,7 @@ def update_view(context: SolidExecutionContext, view_sql: str, table_name: str, 
     client = bigquery.Client(credentials=credentials)
 
     # Delete
-    if (delete):
+    if delete:
         client.delete_table(table_name, not_found_ok=True)
 
     # Create/update
@@ -170,17 +172,27 @@ def upload_to_bigquery(
 
 
 def append_to_bigquery(
-    context, file_paths, partitions, modes=["raw", "staging"], table_id=None
+    context,
+    file_paths,
+    partitions,
+    modes=["raw", "staging"],
+    table_id=None,
+    dataset_id=None,
 ):
 
     if not table_id:
         table_id = context.resources.basedosdados_config["table_id"]
-    dataset_id = context.resources.basedosdados_config["dataset_id"]
+    if not dataset_id:
+        dataset_id = context.resources.basedosdados_config["dataset_id"]
+
+    context.log.info(f"Table ID: {table_id} / Dataset ID: {dataset_id}")
 
     st = bd.Storage(dataset_id=dataset_id, table_id=table_id)
 
     for idx, mode in enumerate(modes):
-        context.log.info(f"Uploading to mode {mode}")
+        context.log.info(
+            f"Uploading file {file_paths[idx]} to mode {mode} with partitions {partitions}"
+        )
         st.upload(
             file_paths[idx], partitions=partitions, mode=mode, if_exists="replace"
         )
@@ -188,12 +200,18 @@ def append_to_bigquery(
 
 
 def create_table_bq(
-    context, file_path, table_config="replace", publish_config="pass", table_id=None
+    context,
+    file_path,
+    table_config="replace",
+    publish_config="pass",
+    table_id=None,
+    dataset_id=None,
 ):
 
     if not table_id:
         table_id = context.resources.basedosdados_config["table_id"]
-    dataset_id = context.resources.basedosdados_config["dataset_id"]
+    if not dataset_id:
+        dataset_id = context.resources.basedosdados_config["dataset_id"]
 
     tb = bd.Table(dataset_id=dataset_id, table_id=table_id)
     _file_path = file_path.split(table_id)[0] + table_id

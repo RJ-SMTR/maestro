@@ -1,8 +1,8 @@
 resources:
   basedosdados_config:
     config:
-      table_id: brt_rdo40_registros
-      dataset_id: br_rj_riodejaneiro_rdo
+      table_id: ""
+      dataset_id: ""
   timezone_config:
     config:
       timezone: "America/Sao_Paulo"
