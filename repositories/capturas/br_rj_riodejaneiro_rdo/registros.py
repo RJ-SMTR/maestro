@@ -72,17 +72,19 @@ def fn_parse_file_path_and_partitions(context, bucket_path):
 
 
 def fn_upload_file_to_storage(
-    context, file_path, partitions=None, mode="raw", table_id=None
+    context, file_path, partitions=None, mode="raw", table_id=None, dataset_id=None
 ):
 
     # Upload to storage
     # If not specific table_id, use resource one
     if not table_id:
         table_id = context.resources.basedosdados_config["table_id"]
-    dataset_id = context.resources.basedosdados_config["dataset_id"]
+    if not dataset_id:
+        dataset_id = context.resources.basedosdados_config["dataset_id"]
 
     st = bd.Storage(table_id=table_id, dataset_id=dataset_id)
 
+    context.log.debug(f"Table ID: {table_id}, Dataset ID: {dataset_id}")
     context.log.debug(
         f"Uploading file {file_path} to mode {mode} with partitions {partitions}"
     )
@@ -100,13 +102,15 @@ def fn_get_file_from_storage(
     filetype="xlsx",
     uploaded=True,
     table_id=None,
+    dataset_id=None,
 ):
 
     # Download from storage
     # If not specific table_id, use resource one
     if not table_id:
         table_id = context.resources.basedosdados_config["table_id"]
-    dataset_id = context.resources.basedosdados_config["dataset_id"]
+    if not dataset_id:
+        dataset_id = context.resources.basedosdados_config["dataset_id"]
 
     _file_path = file_path.format(mode=mode, filetype=filetype)
 
@@ -163,6 +167,7 @@ def fn_upload_to_bigquery(
     publish_config="pass",
     is_init=False,
     table_id=None,
+    dataset_id=None,
 ):
     if is_init:
         # Only available for mode staging
@@ -174,21 +179,29 @@ def fn_upload_to_bigquery(
                 table_config=table_config,
                 publish_config=publish_config,
                 table_id=table_id,
+                dataset_id=dataset_id,
             )
         except ValueError:
             raise RuntimeError("Publishing table outside staging mode")
     else:
         append_to_bigquery(
-            context, file_paths, partitions, modes=modes, table_id=table_id
+            context,
+            file_paths,
+            partitions,
+            modes=modes,
+            table_id=table_id,
+            dataset_id=dataset_id,
         )
 
 
-def fn_save_treated_local(df, file_path, mode="staging"):
+def fn_save_treated_local(context, df, file_path, mode="staging"):
 
     _file_path = file_path.format(mode=mode, filetype="csv")
-    Path(_file_path).parent.mkdir(parents=True, exist_ok=True)
+    _file_path = Path(_file_path)
+    _file_path.parent.mkdir(parents=True, exist_ok=True)
+    _file_path = str(_file_path)
+    context.log.info(f"Saving df to {_file_path}")
     df.to_csv(_file_path, index=False)
-
     return _file_path
 
 
@@ -286,6 +299,10 @@ def get_runs(context, execution_date):
 )
 def execute_run(context, run_config: dict):
 
+    # Get table_id and dataset_id from run_config
+    table_id = run_config["resources"]["basedosdados_config"]["config"]["table_id"]
+    dataset_id = run_config["resources"]["basedosdados_config"]["config"]["dataset_id"]
+
     # Get file from FTPS and save it locally
     ftp_path = run_config["solids"]["download_file_from_ftp"]["inputs"]["ftp_path"][
         "value"
@@ -304,7 +321,9 @@ def execute_run(context, run_config: dict):
     )
 
     # Upload file to GCS
-    uploaded = fn_upload_file_to_storage(context, local_path, partitions)
+    uploaded = fn_upload_file_to_storage(
+        context, local_path, partitions, table_id=table_id, dataset_id=dataset_id
+    )
 
     # Get file from GCS
     raw_file_path = fn_get_file_from_storage(
@@ -314,6 +333,8 @@ def execute_run(context, run_config: dict):
         partitions=partitions,
         filetype=filetype,
         uploaded=uploaded,
+        table_id=table_id,
+        dataset_id=dataset_id,
     )
 
     # Extract, load and transform
@@ -351,11 +372,18 @@ def execute_run(context, run_config: dict):
     treated_data = fn_divide_columns(treated_data, cols_to_divide)
 
     # Save treated file locally
-    treated_file_path = fn_save_treated_local(treated_data, file_path)
+    treated_file_path = fn_save_treated_local(context, treated_data, file_path)
 
     # Upload treated to BigQuery
     modes = run_config["solids"]["upload_to_bigquery"]["inputs"]["modes"]["value"]
-    fn_upload_to_bigquery(context, [treated_file_path], partitions, modes=modes)
+    fn_upload_to_bigquery(
+        context,
+        [treated_file_path],
+        partitions,
+        modes=modes,
+        table_id=table_id,
+        dataset_id=dataset_id,
+    )
 
 
 @discord_message_on_failure
