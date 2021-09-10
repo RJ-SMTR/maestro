@@ -41,9 +41,7 @@ def request_data(context):
     return contents
 
 
-@solid(
-    required_resource_keys={"basedosdados_config", "schedule_run_date"},
-)
+@solid(required_resource_keys={"basedosdados_config", "schedule_run_date"},)
 def pre_treatment_br_rj_riodejaneiro_sigmob(context, contents):
     run_date = context.resources.schedule_run_date["date"]
     paths = {}
@@ -70,10 +68,7 @@ def pre_treatment_br_rj_riodejaneiro_sigmob(context, contents):
 @solid(required_resource_keys={"basedosdados_config", "schedule_run_date"})
 def upload_to_bq(context, paths):
     for key in paths.keys():
-        tb = Table(
-            key,
-            context.resources.basedosdados_config["dataset_id"],
-        )
+        tb = Table(key, context.resources.basedosdados_config["dataset_id"],)
         tb_dir = paths[key].parent.parent
 
         if not tb.table_exists("staging"):
@@ -108,7 +103,17 @@ def cleanup_local(context, path):
                 "endpoints": endpoints,
             },
         )
-    ]
+    ],
+    tags={
+        "dagster-k8s/config": {
+            "container_config": {
+                "resources": {
+                    "requests": {"cpu": "250m", "memory": "500Mi"},
+                    "limits": {"cpu": "1500m", "memory": "1Gi"},
+                },
+            }
+        },
+    },
 )
 def br_rj_riodejaneiro_sigmob_data():
     cleanup_local(upload_to_bq(pre_treatment_br_rj_riodejaneiro_sigmob(request_data())))

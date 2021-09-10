@@ -21,8 +21,7 @@ def build_gtfs_version_name(versions, _date):
 
     valid_versions = [v for v in versions if v <= _date]
 
-    version = (min(valid_versions, key=lambda x: abs(x - _date))
-               ).strftime("%Y%m%d")
+    version = (min(valid_versions, key=lambda x: abs(x - _date))).strftime("%Y%m%d")
 
     gtfs_partition = f"gtfs_version_date={version}"
 
@@ -36,8 +35,7 @@ def build_gtfs_version_name(versions, _date):
 def download_gtfs_from_storage(context):
 
     bucket = (
-        bd.Storage(context.solid_config["dataset_id"],
-                   context.solid_config["table_id"])
+        bd.Storage(context.solid_config["dataset_id"], context.solid_config["table_id"])
         .client["storage_staging"]
         .bucket("rj-smtr-staging")
     )
@@ -47,8 +45,7 @@ def download_gtfs_from_storage(context):
     gtfs_versions = list(
         set(
             [
-                datetime.strptime(blob[0].split(
-                    "=")[1].split("/")[0], "%Y%m%d").date()
+                datetime.strptime(blob[0].split("=")[1].split("/")[0], "%Y%m%d").date()
                 for blob in blobs
             ]
         )
@@ -58,8 +55,7 @@ def download_gtfs_from_storage(context):
         gtfs_versions, context.resources.schedule_run_date["date"]
     )
 
-    blob_obj = [blob[1]
-                for blob in blobs if (prefix + gtfs_partition) in blob[0]]
+    blob_obj = [blob[1] for blob in blobs if (prefix + gtfs_partition) in blob[0]]
 
     Path("tmp_data").mkdir(exist_ok=True)
 
@@ -154,8 +150,7 @@ def create_or_append_table(context, csv_path, which_table, _df, date):
 
 
 @solid(
-    required_resource_keys={"basedosdados_config",
-                            "bd_client", "schedule_run_date"},
+    required_resource_keys={"basedosdados_config", "bd_client", "schedule_run_date"},
 )
 def update_realized_trips(context, local_paths):
     date = date_from_datetime(context.resources.schedule_run_date["date"])
@@ -204,10 +199,19 @@ def update_realized_trips(context, local_paths):
                 "schedule_run_date": schedule_run_date,
             },
         )
-    ]
+    ],
+    tags={
+        "dagster-k8s/config": {
+            "container_config": {
+                "resources": {
+                    "requests": {"cpu": "250m", "memory": "500Mi"},
+                    "limits": {"cpu": "1500m", "memory": "1Gi"},
+                },
+            }
+        },
+    },
 )
 def br_rj_riodejaneiro_brt_gtfs_gps_realized_trips():
 
-    update_realized_trips(
-        get_daily_brt_gps_data(download_gtfs_from_storage()),
-    )
+    update_realized_trips(get_daily_brt_gps_data(download_gtfs_from_storage()),)
+

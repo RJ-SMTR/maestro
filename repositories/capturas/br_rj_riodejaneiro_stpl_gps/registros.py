@@ -91,7 +91,16 @@ def pre_treatment_br_rj_riodejaneiro_stpl_gps(context, data, timestamp):
             },
         ),
     ],
-    # tags={"dagster/priority": "10"}
+    tags={
+        "dagster-k8s/config": {
+            "container_config": {
+                "resources": {
+                    "requests": {"cpu": "250m", "memory": "500Mi"},
+                    "limits": {"cpu": "1500m", "memory": "1Gi"},
+                },
+            }
+        },
+    },
 )
 def br_rj_riodejaneiro_stpl_gps_registros():
 

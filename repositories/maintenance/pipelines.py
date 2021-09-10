@@ -25,6 +25,16 @@ from repositories.helpers.hooks import (
             },
         ),
     ],
+    tags={
+        "dagster-k8s/config": {
+            "container_config": {
+                "resources": {
+                    "requests": {"cpu": "250m", "memory": "500Mi"},
+                    "limits": {"cpu": "1500m", "memory": "1Gi"},
+                },
+            }
+        },
+    },
 )
 def wipe_history():
     compare_timestamp = get_compare_timestamp()
