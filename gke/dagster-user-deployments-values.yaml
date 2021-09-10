@@ -85,11 +85,11 @@ deployments:
     securityContext: {}
     resources:
       requests:
-        cpu: 100m
-        memory: 250Mi
+        cpu: 300m
+        memory: 750Mi
       limits:
-        cpu: 1000m
-        memory: 1Gi
+        cpu: 3000m
+        memory: 3Gi
     replicaCount: 3
     # Liveness Probe and Startup Probe are optional. For more configuration docs, see:
     # https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes
