@@ -36,6 +36,10 @@ spec:
             - "50"
             - --delete-pending-pods-after
             - 30m
+            - --delete-failed-after
+            - 30m
+            - --delete-orphaned-pods-after
+            - 30m
           image: quay.io/lwolf/kube-cleanup-operator
           imagePullPolicy: Always
           name: cleanup-operator
@@ -46,8 +50,8 @@ spec:
               cpu: 50m
               memory: 50Mi
             limits:
-              cpu: 50m
-              memory: 50Mi
+              cpu: 100m
+              memory: 200Mi
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
