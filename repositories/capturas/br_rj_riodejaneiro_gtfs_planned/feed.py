@@ -150,7 +150,16 @@ def get_realized_trips(file_path):
             mode="dev",
         ),
     ],
-    # tags={"dagster/priority": "-1"}
+    tags={
+        "dagster-k8s/config": {
+            "container_config": {
+                "resources": {
+                    "requests": {"cpu": "250m", "memory": "500Mi"},
+                    "limits": {"cpu": "1500m", "memory": "1Gi"},
+                },
+            }
+        },
+    },
 )
 def br_rj_riodejaneiro_gtfs_planned_feed():
 

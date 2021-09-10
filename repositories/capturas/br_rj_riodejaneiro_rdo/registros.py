@@ -399,6 +399,16 @@ def execute_run(context, run_config: dict):
             },
         ),
     ],
+    tags={
+        "dagster-k8s/config": {
+            "container_config": {
+                "resources": {
+                    "requests": {"cpu": "250m", "memory": "500Mi"},
+                    "limits": {"cpu": "1500m", "memory": "1Gi"},
+                },
+            }
+        },
+    },
 )
 def br_rj_riodejaneiro_rdo_registros():
 
