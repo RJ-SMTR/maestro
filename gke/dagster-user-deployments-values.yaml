@@ -84,10 +84,10 @@ deployments:
     podSecurityContext: {}
     securityContext: {}
     resources:
-      limits:
+      requests:
         cpu: 100m
         memory: 250Mi
-      requests:
+      limits:
         cpu: 1000m
         memory: 1Gi
     replicaCount: 3
