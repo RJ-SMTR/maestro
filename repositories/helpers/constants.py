@@ -13,3 +13,5 @@ class constants(Enum):
     MAESTRO_BQ_REPOSITORY = "RJ-SMTR/maestro-bq"
     MAESTRO_BQ_DEFAULT_BRANCH = "master"
     CRITICAL_DISCORD_WEBHOOK = getenv("CRITICAL_DISCORD_WEBHOOK", "")
+    SIGMOB_GET_REQUESTS_TIMEOUT = 3600  # 1 hour
+
