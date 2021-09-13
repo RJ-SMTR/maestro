@@ -30,8 +30,8 @@ from repositories.helpers.hooks import (
         "dagster-k8s/config": {
             "container_config": {
                 "resources": {
-                    "requests": {"cpu": "50m", "memory": "100Mi"},
-                    "limits": {"cpu": "700m", "memory": "1Gi"},
+                    "requests": {"cpu": "50m", "memory": "500Mi"},
+                    "limits": {"cpu": "500m", "memory": "1Gi"},
                 },
             }
         },
