@@ -26,11 +26,12 @@ from repositories.helpers.hooks import (
         ),
     ],
     tags={
+        "pipeline": "wipe_history",
         "dagster-k8s/config": {
             "container_config": {
                 "resources": {
-                    "requests": {"cpu": "250m", "memory": "500Mi"},
-                    "limits": {"cpu": "1500m", "memory": "1Gi"},
+                    "requests": {"cpu": "50m", "memory": "100Mi"},
+                    "limits": {"cpu": "700m", "memory": "1Gi"},
                 },
             }
         },

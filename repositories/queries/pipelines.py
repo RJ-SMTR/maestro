@@ -28,11 +28,12 @@ from repositories.queries.solids import (
         ),
     ],
     tags={
+        "pipeline": "update_managed_materialized_views",
         "dagster-k8s/config": {
             "container_config": {
                 "resources": {
-                    "requests": {"cpu": "250m", "memory": "500Mi"},
-                    "limits": {"cpu": "1500m", "memory": "1Gi"},
+                    "requests": {"cpu": "50m", "memory": "100Mi"},
+                    "limits": {"cpu": "500m", "memory": "1Gi"},
                 },
             }
         },
@@ -55,11 +56,12 @@ def update_managed_materialized_views():
         ),
     ],
     tags={
+        "pipeline": "materialize_view",
         "dagster-k8s/config": {
             "container_config": {
                 "resources": {
-                    "requests": {"cpu": "250m", "memory": "500Mi"},
-                    "limits": {"cpu": "1500m", "memory": "1Gi"},
+                    "requests": {"cpu": "50m", "memory": "100Mi"},
+                    "limits": {"cpu": "500m", "memory": "1Gi"},
                 },
             }
         },

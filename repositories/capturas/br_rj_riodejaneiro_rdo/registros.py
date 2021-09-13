@@ -400,6 +400,7 @@ def execute_run(context, run_config: dict):
         ),
     ],
     tags={
+        "pipeline": "br_rj_riodejaneiro_rdo_registros",
         "dagster-k8s/config": {
             "container_config": {
                 "resources": {

@@ -102,11 +102,12 @@ def pre_treatment_br_rj_riodejaneiro_onibus_gps(context, data, timestamp):
         ),
     ],
     tags={
+        "pipelines": "br_rj_riodejaneiro_onibus_gps_registros",
         "dagster-k8s/config": {
             "container_config": {
                 "resources": {
-                    "requests": {"cpu": "250m", "memory": "500Mi"},
-                    "limits": {"cpu": "1500m", "memory": "1Gi"},
+                    "requests": {"cpu": "150m", "memory": "250Mi"},
+                    "limits": {"cpu": "1000m", "memory": "1Gi"},
                 },
             }
         },

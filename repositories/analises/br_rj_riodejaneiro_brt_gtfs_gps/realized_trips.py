@@ -201,6 +201,7 @@ def update_realized_trips(context, local_paths):
         )
     ],
     tags={
+        "pipeline": "br_rj_riodejaneiro_brt_gtfs_gps_realized_trips",
         "dagster-k8s/config": {
             "container_config": {
                 "resources": {

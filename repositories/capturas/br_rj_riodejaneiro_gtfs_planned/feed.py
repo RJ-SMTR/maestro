@@ -151,6 +151,7 @@ def get_realized_trips(file_path):
         ),
     ],
     tags={
+        "pipeline": "br_rj_riodejaneiro_gtfs_planned_feed",
         "dagster-k8s/config": {
             "container_config": {
                 "resources": {

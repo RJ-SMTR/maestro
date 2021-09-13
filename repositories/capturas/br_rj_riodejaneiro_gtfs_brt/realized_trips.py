@@ -208,6 +208,7 @@ def treat_raw_realized_trips(context, raw_file_path, file_name):
         ),
     ],
     tags={
+        "pipeline": "br_rj_riodejaneiro_gtfs_realized_trips",
         "dagster-k8s/config": {
             "container_config": {
                 "resources": {

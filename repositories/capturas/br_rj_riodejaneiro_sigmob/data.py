@@ -117,11 +117,12 @@ def cleanup_local(context, path):
         )
     ],
     tags={
+        "pipeline": "br_rj_riodejaneiro_sigmob_data",
         "dagster-k8s/config": {
             "container_config": {
                 "resources": {
-                    "requests": {"cpu": "250m", "memory": "500Mi"},
-                    "limits": {"cpu": "1500m", "memory": "1Gi"},
+                    "requests": {"cpu": "100m", "memory": "150Mi"},
+                    "limits": {"cpu": "1000m", "memory": "1Gi"},
                 },
             }
         },
