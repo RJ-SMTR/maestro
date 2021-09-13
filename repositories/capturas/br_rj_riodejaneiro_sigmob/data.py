@@ -1,12 +1,17 @@
-from repositories.capturas.resources import endpoints
 import shutil
-import pandas as pd
-import requests
-from dagster import solid, pipeline, ModeDefinition, InputDefinition
-from basedosdados import Table
+import traceback
 from pathlib import Path
-from repositories.libraries.basedosdados.resources import basedosdados_config, bd_client
+
+import requests
+import pandas as pd
+from basedosdados import Table
+from dagster import solid, pipeline, ModeDefinition
+
+from repositories.helpers.hooks import log_critical
+from repositories.helpers.constants import constants
+from repositories.capturas.resources import endpoints
 from repositories.analises.resources import schedule_run_date
+from repositories.libraries.basedosdados.resources import basedosdados_config, bd_client
 
 
 @solid(required_resource_keys={"endpoints"})
@@ -16,8 +21,13 @@ def request_data(context):
     endpoints = context.resources.endpoints["endpoints"]
     for key in endpoints.keys():
         try:
-            data = requests.get(endpoints[key]["url"])
+            data = requests.get(
+                endpoints[key]["url"],
+                timeout=constants.SIGMOB_GET_REQUESTS_TIMEOUT.value,
+            )
         except Exception as e:
+            err = traceback.format_exc()
+            log_critical(f"Failed to request data from SIGMOB: \n{err}")
             raise e
         if data.ok:
             if "next" in data.json().keys():
@@ -32,6 +42,8 @@ def request_data(context):
                     try:
                         data = requests.get(data.json()["next"])
                     except Exception as e:
+                        err = traceback.format_exc()
+                        log_critical(f"Failed to request data from SIGMOB: \n{err}")
                         raise e
             else:
                 contents[key] = {
