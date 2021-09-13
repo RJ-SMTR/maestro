@@ -95,8 +95,8 @@ def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data, timestamp):
         "dagster-k8s/config": {
             "container_config": {
                 "resources": {
-                    "requests": {"cpu": "150m", "memory": "250Mi"},
-                    "limits": {"cpu": "1000m", "memory": "1Gi"},
+                    "requests": {"cpu": "300m", "memory": "250Mi"},
+                    "limits": {"cpu": "600m", "memory": "500Mi"},
                 },
             }
         },
