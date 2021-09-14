@@ -43,7 +43,8 @@ def request_data(context):
                         data = requests.get(data.json()["next"])
                     except Exception as e:
                         err = traceback.format_exc()
-                        log_critical(f"Failed to request data from SIGMOB: \n{err}")
+                        log_critical(
+                            f"Failed to request data from SIGMOB: \n{err}")
                         raise e
             else:
                 contents[key] = {
@@ -80,21 +81,31 @@ def pre_treatment_br_rj_riodejaneiro_sigmob(context, contents):
 @solid(required_resource_keys={"basedosdados_config", "schedule_run_date"})
 def upload_to_bq(context, paths):
     for key in paths.keys():
+        context.log.info("#####################")
+        context.log.info(f"key={key}")
         tb = Table(key, context.resources.basedosdados_config["dataset_id"],)
         tb_dir = paths[key].parent.parent
+        context.log.info(f"tb_dir={tb_dir}")
 
         if not tb.table_exists("staging"):
+            context.log.info("Table does not exist in STAGING")
             tb.create(
                 path=tb_dir,
                 if_table_exists="pass",
                 if_storage_data_exists="replace",
                 if_table_config_exists="pass",
             )
+            context.log.info("Table created")
         else:
+            context.log.info("Table exists in STAGING")
             tb.append(filepath=tb_dir, if_exists="replace")
+            context.log.info("Appended to table")
 
         if not tb.table_exists("prod"):
+            context.log.info("Table does not exist in PROD")
             tb.publish(if_exists="pass")
+            context.log.info("Published table")
+    context.log.info(f"Returning -> {tb_dir.parent}")
 
     return tb_dir.parent
 
@@ -129,4 +140,5 @@ def cleanup_local(context, path):
     },
 )
 def br_rj_riodejaneiro_sigmob_data():
-    cleanup_local(upload_to_bq(pre_treatment_br_rj_riodejaneiro_sigmob(request_data())))
+    cleanup_local(upload_to_bq(
+        pre_treatment_br_rj_riodejaneiro_sigmob(request_data())))
