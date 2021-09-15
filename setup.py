@@ -18,7 +18,7 @@ setup(
     long_description_content_type="text/markdown",
     packages=find_packages(),
     install_requires=parse_requirements_txt_to_list(
-        str(Path(__file__).parent / "requirements.txt")),
+        str(Path(__file__).parent / "requirements-cli.txt")),
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",

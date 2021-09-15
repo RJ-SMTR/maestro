@@ -18,5 +18,4 @@ redis-pal>=0.1.4
 sqlalchemy<=1.4.99
 pottery<=1.3.99
 networkx<=2.6.99
-typer<=0.4.99
 graphql-ws<0.4.0
