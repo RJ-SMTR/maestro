@@ -1,6 +1,7 @@
 import os
 import datetime
 from pathlib import Path
+from typing import List
 
 import pytz
 import yaml
@@ -14,6 +15,7 @@ from dagster.experimental import DynamicOutputDefinition, DynamicOutput
 
 from repositories.helpers.constants import constants
 from repositories.helpers.datetime import convert_datetime_to_datetime_string, get_date_ranges
+from repositories.helpers.helpers import remove_duplicates
 from repositories.queries.sensors import MATERIALIZED_VIEWS_PREFIX, SENSOR_BUCKET
 from repositories.helpers.io import (
     build_run_key,
@@ -28,85 +30,200 @@ from repositories.helpers.io import (
 )
 
 
-@solid(retry_policy=RetryPolicy(max_retries=3, delay=30))
-def update_materialized_view_on_redis(
+@solid(retry_policy=RetryPolicy(max_retries=3, delay=5))
+def delete_managed_views(
     context,
-    blob_name: str,
-    cron_expression: str,
-    delete: bool,
-    query_modified: bool,
-    defaults_yaml: bool,
-    defaults_dict: dict,
-    dataset_name: str,
+    blob_names
 ):
     r = Redis(constants.REDIS_HOST.value)
     rp = RedisPal(constants.REDIS_HOST.value)
     lock = Redlock(key="lock_managed_materialized_views", masters=[r])
-    defaults_dict = defaults_dict["value"]
-    blob_path = "/".join(blob_name.split("/")[:-1])
-    blob_name_without_dataset = ".".join(blob_name.split(".")[:-1])
-    blob_name = f'{dataset_name}.{blob_name_without_dataset.split("/")[-1]}'
-    dataset_name, view_name = blob_name.split(".")
-    view_yaml = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, dataset_name, view_name)}.yaml'
-    table_name = parse_filepath_to_tablename(view_yaml)
-
     with lock:
         materialized_views: dict = rp.get("managed_materialized_views")
-        materialized_views = materialized_views if materialized_views else {
-            "views": {}}
-        # Modified YAML files
-        # If defaults.yaml
-        if defaults_yaml:
-            for key in defaults_dict["views"].keys():
+        for blob_name in blob_names:
+            context.log.info(f"Deleting managed view {blob_name}")
+            if blob_name in materialized_views["views"]:
+                del materialized_views["views"][blob_name]
+                context.log.info("Success!")
+            else:
+                context.log.info("View not found, skipping...")
+        rp.set("managed_materialized_views", materialized_views)
+
+
+@solid(
+    retry_policy=RetryPolicy(max_retries=3, delay=5),
+    output_defs=[DynamicOutputDefinition(str)],
+)
+def update_managed_views(
+    context,
+    blob_names
+):
+
+    # Setup Redis and Redlock
+    r = Redis(constants.REDIS_HOST.value)
+    rp = RedisPal(constants.REDIS_HOST.value)
+    lock = Redlock(key="lock_managed_materialized_views", masters=[r])
+
+    # Initialize graph
+    graph = nx.DiGraph()
+
+    # If blob_name ends with "defaults.yaml", we need to
+    # either add it to Redis or update its values and add
+    # runs for every child it has and its dependencies.
+    for blob_name in [b for b in blob_names if b.endswith("defaults.yaml")]:
+
+        # Get dataset name
+        blob_path = "/".join([n for n in blob_name.split("/")
+                              if n != ""][:-1])
+        dataset_name: str = blob_path.split("/")[-1]
+
+        context.log.info(f"Updating {dataset_name} defaults")
+
+        # Read the blob
+        blob = get_blob(blob_name, SENSOR_BUCKET, mode="staging")
+        blob_dict: dict = yaml.safe_load(blob.download_as_string())
+
+        # Add it to Redis
+        with lock:
+            materialized_views: dict = rp.get("managed_materialized_views")
+            # Add every child to Redis
+            for key in blob_dict["views"].keys():
+
+                # Build key with dataset_name
                 m_key = f"{dataset_name}.{key}"
+
+                # This child also needs a run
+                context.log.info(f"Adding {m_key} to runs")
+                if m_key not in graph.nodes:
+                    graph.add_node(m_key)
+
+                # Avoid KeyError
+                if "views" not in materialized_views:
+                    materialized_views["views"] = {}
+
+                # Add to Redis
                 materialized_views["views"][m_key] = {
-                    "cron_expression": defaults_dict["scheduling"]["cron"],
+                    "cron_expression": blob_dict["scheduling"]["cron"],
                     "last_run": None,
-                    "materialized": defaults_dict["views"][key]["materialized"],
+                    "materialized": blob_dict["views"][key]["materialized"],
                     "query_modified": False,
-                    "depends_on": defaults_dict["views"][key]["depends_on"],
+                    "depends_on": blob_dict["views"][key]["depends_on"],
                 }
+
+                # Adds dependencies to runs
+                for dep in blob_dict["views"][key]["depends_on"]:
+                    if dep in materialized_views["views"]:
+                        context.log.info(f"Adding {dep} to runs")
+                        if dep not in graph.nodes:
+                            graph.add_node(dep)
+                        graph.add_edge(dep, m_key)
+
+                # Try to find specific values for this view
                 blob = get_blob(blob_path + key + ".yaml",
                                 SENSOR_BUCKET, mode="staging")
                 if blob:
+                    # Replace values in Redis
                     specific = yaml.safe_load(
                         blob.download_as_string().decode("utf-8"))
                     materialized_views["views"][m_key]["cron_expression"] = specific[
                         "scheduling"]["cron"]
-        # Any other YAML file will provide a cron_expression
-        # Also valid for modified SQL files
-        elif cron_expression != "" or query_modified:
-            # Check if it exists on dict
-            if blob_name in materialized_views["views"]:
-                # If exists, update it
-                if cron_expression:
-                    materialized_views["views"][blob_name]["cron_expression"] = cron_expression
-                if query_modified:
-                    materialized_views["views"][blob_name]["last_run"] = None
-                    materialized_views["views"][blob_name]["query_modified"] = query_modified
-            else:
-                # If not, create it
-                context.log.info(f"This is NOT a materialized view")
-                cron_expression = cron_expression if cron_expression != "" else defaults_dict[
-                    "scheduling"]["cron"]
-                materialized_views["views"][blob_name] = {
-                    "cron_expression": cron_expression,
+
+            # Update Redis effectively
+            rp.set("managed_materialized_views", materialized_views)
+
+    # Otherwise, we need to add the blob_name and its
+    # dependencies to the graph.
+    for blob_name in [b for b in blob_names if not b.endswith("defaults.yaml")]:
+
+        # Get table name
+        file_name = ".".join(blob_name.split("/")[-2:])
+        table_name = ".".join(file_name.split(".")[:-1])
+
+        context.log.info(f"Updating {table_name} specific values...")
+
+        # If it's YAML file, update values on Redis
+        if blob_name.endswith(".yaml"):
+
+            # Read the blob
+            blob = get_blob(blob_name, SENSOR_BUCKET, mode="staging")
+            blob_dict: dict = yaml.safe_load(blob.download_as_string())
+
+            # Update Redis
+            with lock:
+                materialized_views: dict = rp.get("managed_materialized_views")
+                materialized_views["views"][table_name] = {
+                    "cron_expression": blob_dict["scheduling"]["cron"],
                     "last_run": None,
-                    "materialized": defaults_dict["views"][view_name]["materialized"],
-                    "query_modified": query_modified,
-                    "depends_on": defaults_dict["views"][view_name]["depends_on"],
+                    "query_modified": True,
                 }
+                rp.set("managed_materialized_views", materialized_views)
 
-        # If deleted SQL file
-        elif delete and blob_name in materialized_views["views"]:
-            del materialized_views["views"][blob_name]
-        rp.set("managed_materialized_views", materialized_views)
+        # Add table_name and its dependencies to runs
+        context.log.info(f"Adding {table_name} to runs")
+        if table_name not in graph.nodes:
+            graph.add_node(table_name)
 
-    context.log.info(f"{defaults_dict}")
+        materialized_views: dict = rp.get("managed_materialized_views")
+        for dep in materialized_views["views"][table_name]["depends_on"]:
+            if dep in materialized_views["views"]:
+                context.log.info(f"Adding {dep} to runs")
+                if dep not in graph.nodes:
+                    graph.add_node(dep)
+                graph.add_edge(dep, table_name)
 
-    if (not defaults_yaml) and ((not defaults_dict["views"][view_name]["materialized"]) or (delete)):
-        update_view(table_name, defaults_dict,
-                    dataset_name, view_name, view_yaml, delete=delete)
+    context.log.info(f"Graph: {graph.edges()}")
+
+    # Get topological order
+    order = list(nx.topological_sort(graph))
+
+    # Log topological order
+    context.log.info(f"Order: {order}")
+
+    # Execute queries in topological order
+    for q in order:
+        yield DynamicOutput(q, mapping_key=q.replace(".", "_"))
+
+
+@solid(retry_policy=RetryPolicy(max_retries=3, delay=30))
+def manage_view(context, view_name: str):
+
+    # Setup Redis and Redlock
+    rp = RedisPal(constants.REDIS_HOST.value)
+
+    # Get materialization information from Redis
+    materialized_views: dict = rp.get("managed_materialized_views")
+    materialized = materialized_views["views"][view_name]["materialized"]
+
+    # If this is materialized, skip
+    if materialized:
+        context.log.info(f"Skipping {view_name} as it's materialized")
+        return
+
+    # Is it's not materialized, we need to build the query using
+    # latest parameters and build a view with it.
+
+    # Get defaults for view_name
+    blob_path = os.path.join(*([MATERIALIZED_VIEWS_PREFIX] +
+                             [n for n in view_name.split(".")][:-1]))
+    defaults_path = blob_path + "/defaults.yaml"
+    context.log.info(f"Defaults path -> {defaults_path}")
+    defaults_blob = get_blob(defaults_path, SENSOR_BUCKET, mode="staging")
+    defaults_dict: dict = yaml.safe_load(defaults_blob.download_as_string())
+
+    # Parse dataset_name
+    dataset_name = view_name.split(".")[0]
+
+    # Parse view yaml path
+    view_yaml = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, view_name)}.yaml'
+
+    # Parse table_name
+    prefix: str = os.getenv("BQ_PROJECT_NAME", "rj-smtr-dev")
+    table_name: str = f"{prefix}.{view_name}"
+    context.log.info(f"Table name is {table_name}")
+
+    # Update view
+    update_view(table_name, defaults_dict, dataset_name, view_name.split(".")[-1],
+                view_yaml, delete=False, context=context)
 
 
 @solid(retry_policy=RetryPolicy(max_retries=3, delay=30))

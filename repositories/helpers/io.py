@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytz
 import jinja2
+from dagster import SolidExecutionContext
 from google.oauth2 import service_account
 from google.cloud import storage, bigquery
 from google.cloud.exceptions import NotFound
@@ -185,7 +186,7 @@ def fetch_branch_sha(github_repo_name: str, branch_name: str):
     return None
 
 
-def update_view(table_name: str, defaults_dict: dict, dataset_name: str, view_name: str, view_yaml: str, delete: bool = False):
+def update_view(table_name: str, defaults_dict: dict, dataset_name: str, view_name: str, view_yaml: str, delete: bool = False, context: SolidExecutionContext = None):
 
     from repositories.queries.sensors import SENSOR_BUCKET
     from repositories.queries.sensors import MATERIALIZED_VIEWS_PREFIX
@@ -236,6 +237,8 @@ def update_view(table_name: str, defaults_dict: dict, dataset_name: str, view_na
 
         # Get query on GCS
         query_file = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, dataset_name, view_name)}.sql'
+        if context:
+            context.log.info(f"Fetching query from GCS: {query_file}")
         query_blob = get_blob(
             query_file, SENSOR_BUCKET, mode="staging")
         base_query = query_blob.download_as_string().decode("utf-8")

@@ -2,13 +2,14 @@ from dagster import pipeline
 from dagster.core.definitions.mode import ModeDefinition
 
 from repositories.capturas.resources import discord_webhook, timezone_config
-from repositories.libraries.basedosdados.solids import update_view
 from repositories.helpers.hooks import (
     discord_message_on_failure,
     discord_message_on_success,
 )
 from repositories.queries.solids import (
-    update_materialized_view_on_redis,
+    delete_managed_views,
+    update_managed_views,
+    manage_view,
     resolve_dependencies_and_execute,
     get_configs_for_materialized_view,
     materialize,
@@ -40,7 +41,9 @@ from repositories.queries.solids import (
     },
 )
 def update_managed_materialized_views():
-    update_materialized_view_on_redis()
+    delete_managed_views()
+    runs = update_managed_views()
+    runs.map(manage_view)
 
 
 @discord_message_on_failure

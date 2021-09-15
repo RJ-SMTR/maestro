@@ -18,38 +18,38 @@ from repositories.libraries.jinja2.solids import render
 from repositories.helpers.io import get_credentials_from_env
 
 
-@solid(retry_policy=RetryPolicy(max_retries=3, delay=5))
-def update_view(
-    context: SolidExecutionContext, view_sql: str, table_name: str, delete: bool = False
-) -> Nothing:
+# @solid(retry_policy=RetryPolicy(max_retries=3, delay=5))
+# def update_view(
+#     context: SolidExecutionContext, view_sql: str, table_name: str, delete: bool = False
+# ) -> Nothing:
 
-    # Table ID can't be empty
-    if table_name is None or table_name == "":
-        raise Exception("Table name can't be None or empty!")
+#     # Table ID can't be empty
+#     if table_name is None or table_name == "":
+#         raise Exception("Table name can't be None or empty!")
 
-    # SQL can't be empty if not removing table
-    if (view_sql is None or view_sql == "") and (not delete):
-        raise Exception("Query can't be None or empty!")
+#     # SQL can't be empty if not removing table
+#     if (view_sql is None or view_sql == "") and (not delete):
+#         raise Exception("Query can't be None or empty!")
 
-    # Setup credentials and BQ client
-    credentials = get_credentials_from_env()
-    client = bigquery.Client(credentials=credentials)
+#     # Setup credentials and BQ client
+#     credentials = get_credentials_from_env()
+#     client = bigquery.Client(credentials=credentials)
 
-    # Delete
-    if delete:
-        client.delete_table(table_name, not_found_ok=True)
+#     # Delete
+#     if delete:
+#         client.delete_table(table_name, not_found_ok=True)
 
-    # Create/update
-    else:
-        table = bigquery.Table(table_name)
-        table.view_query = view_sql
+#     # Create/update
+#     else:
+#         table = bigquery.Table(table_name)
+#         table.view_query = view_sql
 
-        # Always Overwrite
-        try:
-            client.create_table(table)
-        except Conflict:
-            client.delete_table(table)
-            client.create_table(table)
+#         # Always Overwrite
+#         try:
+#             client.create_table(table)
+#         except Conflict:
+#             client.delete_table(table)
+#             client.create_table(table)
 
 
 def config_mapping_fn(config):
