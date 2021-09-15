@@ -69,5 +69,5 @@ def update_managed_materialized_views():
 )
 def materialize_view():
     views = resolve_dependencies_and_execute()
-    configs = views.map(get_configs_for_materialized_view)
+    configs = get_configs_for_materialized_view(views.collect())
     configs.map(materialize)

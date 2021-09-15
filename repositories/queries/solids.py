@@ -13,7 +13,7 @@ from dagster import solid, RetryPolicy
 from dagster.experimental import DynamicOutputDefinition, DynamicOutput
 
 from repositories.helpers.constants import constants
-from repositories.helpers.datetime import convert_datetime_to_datetime_string
+from repositories.helpers.datetime import convert_datetime_to_datetime_string, get_date_ranges
 from repositories.queries.sensors import MATERIALIZED_VIEWS_PREFIX, SENSOR_BUCKET
 from repositories.helpers.io import (
     build_run_key,
@@ -80,7 +80,8 @@ def update_materialized_view_on_redis(
                 # If exists, update it
                 if cron_expression:
                     materialized_views["views"][blob_name]["cron_expression"] = cron_expression
-                else:
+                if query_modified:
+                    materialized_views["views"][blob_name]["last_run"] = None
                     materialized_views["views"][blob_name]["query_modified"] = query_modified
             else:
                 # If not, create it
@@ -200,21 +201,20 @@ def materialize(context, config_dict: dict):
         query = template.render(
             **base_params, **query_params["parameters"], **custom_params)
 
-        # Execute query
-        context.log.info(f"Running query: {query}")
-        results = run_query(query, timeout=1800)
+        # Insert into query
+        insert_query_template = jinja2.Template(
+            """
+            INSERT INTO {{ table_name }}
+            ({{ query }})
+            """
+        )
+        insert_query = insert_query_template.render(
+            table_name=table_name, query=query)
 
-        # Insert results to table and check for errors
-        if (results.total_rows == 0):
-            context.log.warning(
-                f"No rows found for query, skipping...")
-        else:
-            errors = insert_results_to_table(results, table_name)
-            if errors:
-                context.log.error(f"Errors: {errors}")
-            else:
-                context.log.info(
-                    f"Inserted {results.total_rows} rows into {table_name}")
+        # Execute query
+        context.log.info(f"Running query: {insert_query}")
+        results = run_query(insert_query, timeout=1800)
+        context.log.info(f"Results: {results.to_dataframe()}")
 
     else:
         context.log.info(
@@ -223,78 +223,90 @@ def materialize(context, config_dict: dict):
 
 @solid(
     retry_policy=RetryPolicy(max_retries=3, delay=30),
+    output_defs=[DynamicOutputDefinition(dict)]
 )
-def get_configs_for_materialized_view(context, query_name: str) -> dict:
-    """Retrieves configs for a materialized view"""
+def get_configs_for_materialized_view(context, query_names: list) -> dict:
+    """Retrieves configs for materialized views"""
 
-    # Split query name into dataset_name and view_name
-    dataset_name, view_name = query_name.split(".")
+    for query_name in query_names:
 
-    # Load configs from GCS
-    view_yaml = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, dataset_name, view_name)}.yaml'
-    defaults_yaml = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, dataset_name)}/defaults.yaml'
-    defaults_blob = get_blob(defaults_yaml, SENSOR_BUCKET, mode="staging")
-    view_blob = get_blob(view_yaml, SENSOR_BUCKET, mode="staging")
-    defaults_dict = yaml.safe_load(defaults_blob.download_as_string())
-    if view_blob:
-        view_dict = yaml.safe_load(view_blob.download_as_string())
-    else:
-        view_dict = {}
+        # Split query name into dataset_name and view_name
+        dataset_name, view_name = query_name.split(".")
 
-    # Merge configs
-    query_params = {**defaults_dict, **view_dict}
+        # Load configs from GCS
+        view_yaml = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, dataset_name, view_name)}.yaml'
+        defaults_yaml = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, dataset_name)}/defaults.yaml'
+        defaults_blob = get_blob(defaults_yaml, SENSOR_BUCKET, mode="staging")
+        view_blob = get_blob(view_yaml, SENSOR_BUCKET, mode="staging")
+        defaults_dict = yaml.safe_load(defaults_blob.download_as_string())
+        if view_blob:
+            view_dict = yaml.safe_load(view_blob.download_as_string())
+        else:
+            view_dict = {}
 
-    # Build base configs
-    now = datetime.datetime.now(pytz.timezone("America/Sao_Paulo"))
-    run_key = build_run_key(query_name, now)
-    with open(str(Path(__file__).parent / "materialized_views_base_config.yaml"), "r") as f:
-        base_params: dict = yaml.safe_load(f)
-    base_params["run_timestamp"] = "'{}'".format(
-        convert_datetime_to_datetime_string(now))
-    base_params["maestro_sha"] = "'{}'".format(fetch_branch_sha(
-        constants.MAESTRO_REPOSITORY.value, constants.MAESTRO_DEFAULT_BRANCH.value))
-    base_params["maestro_bq_sha"] = "'{}'".format(fetch_branch_sha(
-        constants.MAESTRO_BQ_REPOSITORY.value, constants.MAESTRO_BQ_DEFAULT_BRANCH.value))
-    base_params["run_key"] = "'{}'".format(run_key)
+        # Merge configs
+        query_params = {**defaults_dict, **view_dict}
 
-    # Few more params
-    r = Redis(constants.REDIS_HOST.value)
-    rp = RedisPal(constants.REDIS_HOST.value)
-    lock = Redlock(key="lock_managed_materialized_views", masters=[r])
-    table_name = parse_filepath_to_tablename(view_yaml)
-    with lock:
-        managed = rp.get("managed_materialized_views")
-        d = managed["views"][query_name]
-        changed = d["query_modified"]
-        d["query_modified"] = False
-        last_run = d["last_run"]
-        d["last_run"] = now
-        rp.set("managed_materialized_views", managed)
+        # Build base configs
+        now = datetime.datetime.now(pytz.timezone("America/Sao_Paulo"))
+        run_key = build_run_key(query_name, now)
+        with open(str(Path(__file__).parent / "materialized_views_base_config.yaml"), "r") as f:
+            base_params: dict = yaml.safe_load(f)
+        base_params["run_timestamp"] = "'{}'".format(
+            convert_datetime_to_datetime_string(now))
+        base_params["maestro_sha"] = "'{}'".format(fetch_branch_sha(
+            constants.MAESTRO_REPOSITORY.value, constants.MAESTRO_DEFAULT_BRANCH.value))
+        base_params["maestro_bq_sha"] = "'{}'".format(fetch_branch_sha(
+            constants.MAESTRO_BQ_REPOSITORY.value, constants.MAESTRO_BQ_DEFAULT_BRANCH.value))
+        base_params["run_key"] = "'{}'".format(run_key)
 
-    # Get query on GCS
-    query_file = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, dataset_name, view_name)}.sql'
-    query_blob = get_blob(query_file, SENSOR_BUCKET, mode="staging")
-    base_query = query_blob.download_as_string().decode("utf-8")
+        # Few more params
+        r = Redis(constants.REDIS_HOST.value)
+        rp = RedisPal(constants.REDIS_HOST.value)
+        lock = Redlock(key="lock_managed_materialized_views", masters=[r])
+        table_name = parse_filepath_to_tablename(view_yaml)
+        with lock:
+            managed = rp.get("managed_materialized_views")
+            d = managed["views"][query_name]
+            changed = d["query_modified"]
+            context.log.info(f"{query_name} changed: {changed}")
+            d["query_modified"] = False
+            last_run = d["last_run"]
+            d["last_run"] = now
+            rp.set("managed_materialized_views", managed)
 
-    # Build configs
-    # - table_name: str
-    # - changed: bool
-    # - base_query: str
-    # - base_params: dict
-    # - query_params: dict
-    # - now: str
-    # - last_run: str
-    configs = {
-        "table_name": table_name,
-        "changed": changed,
-        "base_query": base_query,
-        "base_params": base_params,
-        "query_params": query_params,
-        "now": now,
-        "last_run": last_run
-    }
+        # Get query on GCS
+        query_file = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, dataset_name, view_name)}.sql'
+        query_blob = get_blob(query_file, SENSOR_BUCKET, mode="staging")
+        base_query = query_blob.download_as_string().decode("utf-8")
 
-    return configs
+        # Build configs
+        # - table_name: str
+        # - changed: bool
+        # - base_query: str
+        # - base_params: dict
+        # - query_params: dict
+        # - now: str
+        # - last_run: str
+        date_ranges = get_date_ranges(
+            last_run if last_run else query_params["backfill"]["start_timestamp"],
+            query_params["backfill"]["interval"],
+            now
+        )
+        context.log.info(f"{date_ranges}")
+        for i, _ in enumerate(date_ranges[:-1]):
+            configs = {
+                "table_name": table_name,
+                "changed": changed if i == 0 else False,
+                "base_query": base_query,
+                "base_params": base_params,
+                "query_params": query_params,
+                "now": date_ranges[i + 1],
+                "last_run": date_ranges[i],
+            }
+            yield DynamicOutput(
+                configs,
+                mapping_key=f'{configs["table_name"]}_{configs["last_run"]}_{configs["now"]}'.replace(".", "_").replace("-", "_").replace(" ", "_").replace(":", "_"))
 
 
 @solid(
