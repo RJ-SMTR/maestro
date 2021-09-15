@@ -53,6 +53,13 @@ def check_if_table_exists(table_name: str):
         return False
 
 
+def get_table_type(table_name: str):
+    """Returns the type of a table in BigQuery"""
+    client = get_bigquery_client()
+    table = client.get_table(table_name)
+    return table.table_type
+
+
 def get_session_builder() -> sessionmaker:
     """Returns a session builder for the SQLAlchemy engine"""
     db_uri = f'postgresql://{os.getenv("DAGSTER_POSTGRES_USER")}:{os.getenv("DAGSTER_POSTGRES_PASSWORD")}@{os.getenv("DAGSTER_POSTGRES_HOST")}/{os.getenv("DAGSTER_POSTGRES_DB")}'

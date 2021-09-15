@@ -19,6 +19,7 @@ from repositories.helpers.io import (
     build_run_key,
     fetch_branch_sha,
     get_blob,
+    get_table_type,
     parse_filepath_to_tablename,
     run_query,
     check_if_table_exists,
@@ -135,8 +136,10 @@ def materialize(context, config_dict: dict):
 
     if check_if_table_exists(table_name) and changed:
         context.log.info(f"Deleting table {table_name}")
-        context.log.info(f"Running query: DROP TABLE {table_name}")
-        run_query(f"DROP TABLE {table_name}", timeout=300)
+        delete_query = f"DROP {get_table_type(table_name)} `{table_name}`"
+        context.log.info(f"Running query: {delete_query}")
+        run_query(delete_query, timeout=300)
+
     else:
         context.log.info(
             f"Skipping DELETE table {table_name} as it does not exist or query hasn't changed")
