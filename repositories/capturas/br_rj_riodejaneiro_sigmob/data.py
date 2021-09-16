@@ -200,8 +200,8 @@ def cleanup_local(context, path):
         "dagster-k8s/config": {
             "container_config": {
                 "resources": {
-                    "requests": {"cpu": "20m", "memory": "800Mi"},
-                    "limits": {"cpu": "500m", "memory": "2Gi"},
+                    "requests": {"cpu": "20m", "memory": "100Mi"},
+                    "limits": {"cpu": "500m", "memory": "1Gi"},
                 },
             }
         },
