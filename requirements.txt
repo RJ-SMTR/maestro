@@ -5,7 +5,7 @@ dagster-docker==0.11.15
 dagster-graphql==0.11.15
 dagster-postgres==0.11.15
 alembic
-basedosdados==1.5.5a2
+basedosdados==1.5.7a0
 openpyxl
 xlrd
 loguru
