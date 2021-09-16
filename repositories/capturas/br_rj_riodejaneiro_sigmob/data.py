@@ -20,7 +20,10 @@ def request_data(context):
     contents = {}
     endpoints = context.resources.endpoints["endpoints"]
     for key in endpoints.keys():
+        context.log.info("#" * 80)
+        context.log.info(f"KEY = {key}")
         try:
+            context.log.info(f"URL = {endpoints[key]['url']}")
             data = requests.get(
                 endpoints[key]["url"],
                 timeout=constants.SIGMOB_GET_REQUESTS_TIMEOUT.value,
@@ -40,6 +43,7 @@ def request_data(context):
                     else:
                         contents[key]["data"].extend(data.json()["data"])
                     try:
+                        context.log.info(f"URL = {data.json()['next']}")
                         data = requests.get(data.json()["next"])
                     except Exception as e:
                         err = traceback.format_exc()
@@ -60,6 +64,8 @@ def pre_treatment_br_rj_riodejaneiro_sigmob(context, contents):
     paths = {}
 
     for key in contents.keys():
+        context.log.info("#" * 80)
+        context.log.info(f"KEY = {key}")
         path = Path(
             f"{run_date}/{key}/data_versao={run_date}/{key}_version-{run_date}.csv"
         )
@@ -75,36 +81,41 @@ def pre_treatment_br_rj_riodejaneiro_sigmob(context, contents):
         df.to_csv(path, index=False)
 
         paths[key] = path
+        context.log.info(f"PATH = {path}")
     return paths
 
 
 @solid(required_resource_keys={"basedosdados_config", "schedule_run_date"})
 def upload_to_bq(context, paths):
     for key in paths.keys():
-        context.log.info("#####################")
-        context.log.info(f"key={key}")
+        context.log.info("#" * 80)
+        context.log.info(f"KEY = {key}")
         tb = Table(key, context.resources.basedosdados_config["dataset_id"],)
         tb_dir = paths[key].parent.parent
-        context.log.info(f"tb_dir={tb_dir}")
+        context.log.info(f"tb_dir = {tb_dir}")
 
         if not tb.table_exists("staging"):
-            context.log.info("Table does not exist in STAGING")
+            context.log.info(
+                "Table does not exist in STAGING, creating table...")
             tb.create(
                 path=tb_dir,
                 if_table_exists="pass",
                 if_storage_data_exists="replace",
                 if_table_config_exists="pass",
             )
-            context.log.info("Table created")
+            context.log.info("Table created in STAGING")
         else:
-            context.log.info("Table exists in STAGING")
-            tb.append(filepath=tb_dir, if_exists="replace")
-            context.log.info("Appended to table")
+            context.log.info(
+                "Table already exists in STAGING, appending to it...")
+            tb.append(filepath=tb_dir, if_exists="replace", timeout=600)
+            context.log.info("Appended to table on STAGING successfully.")
 
         if not tb.table_exists("prod"):
-            context.log.info("Table does not exist in PROD")
+            context.log.info("Table does not exist in PROD, publishing...")
             tb.publish(if_exists="pass")
-            context.log.info("Published table")
+            context.log.info("Published table in PROD successfully.")
+        else:
+            context.log.info("Table already published in PROD.")
     context.log.info(f"Returning -> {tb_dir.parent}")
 
     return tb_dir.parent
@@ -132,13 +143,18 @@ def cleanup_local(context, path):
         "dagster-k8s/config": {
             "container_config": {
                 "resources": {
-                    "requests": {"cpu": "100m", "memory": "150Mi"},
-                    "limits": {"cpu": "1000m", "memory": "1Gi"},
+                    "requests": {"cpu": "20m", "memory": "800Mi"},
+                    "limits": {"cpu": "500m", "memory": "2Gi"},
                 },
             }
         },
     },
 )
 def br_rj_riodejaneiro_sigmob_data():
-    cleanup_local(upload_to_bq(
-        pre_treatment_br_rj_riodejaneiro_sigmob(request_data())))
+    cleanup_local(
+        upload_to_bq(
+            pre_treatment_br_rj_riodejaneiro_sigmob(
+                request_data()
+            )
+        )
+    )
