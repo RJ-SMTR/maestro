@@ -109,6 +109,9 @@ def materialized_views_execute_sensor(context: SensorExecutionContext):
 
     # Get managed materialized views
     managed_materialized_views: dict = rp.get("managed_materialized_views")
+    if managed_materialized_views is None:
+        managed_materialized_views = {}
+        managed_materialized_views["views"] = {}
 
     # Get current timestamp
     now = datetime.datetime.now(pytz.timezone("America/Sao_Paulo"))

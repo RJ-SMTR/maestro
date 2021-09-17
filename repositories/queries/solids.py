@@ -40,6 +40,9 @@ def delete_managed_views(
     lock = Redlock(key="lock_managed_materialized_views", masters=[r])
     with lock:
         materialized_views: dict = rp.get("managed_materialized_views")
+        if materialized_views is None:
+            materialized_views = {}
+            materialized_views["views"] = {}
         for blob_name in blob_names:
             context.log.info(f"Deleting managed view {blob_name}")
             if blob_name in materialized_views["views"]:
@@ -86,6 +89,9 @@ def update_managed_views(
         # Add it to Redis
         with lock:
             materialized_views: dict = rp.get("managed_materialized_views")
+            if materialized_views is None:
+                materialized_views = {}
+                materialized_views["views"] = {}
             # Add every child to Redis
             for key in blob_dict["views"].keys():
 
@@ -151,6 +157,9 @@ def update_managed_views(
             # Update Redis
             with lock:
                 materialized_views: dict = rp.get("managed_materialized_views")
+                if materialized_views is None:
+                    materialized_views = {}
+                    materialized_views["views"] = {}
                 materialized_views["views"][table_name] = {
                     "cron_expression": blob_dict["scheduling"]["cron"],
                     "last_run": None,
@@ -164,6 +173,9 @@ def update_managed_views(
             graph.add_node(table_name)
 
         materialized_views: dict = rp.get("managed_materialized_views")
+        if materialized_views is None:
+            materialized_views = {}
+            materialized_views["views"] = {}
         for dep in materialized_views["views"][table_name]["depends_on"]:
             if dep in materialized_views["views"]:
                 context.log.info(f"Adding {dep} to runs")
@@ -192,6 +204,9 @@ def manage_view(context, view_name: str):
 
     # Get materialization information from Redis
     materialized_views: dict = rp.get("managed_materialized_views")
+    if materialized_views is None:
+        materialized_views = {}
+        materialized_views["views"] = {}
     materialized = materialized_views["views"][view_name]["materialized"]
 
     # If this is materialized, skip
@@ -387,6 +402,9 @@ def get_configs_for_materialized_view(context, query_names: list) -> dict:
         table_name = parse_filepath_to_tablename(view_yaml)
         with lock:
             managed = rp.get("managed_materialized_views")
+            if managed is None:
+                managed = {}
+                managed["views"] = {}
             d = managed["views"][query_name]
             changed = d["query_modified"]
             context.log.info(f"{query_name} changed: {changed}")
