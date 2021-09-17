@@ -200,7 +200,9 @@ def update_managed_views(
 def manage_view(context, view_name: str):
 
     # Setup Redis and Redlock
+    r = Redis(constants.REDIS_HOST.value)
     rp = RedisPal(constants.REDIS_HOST.value)
+    lock = Redlock(key="lock_managed_materialized_views", masters=[r])
 
     # Get materialization information from Redis
     materialized_views: dict = rp.get("managed_materialized_views")
@@ -211,6 +213,9 @@ def manage_view(context, view_name: str):
 
     # If this is materialized, skip
     if materialized:
+        with lock:
+            materialized_views["views"][view_name]["last_run"] = None
+            rp.set("managed_materialized_views", materialized_views)
         context.log.info(f"Skipping {view_name} as it's materialized")
         return
 
