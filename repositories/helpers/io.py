@@ -1,10 +1,12 @@
 import os
 import time
 import json
+from typing import Union
 import yaml
 import base64
 import datetime
 import requests
+import traceback
 from pathlib import Path
 
 import pytz
@@ -28,6 +30,19 @@ def get_bigquery_client() -> bigquery.Client:
     """Returns a BigQuery client"""
     credentials = get_credentials_from_env()
     return bigquery.Client(project=os.getenv("BQ_PROJECT_NAME"), credentials=credentials)
+
+
+def test_query(query: str) -> Union[None, str]:
+    """Tests a query on BigQuery"""
+    client = get_bigquery_client()
+    job_config = bigquery.QueryJobConfig(dry_run=True, use_query_cache=False)
+    try:
+        query_job = client.query(query, job_config=job_config)
+        _ = query_job.result()
+        return None
+    except:
+        exc = traceback.format_exc()
+        return exc
 
 
 def run_query(query: str, timeout: float = None):

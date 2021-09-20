@@ -9,6 +9,7 @@ import jinja2
 import networkx as nx
 from redis import Redis
 from pottery import Redlock
+from pottery.exceptions import ReleaseUnlockedLock
 from redis_pal import RedisPal
 from dagster import solid, RetryPolicy
 from dagster.experimental import DynamicOutputDefinition, DynamicOutput
@@ -24,13 +25,15 @@ from repositories.helpers.io import (
     get_table_type,
     parse_filepath_to_tablename,
     run_query,
+    test_query,
     check_if_table_exists,
     insert_results_to_table,
     update_view,
 )
+from repositories.helpers.hooks import log_critical
 
 
-@solid(retry_policy=RetryPolicy(max_retries=3, delay=5))
+@solid  # (retry_policy=RetryPolicy(max_retries=3, delay=5))
 def delete_managed_views(
     context,
     blob_names
@@ -54,7 +57,7 @@ def delete_managed_views(
 
 
 @solid(
-    retry_policy=RetryPolicy(max_retries=3, delay=5),
+    # retry_policy=RetryPolicy(max_retries=3, delay=5),
     output_defs=[DynamicOutputDefinition(str)],
 )
 def update_managed_views(
@@ -87,55 +90,58 @@ def update_managed_views(
         blob_dict: dict = yaml.safe_load(blob.download_as_string())
 
         # Add it to Redis
-        with lock:
-            materialized_views: dict = rp.get("managed_materialized_views")
-            if materialized_views is None:
-                materialized_views = {}
-                materialized_views["views"] = {}
-            # Add every child to Redis
-            for key in blob_dict["views"].keys():
-
-                # Build key with dataset_name
-                m_key = f"{dataset_name}.{key}"
-
-                # This child also needs a run
-                context.log.info(f"Adding {m_key} to runs")
-                if m_key not in graph.nodes:
-                    graph.add_node(m_key)
-
-                # Avoid KeyError
-                if "views" not in materialized_views:
+        try:
+            with lock:
+                materialized_views: dict = rp.get("managed_materialized_views")
+                if materialized_views is None:
+                    materialized_views = {}
                     materialized_views["views"] = {}
+                # Add every child to Redis
+                for key in blob_dict["views"].keys():
 
-                # Add to Redis
-                materialized_views["views"][m_key] = {
-                    "cron_expression": blob_dict["scheduling"]["cron"],
-                    "last_run": None,
-                    "materialized": blob_dict["views"][key]["materialized"],
-                    "query_modified": False,
-                    "depends_on": blob_dict["views"][key]["depends_on"],
-                }
+                    # Build key with dataset_name
+                    m_key = f"{dataset_name}.{key}"
 
-                # Adds dependencies to runs
-                for dep in blob_dict["views"][key]["depends_on"]:
-                    if dep in materialized_views["views"]:
-                        context.log.info(f"Adding {dep} to runs")
-                        if dep not in graph.nodes:
-                            graph.add_node(dep)
-                        graph.add_edge(dep, m_key)
+                    # This child also needs a run
+                    context.log.info(f"Adding {m_key} to runs")
+                    if m_key not in graph.nodes:
+                        graph.add_node(m_key)
 
-                # Try to find specific values for this view
-                blob = get_blob(blob_path + key + ".yaml",
-                                SENSOR_BUCKET, mode="staging")
-                if blob:
-                    # Replace values in Redis
-                    specific = yaml.safe_load(
-                        blob.download_as_string().decode("utf-8"))
-                    materialized_views["views"][m_key]["cron_expression"] = specific[
-                        "scheduling"]["cron"]
+                    # Avoid KeyError
+                    if "views" not in materialized_views:
+                        materialized_views["views"] = {}
 
-            # Update Redis effectively
-            rp.set("managed_materialized_views", materialized_views)
+                    # Add to Redis
+                    materialized_views["views"][m_key] = {
+                        "cron_expression": blob_dict["scheduling"]["cron"],
+                        "last_run": None,
+                        "materialized": blob_dict["views"][key]["materialized"],
+                        "query_modified": False,
+                        "depends_on": blob_dict["views"][key]["depends_on"],
+                    }
+
+                    # Adds dependencies to runs
+                    for dep in blob_dict["views"][key]["depends_on"]:
+                        if dep in materialized_views["views"]:
+                            context.log.info(f"Adding {dep} to runs")
+                            if dep not in graph.nodes:
+                                graph.add_node(dep)
+                            graph.add_edge(dep, m_key)
+
+                    # Try to find specific values for this view
+                    blob = get_blob(blob_path + key + ".yaml",
+                                    SENSOR_BUCKET, mode="staging")
+                    if blob:
+                        # Replace values in Redis
+                        specific = yaml.safe_load(
+                            blob.download_as_string().decode("utf-8"))
+                        materialized_views["views"][m_key]["cron_expression"] = specific[
+                            "scheduling"]["cron"]
+
+                # Update Redis effectively
+                rp.set("managed_materialized_views", materialized_views)
+        except ReleaseUnlockedLock:
+            context.log.warning("Tried to release unlocked lock, skipping...")
 
     # Otherwise, we need to add the blob_name and its
     # dependencies to the graph.
@@ -155,17 +161,22 @@ def update_managed_views(
             blob_dict: dict = yaml.safe_load(blob.download_as_string())
 
             # Update Redis
-            with lock:
-                materialized_views: dict = rp.get("managed_materialized_views")
-                if materialized_views is None:
-                    materialized_views = {}
-                    materialized_views["views"] = {}
-                materialized_views["views"][table_name] = {
-                    "cron_expression": blob_dict["scheduling"]["cron"],
-                    "last_run": None,
-                    "query_modified": True,
-                }
-                rp.set("managed_materialized_views", materialized_views)
+            try:
+                with lock:
+                    materialized_views: dict = rp.get(
+                        "managed_materialized_views")
+                    if materialized_views is None:
+                        materialized_views = {}
+                        materialized_views["views"] = {}
+                    materialized_views["views"][table_name] = {
+                        "cron_expression": blob_dict["scheduling"]["cron"],
+                        "last_run": None,
+                        "query_modified": True,
+                    }
+                    rp.set("managed_materialized_views", materialized_views)
+            except ReleaseUnlockedLock:
+                context.log.warning(
+                    "Tried to release unlocked lock, skipping...")
 
         # Add table_name and its dependencies to runs
         context.log.info(f"Adding {table_name} to runs")
@@ -196,7 +207,7 @@ def update_managed_views(
         yield DynamicOutput(q, mapping_key=q.replace(".", "_"))
 
 
-@solid(retry_policy=RetryPolicy(max_retries=3, delay=30))
+@solid  # (retry_policy=RetryPolicy(max_retries=3, delay=30))
 def manage_view(context, view_name: str):
 
     # Setup Redis and Redlock
@@ -214,6 +225,7 @@ def manage_view(context, view_name: str):
     # If this is materialized, skip
     if materialized:
         with lock:
+            materialized_views["views"][view_name]["query_modified"] = True
             materialized_views["views"][view_name]["last_run"] = None
             rp.set("managed_materialized_views", materialized_views)
         context.log.info(f"Skipping {view_name} as it's materialized")
@@ -246,7 +258,7 @@ def manage_view(context, view_name: str):
                 view_yaml, delete=False, context=context)
 
 
-@solid(retry_policy=RetryPolicy(max_retries=3, delay=30))
+@solid  # (retry_policy=RetryPolicy(max_retries=3, delay=30))
 def materialize(context, config_dict: dict):
 
     ###########
@@ -275,11 +287,15 @@ def materialize(context, config_dict: dict):
         context.log.info(f"Deleting table {table_name}")
         delete_query = f"DROP {get_table_type(table_name)} `{table_name}`"
         context.log.info(f"Running query: {delete_query}")
+        err = test_query(delete_query)
+        if err:
+            log_critical(f"Failed to delete table {table_name}: {err}")
+            raise Exception(f"Failed to delete table {table_name}: {err}")
         run_query(delete_query, timeout=300)
 
     else:
         context.log.info(
-            f"Skipping DELETE table {table_name} as it does not exist or query hasn't changed")
+            f"Skipping DELETE table {table_name} as it does not exist or query hasn't changed.\nTable exists={check_if_table_exists(table_name)}, changed={changed}")
 
     ###########
     # Step 2: Create table if not exists
@@ -314,6 +330,10 @@ def materialize(context, config_dict: dict):
 
         # Run query
         context.log.info(f"Running query: {create_table_query}")
+        err = test_query(create_table_query)
+        if err:
+            log_critical(f"Failed to create table {table_name}: {err}")
+            raise Exception(f"Failed to create table {table_name}: {err}")
         run_query(create_table_query, timeout=1800)
         already_existed = False
 
@@ -353,6 +373,10 @@ def materialize(context, config_dict: dict):
 
         # Execute query
         context.log.info(f"Running query: {insert_query}")
+        err = test_query(insert_query)
+        if err:
+            log_critical(f"Failed to insert into table {table_name}: {err}")
+            raise Exception(f"Failed to insert into table {table_name}: {err}")
         results = run_query(insert_query, timeout=1800)
         context.log.info(f"Results: {results.to_dataframe()}")
 
@@ -362,7 +386,7 @@ def materialize(context, config_dict: dict):
 
 
 @solid(
-    retry_policy=RetryPolicy(max_retries=3, delay=30),
+    #retry_policy=RetryPolicy(max_retries=3, delay=30),
     output_defs=[DynamicOutputDefinition(dict)]
 )
 def get_configs_for_materialized_view(context, query_names: list) -> dict:
@@ -376,6 +400,8 @@ def get_configs_for_materialized_view(context, query_names: list) -> dict:
         # Load configs from GCS
         view_yaml = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, dataset_name, view_name)}.yaml'
         defaults_yaml = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, dataset_name)}/defaults.yaml'
+        context.log.info(f"Defaults blob: {defaults_yaml}")
+        context.log.info(f"View blob: {view_yaml}")
         defaults_blob = get_blob(defaults_yaml, SENSOR_BUCKET, mode="staging")
         view_blob = get_blob(view_yaml, SENSOR_BUCKET, mode="staging")
         defaults_dict = yaml.safe_load(defaults_blob.download_as_string())
@@ -453,7 +479,7 @@ def get_configs_for_materialized_view(context, query_names: list) -> dict:
 
 
 @solid(
-    retry_policy=RetryPolicy(max_retries=3, delay=5),
+    #retry_policy=RetryPolicy(max_retries=3, delay=5),
     output_defs=[DynamicOutputDefinition(str)]
 )
 def resolve_dependencies_and_execute(context, queries_names):
