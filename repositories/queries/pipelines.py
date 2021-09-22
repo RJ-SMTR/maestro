@@ -8,11 +8,16 @@ from repositories.helpers.hooks import (
 )
 from repositories.queries.solids import (
     delete_managed_views,
+    gather_locks,
     update_managed_views,
     manage_view,
     resolve_dependencies_and_execute,
     get_configs_for_materialized_view,
     materialize,
+    get_materialization_lock,
+    get_materialize_sensor_lock,
+    lock_materialization_process,
+    release_materialization_process,
 )
 
 
@@ -41,9 +46,14 @@ from repositories.queries.solids import (
     },
 )
 def update_managed_materialized_views():
-    delete_managed_views()
-    runs = update_managed_views()
-    runs.map(manage_view)
+    lock = get_materialization_lock()
+    locked = lock_materialization_process(lock)
+    delete_managed_views(materialization_locked=locked,
+                         materialization_lock=lock)
+    runs = update_managed_views(
+        materialization_locked=locked, materialization_lock=lock)
+    done = runs.map(manage_view)
+    release_materialization_process(lock, done.collect())
 
 
 @discord_message_on_failure
@@ -71,6 +81,13 @@ def update_managed_materialized_views():
     },
 )
 def materialize_view():
-    views = resolve_dependencies_and_execute()
-    configs = get_configs_for_materialized_view(views.collect())
-    configs.map(materialize)
+    lock = get_materialization_lock()
+    lock_sensor = get_materialize_sensor_lock()
+    locks = gather_locks(lock_sensor, lock)
+    locked = lock_materialization_process(locks)
+    views = resolve_dependencies_and_execute(
+        materialization_locked=locked, materialization_lock=locks)
+    configs = get_configs_for_materialized_view(
+        views.collect(), materialization_locked=locked, materialization_lock=locks)
+    done = configs.map(materialize)
+    release_materialization_process([lock, lock_sensor], done.collect())

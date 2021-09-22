@@ -38,7 +38,7 @@ def test_query(query: str) -> Union[None, str]:
     job_config = bigquery.QueryJobConfig(dry_run=True, use_query_cache=False)
     try:
         query_job = client.query(query, job_config=job_config)
-        _ = query_job.result()
+        _ = query_job.total_bytes_processed
         return None
     except:
         exc = traceback.format_exc()
@@ -256,6 +256,8 @@ def update_view(table_name: str, defaults_dict: dict, dataset_name: str, view_na
             context.log.info(f"Fetching query from GCS: {query_file}")
         query_blob = get_blob(
             query_file, SENSOR_BUCKET, mode="staging")
+        if query_blob is None:
+            raise Exception(f"Query file not found: {query_file}")
         base_query = query_blob.download_as_string().decode("utf-8")
 
         # Build query for view
