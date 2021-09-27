@@ -34,6 +34,7 @@ from repositories.helpers import locks
 from repositories.queries.utils import (
     check_mat_view_dict_format,
     update_dict_with_dict,
+    replace_table_name_with_query,
 )
 
 
@@ -402,6 +403,7 @@ def materialize(context, input_dict: dict):
         query_params = config_dict["query_params"]
         now = config_dict["now"]
         last_run = config_dict["last_run"]
+        parent_queries = config_dict["parent_queries"]
 
         ###########
         # Step 1: Delete table on query change
@@ -438,6 +440,20 @@ def materialize(context, input_dict: dict):
             template = jinja2.Template(base_query)
             query = template.render(
                 **base_params, **query_params["parameters"], **custom_params)
+
+            # Build query dependencies
+            for parent_query in parent_queries:
+                parent_queries[parent_query] = jinja2.Template(
+                    parent_queries[parent_query]).render(
+                        **base_params, **query_params["parameters"], **custom_params)
+                context.log.info(
+                    f"Parent query {parent_query} -> {parent_queries[parent_query]}")
+
+            # Replace parent queries
+            for parent_query in parent_queries:
+                query = replace_table_name_with_query(
+                    parent_query, parent_queries[parent_query], query)
+            context.log.info(f"Query -> {query}")
 
             # Build CREATE TABLE query
             partition_by_type: str = query_params["partitioning"]["type"]
@@ -484,6 +500,22 @@ def materialize(context, input_dict: dict):
             template = jinja2.Template(base_query)
             query = template.render(
                 **base_params, **query_params["parameters"], **custom_params)
+
+            # Build query dependencies
+            for parent_query in parent_queries:
+                parent_queries[parent_query] = jinja2.Template(
+                    parent_queries[parent_query]).render(
+                        **base_params, **query_params["parameters"], **custom_params)
+                context.log.info(
+                    f"Parent query {parent_query} -> {parent_queries[parent_query]}")
+
+            # Replace parent queries
+            for parent_query in parent_queries:
+                query, count = replace_table_name_with_query(
+                    parent_query, parent_queries[parent_query], query)
+                context.log.info(
+                    f"Replaced {count} occurences of parent table {parent_query}")
+            context.log.info(f"Query -> {query}")
 
             # Insert into query
             insert_query_template = jinja2.Template(
@@ -593,6 +625,20 @@ def get_configs_for_materialized_view(context, query_names: list, materializatio
                 raise Exception(f"Blob {query_file} not found!")
             base_query = query_blob.download_as_string().decode("utf-8")
 
+            # Get parent queries on GCS
+            parent_queries = {}
+            for query_name in d["depends_on"]:
+                query_file = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, "/".join(query_name.split(".")[:2]))}.sql'
+                query_blob = get_blob(
+                    query_file, SENSOR_BUCKET, mode="staging")
+                if query_blob is None:
+                    context.log.warning(
+                        f"Blob for parent query \"{query_file}\" not found, skipping...")
+                    continue
+                parent_queries[query_name] = query_blob.download_as_string().decode(
+                    "utf-8")
+            context.log.info(f"Parent queries: {parent_queries}")
+
             # Build configs
             # - table_name: str
             # - changed: bool
@@ -616,6 +662,7 @@ def get_configs_for_materialized_view(context, query_names: list, materializatio
                     "query_params": query_params,
                     "now": date_ranges[i + 1],
                     "last_run": date_ranges[i],
+                    "parent_queries": parent_queries,
                 }
                 yield DynamicOutput(
                     {"config_dict": configs,

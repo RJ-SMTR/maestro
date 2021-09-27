@@ -1,9 +1,11 @@
-from repositories.helpers.constants import constants
+import re
 import time
 from typing import List
 
 from google.cloud.storage.blob import Blob
 from pottery.redlock import Redlock
+
+from repositories.helpers.constants import constants
 
 
 def get_largest_blob_mtime(blobs_list: List[Blob]) -> int:
@@ -45,3 +47,12 @@ def update_dict_with_dict(dict_to_update: dict, dict_to_add: dict) -> None:
     """
     for key in dict_to_add:
         dict_to_update[key] = dict_to_add[key]
+
+
+def replace_table_name_with_query(table_name: str, table_query: str, original_query: str):
+    """
+    Replaces the table_name with the table_query in the original_query.
+    """
+    regular_expression = r" ?`?rj-smtr.*{}`? ?".format(table_name)
+    find_counts = len(re.findall(regular_expression, original_query))
+    return re.sub(regular_expression, f"({table_query})", original_query), find_counts
