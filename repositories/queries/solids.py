@@ -440,19 +440,26 @@ def materialize(context, input_dict: dict):
             template = jinja2.Template(base_query)
             query = template.render(
                 **base_params, **query_params["parameters"], **custom_params)
+            context.log.info(f"Query before deps -> {query}")
 
             # Build query dependencies
             for parent_query in parent_queries:
-                parent_queries[parent_query] = jinja2.Template(
-                    parent_queries[parent_query]).render(
-                        **base_params, **query_params["parameters"], **custom_params)
                 context.log.info(
-                    f"Parent query {parent_query} -> {parent_queries[parent_query]}")
+                    f'For parent table {parent_query}, args are {dict(**base_params, **parent_queries[parent_query]["query_params"]["parameters"], **custom_params)}')
+                context.log.info(
+                    f'For parent table {parent_query}, query is {parent_queries[parent_query]["base_query"]}')
+                parent_queries[parent_query]["base_query"] = jinja2.Template(
+                    parent_queries[parent_query]["base_query"]).render(
+                        **base_params, **parent_queries[parent_query]["query_params"]["parameters"], **custom_params)
+                context.log.info(
+                    f'Parent query {parent_query} -> {parent_queries[parent_query]["base_query"]}')
 
             # Replace parent queries
             for parent_query in parent_queries:
-                query = replace_table_name_with_query(
-                    parent_query, parent_queries[parent_query], query)
+                query, count = replace_table_name_with_query(
+                    parent_query, parent_queries[parent_query]["base_query"], query)
+                context.log.info(
+                    f"Replaced {count} occurences of parent table {parent_query}")
             context.log.info(f"Query -> {query}")
 
             # Build CREATE TABLE query
@@ -503,16 +510,18 @@ def materialize(context, input_dict: dict):
 
             # Build query dependencies
             for parent_query in parent_queries:
-                parent_queries[parent_query] = jinja2.Template(
-                    parent_queries[parent_query]).render(
-                        **base_params, **query_params["parameters"], **custom_params)
                 context.log.info(
-                    f"Parent query {parent_query} -> {parent_queries[parent_query]}")
+                    f'For parent table {parent_query}, args are {dict(**base_params, **parent_queries[parent_query]["query_params"]["parameters"], **custom_params)}')
+                parent_queries[parent_query]["base_query"] = jinja2.Template(
+                    parent_queries[parent_query]["base_query"]).render(
+                        **base_params, **parent_queries[parent_query]["query_params"]["parameters"], **custom_params)
+                context.log.info(
+                    f'Parent query {parent_query} -> {parent_queries[parent_query]["base_query"]}')
 
             # Replace parent queries
             for parent_query in parent_queries:
                 query, count = replace_table_name_with_query(
-                    parent_query, parent_queries[parent_query], query)
+                    parent_query, parent_queries[parent_query]["base_query"], query)
                 context.log.info(
                     f"Replaced {count} occurences of parent table {parent_query}")
             context.log.info(f"Query -> {query}")
@@ -635,8 +644,29 @@ def get_configs_for_materialized_view(context, query_names: list, materializatio
                     context.log.warning(
                         f"Blob for parent query \"{query_file}\" not found, skipping...")
                     continue
-                parent_queries[query_name] = query_blob.download_as_string().decode(
+                parent_view_yaml = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, "/".join(query_name.split(".")[:2]))}.yaml'
+                parent_view_blob = get_blob(
+                    parent_view_yaml, SENSOR_BUCKET, mode="staging")
+                if parent_view_blob is not None:
+                    parent_view_dict = yaml.safe_load(
+                        parent_view_blob.download_as_string())
+                else:
+                    parent_view_dict = {}
+                parent_defaults_yaml = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, "/".join(query_name.split(".")[:1]))}/defaults.yaml'
+                parent_defaults_blob = get_blob(
+                    parent_defaults_yaml, SENSOR_BUCKET, mode="staging")
+                if parent_defaults_blob is not None:
+                    parent_defaults_dict = yaml.safe_load(
+                        parent_defaults_blob.download_as_string())
+                else:
+                    context.log.warning(
+                        f"Blob for parent query \"{parent_defaults_yaml}\" not found, skipping...")
+                    continue
+                parent_queries[query_name] = {}
+                parent_queries[query_name]["base_query"] = query_blob.download_as_string().decode(
                     "utf-8")
+                parent_queries[query_name]["query_params"] = {
+                    **parent_defaults_dict, **parent_view_dict}
             context.log.info(f"Parent queries: {parent_queries}")
 
             # Build configs
