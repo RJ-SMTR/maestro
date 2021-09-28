@@ -1,3 +1,4 @@
+from repositories.helpers.io import get_blob
 from dagster import (
     solid,
     pipeline,
@@ -10,6 +11,9 @@ from dagster.experimental import (
     DynamicOutput,
     DynamicOutputDefinition,
 )
+import io
+from uuid import uuid4
+from google.cloud.storage.blob import Blob
 import zipfile
 import gtfs_kit as gk
 from datetime import datetime
@@ -27,6 +31,7 @@ from repositories.libraries.basedosdados.resources import (
 from repositories.helpers.hooks import discord_message_on_failure, discord_message_on_success, redis_keepalive_on_failure, redis_keepalive_on_succes
 from repositories.capturas.solids import (
     get_file_path_and_partitions,
+    upload_blob_to_storage,
     upload_file_to_storage,
     save_treated_local,
 )
@@ -44,6 +49,18 @@ def open_gtfs_feed(context, original_filepath):
     return feed
 
 
+@solid
+def save_blob_to_tempfile(context, blob_path: str, bucket_name: str) -> str:
+    tempfile_name: str = f"/tmp/{uuid4()}.zip"
+    context.log.debug(
+        f"Saving {blob_path} to temporary file with name {tempfile_name}")
+    blob: Blob = get_blob(blob_path, bucket_name, mode="staging")
+    with open(tempfile_name, "wb") as tempfile:
+        tempfile.write(blob.download_as_bytes())
+        tempfile.close()
+    return tempfile_name
+
+
 @solid(
     output_defs=[
         DynamicOutputDefinition(name="filename"),
@@ -58,13 +75,15 @@ def get_gtfs_files(context, original_filepath):
 
 
 @solid
-def create_gtfs_version_partition(context, feed, original_filepath):
+def create_gtfs_version_partition(context, feed, original_filepath, bucket_name):
     # If feed_info.txt is available, use GTFS version as partition
     if feed.feed_info is not None:
         version_partition = feed.feed_info('feed_version')
     # Otherwise, use txt modification date
     else:
-        single_file = zipfile.ZipFile(original_filepath, 'r').infolist()[0]
+        blob = get_blob(original_filepath, bucket_name, mode="staging")
+        single_file = zipfile.ZipFile(io.BytesIO(
+            blob.download_as_bytes()), 'r').infolist()[0]
         version_partition = datetime(*single_file.date_time).strftime("%Y%m%d")
 
     partitions = f"gtfs_version_date={version_partition}"
@@ -131,23 +150,35 @@ def get_realized_trips(file_path):
             mode="dev",
         ),
     ],
-    # tags={"dagster/priority": "-1"}
+    tags={
+        "pipeline": "br_rj_riodejaneiro_gtfs_planned_feed",
+        "dagster-k8s/config": {
+            "container_config": {
+                "resources": {
+                    "requests": {"cpu": "250m", "memory": "500Mi"},
+                    "limits": {"cpu": "1500m", "memory": "1Gi"},
+                },
+            }
+        },
+    },
 )
 def br_rj_riodejaneiro_gtfs_planned_feed():
 
-    feed = open_gtfs_feed()
+    # TODO: Adapt this pipeline for GCS
+    tmp_filename = save_blob_to_tempfile()
+    feed = open_gtfs_feed(tmp_filename)
     partitions = create_gtfs_version_partition(feed=feed)
-    upload_file_to_storage(partitions=partitions)
+    upload_blob_to_storage(partitions=partitions)
 
     # GTFS
-    files = get_gtfs_files()
+    files = get_gtfs_files(tmp_filename)
     files.map(lambda file: process_gtfs_files(
         feed=feed, file=file, partitions=partitions))
 
     # Realized trips
     realized_file_path = get_file_path_and_partitions.alias(
         'realized_get_file_path_and_partitions')(partitions=partitions)
-    realized_trips = get_realized_trips()
+    realized_trips = get_realized_trips(tmp_filename)
     realized_treated_file_path = save_treated_local.alias('realized_save_treated_local')(
         realized_trips,
         realized_file_path)

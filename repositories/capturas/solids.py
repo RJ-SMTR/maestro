@@ -1,3 +1,4 @@
+from repositories.helpers.io import connect_ftp, get_blob
 from dagster import (
     solid,
     Output,
@@ -5,6 +6,7 @@ from dagster import (
     composite_solid,
 )
 
+import io
 import requests
 import json
 import pendulum
@@ -14,12 +16,14 @@ import shutil
 import os
 from openpyxl import load_workbook
 import re
+from google.cloud import storage
 
 import basedosdados as bd
 from basedosdados import Table
 
 # Temporario, essa funcao vai ser incorporada a base dos dados
 from repositories.helpers.storage import StoragePlus
+from repositories.helpers.io import get_credentials_from_env
 
 
 @solid(
@@ -81,7 +85,8 @@ def parse_file_path_and_partitions(context, bucket_path):
 
     # Parse bucket to get partitions
     partitions = re.findall("\/([^\/]*?)=(.*?)(?=\/)", bucket_path)
-    partitions = "/".join(["=".join([field for field in item]) for item in partitions])
+    partitions = "/".join(["=".join([field for field in item])
+                          for item in partitions])
 
     # Get data folder from environment variable
     data_folder = os.getenv("DATA_FOLDER", "data")
@@ -95,18 +100,21 @@ def parse_file_path_and_partitions(context, bucket_path):
     yield Output(file_path, output_name="file_path")
     yield Output(partitions, output_name="partitions")
 
-@solid(required_resource_keys = {'basedosdados_config', 'timezone_config'})
-def upload_logs_to_bq(context,timestamp, error):
-    
+
+@solid(required_resource_keys={'basedosdados_config', 'timezone_config'})
+def upload_logs_to_bq(context, timestamp, error):
+
     dataset_id = context.resources.basedosdados_config['dataset_id']
     table_id = context.resources.basedosdados_config['table_id'] + "_logs"
 
-    filepath = Path(f"{timestamp}/{table_id}/data={pendulum.parse(timestamp).date()}/{table_id}_{timestamp}.csv")
+    filepath = Path(
+        f"{timestamp}/{table_id}/data={pendulum.parse(timestamp).date()}/{table_id}_{timestamp}.csv")
     # create partition directory
-    filepath.parent.mkdir(exist_ok=True,parents=True)
+    filepath.parent.mkdir(exist_ok=True, parents=True)
     # create dataframe to be uploaded
     df = pd.DataFrame(
-        {"timestamp_captura": [pd.to_datetime(timestamp)], "sucesso": [error is None], "erro": [error]}
+        {"timestamp_captura": [pd.to_datetime(timestamp)], "sucesso": [
+            error is None], "erro": [error]}
     )
     # save local
     df.to_csv(filepath, index=False)
@@ -123,39 +131,35 @@ def upload_logs_to_bq(context,timestamp, error):
     elif not tb.table_exists("prod"):
         tb.publish(if_exists="replace")
     else:
-        tb.append(filepath=f"{timestamp}/{table_id}",if_exists='replace')
+        tb.append(filepath=f"{timestamp}/{table_id}", if_exists='replace')
 
     # delete local file
     shutil.rmtree(f"{timestamp}")
-    
 
-def test_raise():
-    raise Exception("Exception Teste")
 
 @solid(
     output_defs=[
         OutputDefinition(name="data", is_required=False),
-        OutputDefinition(name="timestamp",is_required=False),
-        OutputDefinition(name="error",is_required=False)],
+        OutputDefinition(name="timestamp", is_required=False),
+        OutputDefinition(name="error", is_required=False)],
     required_resource_keys={"basedosdados_config", "timezone_config"},
 )
-def get_raw(context, url):
+def get_raw(context, url, headers=None):
 
     data = None
     error = None
     timestamp = pendulum.now(context.resources.timezone_config["timezone"])
     try:
-        data = requests.get(url, timeout=60)
+        data = requests.get(url, headers=headers, timeout=60)
     except requests.exceptions.ReadTimeout as e:
         error = e
     except Exception as e:
-        error = e
-        # raise Exception(f"Unknown exception while trying to fetch data from {url}: {e}")
+        error = f"Unknown exception while trying to fetch data from {url}: {e}"
 
     if data is None:
-        error = f"Data from API is none!"
-        # raise Exception(error)
-    
+        if error is None:
+            error = "Data from API is none!"
+
     if error:
         yield Output(timestamp.isoformat(), output_name="timestamp")
         yield Output(error, output_name="error")
@@ -167,7 +171,6 @@ def get_raw(context, url):
         error = f"Requests failed with error {data.status_code}"
         yield Output(timestamp.isoformat(), output_name="timestamp")
         yield Output(error, output_name="error")
-        # raise Exception(error)
 
 
 @solid
@@ -272,6 +275,17 @@ def delete_file(file_path):
     return Path(file_path).unlink(missing_ok=True)
 
 
+@solid
+def download_file_from_ftp(ftp_path: str, local_path: str) -> None:
+    """Downloads a file from FTP to the local storage"""
+    Path(local_path).parent.mkdir(parents=True, exist_ok=True)
+    ftp_client = connect_ftp(os.getenv("FTPS_HOST"), os.getenv(
+        "FTPS_USERNAME"), os.getenv("FTPS_PWD"))
+    ftp_client.retrbinary(
+        "RETR " + ftp_path, open(local_path, "wb").write)
+    ftp_client.quit()
+
+
 @solid(
     required_resource_keys={"basedosdados_config"},
 )
@@ -290,9 +304,57 @@ def upload_file_to_storage(
     context.log.debug(
         f"Uploading file {file_path} to mode {mode} with partitions {partitions}"
     )
-    st.upload(path=file_path, mode=mode, partitions=partitions, if_exists="replace")
+    st.upload(path=file_path, mode=mode,
+              partitions=partitions, if_exists="replace")
 
     return True
+
+
+@solid(
+    required_resource_keys={"basedosdados_config"},
+)
+def upload_blob_to_storage(
+    context, blob_path, partitions=None, mode="raw", table_id=None, bucket_name="", credential_mode="staging"
+):
+    # Extracted from basedosdados
+    def _resolve_partitions(partitions):
+        if isinstance(partitions, dict):
+            return "/".join(f"{k}={v}" for k, v in partitions.items()) + "/"
+        elif isinstance(partitions, str):
+            if partitions.endswith("/"):
+                partitions = partitions[:-1]
+            # If there is no partition
+            if len(partitions) == 0:
+                return ""
+            # It should fail if there is folder which is not a partition
+            try:
+                # check if it fits rule
+                {b.split("=")[0]: b.split("=")[1]
+                 for b in partitions.split("/")}
+            except IndexError:
+                raise Exception(
+                    f"The path {partitions} is not a valid partition")
+            return partitions + "/"
+        else:
+            raise Exception(
+                f"Partitions format or type not accepted: {partitions}")
+
+    if not table_id:
+        table_id = context.resources.basedosdados_config["table_id"]
+    dataset_id = context.resources.basedosdados_config["dataset_id"]
+    credentials = get_credentials_from_env(mode=credential_mode)
+    client = storage.Client(credentials=credentials)
+    blob_name = f"{mode}/{dataset_id}/{table_id}/"
+    if partitions is not None:
+        blob_name += _resolve_partitions(partitions=partitions)
+    blob_name += blob_path.split("/")[-1]
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+    input_blob = get_blob(blob_path, bucket_name, mode=credential_mode)
+    context.log.debug(
+        f"Uploading blob {blob_path} to mode {mode} with partitions {partitions}"
+    )
+    blob.upload_from_file(io.BytesIO(input_blob.download_as_bytes()))
 
 
 @solid

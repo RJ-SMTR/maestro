@@ -1,0 +1,59 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: citus-master
+  name: citus-master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: citus-master
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  minReadySeconds: 5
+  template:
+    metadata:
+      labels:
+        app: citus-master
+    spec:
+      containers:
+        - name: citus
+          image: citusdata/citus:8.0.0
+          ports:
+            - containerPort: 5432
+          env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: citus-secrets
+                  key: password
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: citus-secrets
+                  key: password
+          volumeMounts:
+            - name: storage
+              mountPath: /var/lib/postgresql/data
+          livenessProbe:
+            exec:
+              command:
+                - ./pg_healthcheck
+            initialDelaySeconds: 60
+          resources:
+            requests:
+              cpu: 300m
+              memory: 1Gi
+            limits:
+              cpu: 1500m
+              memory: 4Gi
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: citus-master-pvc

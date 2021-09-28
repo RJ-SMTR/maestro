@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: citus-worker
+spec:
+  selector:
+    matchLabels:
+      app: citus-workers
+  serviceName: citus-workers
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: citus-workers
+    spec:
+      containers:
+        - name: citus-worker
+          image: citusdata/citus:8.0.0
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - if [ ${POD_IP} ]; then psql --host=citus-master --username=postgres --command="SELECT * from master_add_node('${HOSTNAME}.citus-workers', 5432);" ; fi
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: citus-secrets
+                  key: password
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: citus-secrets
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: wstorage
+              mountPath: /var/lib/postgresql/data
+          livenessProbe:
+            exec:
+              command:
+                - ./pg_healthcheck
+            initialDelaySeconds: 60
+          resources:
+            requests:
+              cpu: 50m
+              memory: 50Mi
+            limits:
+              cpu: 150m
+              memory: 200Mi
+  volumeClaimTemplates:
+    - metadata:
+        name: wstorage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 50Gi

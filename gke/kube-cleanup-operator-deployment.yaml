@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    run: cleanup-operator
+  name: cleanup-operator
+  namespace: dagster
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: cleanup-operator
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        run: cleanup-operator
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "7000"
+    spec:
+      serviceAccountName: cleanup-operator
+      containers:
+        - args:
+            - --namespace=dagster
+            - --legacy-mode=false
+            - --delete-successful-after
+            - 1m
+            - --keep-failures
+            - "0"
+            - --keep-pending
+            - "50"
+            - --delete-pending-pods-after
+            - 30m
+            - --delete-failed-after
+            - 30m
+            - --delete-orphaned-pods-after
+            - 30m
+          image: quay.io/lwolf/kube-cleanup-operator
+          imagePullPolicy: Always
+          name: cleanup-operator
+          ports:
+            - containerPort: 7000
+          resources:
+            requests:
+              cpu: 50m
+              memory: 50Mi
+            limits:
+              cpu: 100m
+              memory: 200Mi
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30

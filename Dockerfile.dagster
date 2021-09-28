@@ -1,0 +1,21 @@
+# Dagster libraries to run both dagit and the dagster-daemon. Does not
+# need to have access to any pipeline code.
+
+FROM python:3.8-slim
+
+WORKDIR /tmp
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Set $DAGSTER_HOME and copy dagster instance and workspace YAML there
+ENV DAGSTER_HOME=/opt/dagster/dagster_home/
+RUN mkdir -p $DAGSTER_HOME
+WORKDIR $DAGSTER_HOME
+COPY .dagster_workspace/dagster.yaml dagster.yaml
+COPY workspace.yaml .
+
+WORKDIR $DAGSTER_HOME
+
+RUN apt-get update -y && apt-get install --no-install-recommends -y procps \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*

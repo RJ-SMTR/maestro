@@ -1,0 +1,13 @@
+solids:
+  resolve_dependencies_and_execute:
+    inputs:
+      queries_names:
+        value: []
+resources:
+  timezone_config:
+    config:
+      timezone: "America/Sao_Paulo"
+  discord_webhook:
+    config:
+      url: "{{ '' | env_override('QUERIES_DISCORD_WEBHOOK') }}"
+      success_cron: "* * * * *"

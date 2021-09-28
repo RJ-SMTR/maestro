@@ -1,0 +1,25 @@
+solids:
+  update_materialized_view_on_redis:
+    inputs:
+      blob_name:
+        value: ""
+      cron_expression:
+        value: ""
+      delete:
+        value: false
+      query_modified:
+        value: false
+      defaults_yaml:
+        value: false
+      defaults_dict:
+        value: {}
+      dataset_name:
+        value: ""
+resources:
+  timezone_config:
+    config:
+      timezone: "America/Sao_Paulo"
+  discord_webhook:
+    config:
+      url: "{{ '' | env_override('QUERIES_DISCORD_WEBHOOK') }}"
+      success_cron: "* * * * *"
