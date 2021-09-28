@@ -64,17 +64,35 @@ def setup_docker():
         f"docker-compose -f docker-compose-local.yaml up -d", partial(log, prefix="[DOCKER]"))
 
 
+def docker_down():
+    run_shell_command("docker-compose -f docker-compose-local.yaml down",
+                      partial(log, prefix="[DOCKER]"))
+
+
 def run_daemon():
-    run_shell_command("dagster-daemon run", partial(log, prefix="[DAEMON]"))
+    while True:
+        try:
+            run_shell_command("dagster-daemon run",
+                              partial(log, prefix="[DAEMON]"))
+        except:
+            pass
 
 
 def run_dagit():
-    run_shell_command("dagit", partial(log, prefix="[DAGIT]"))
+    while True:
+        try:
+            run_shell_command("dagit", partial(log, prefix="[DAGIT]"))
+        except:
+            pass
 
 
 def run_grpc():
-    run_shell_command(
-        "dagster api grpc -h 0.0.0.0 -p 4000 -f repositories/repository.py", partial(log, prefix="[GRPC]"))
+    while True:
+        try:
+            run_shell_command(
+                "dagster api grpc -h 0.0.0.0 -p 4000 -f repositories/repository.py", partial(log, prefix="[GRPC]"))
+        except:
+            pass
 
 
 def run_threaded(func):
@@ -103,3 +121,11 @@ def up():
     run_threaded(run_daemon)()
     run_threaded(run_dagit)()
     run_threaded(run_grpc)()
+
+
+@app.command()
+def down():
+    """
+    Shutdown local setup
+    """
+    docker_down()
