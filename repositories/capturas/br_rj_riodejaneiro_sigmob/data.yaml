@@ -9,6 +9,12 @@ resources:
         agency:
           url: http://jeap.rio.rj.gov.br/MOB/get_agency.rule?sys=MOB
           key_column: agency_id
+        calendar:
+          url: http://jeap.rio.rj.gov.br/MOB/get_calendar.rule?sys=MOB
+          key_column: service_id
+        frota_determinada:
+          url: http://jeap.rio.rj.gov.br/MOB/get_frota_determinada.rule?sys=MOB
+          key_column: route_id
         linhas:
           url: http://jeap.rio.rj.gov.br/MOB/get_linhas.rule?sys=MOB
           key_column: linha_id
@@ -23,6 +29,9 @@ resources:
           key_column: stop_id
         stop_times:
           url: http://jeap.rio.rj.gov.br/MOB/get_stop_times.rule?sys=MOB
+          key_column: stop_id
+        stop_details:
+          url: http://jeap.rio.rj.gov.br/MOB/get_stops_details.rule?sys=MOB&INDICE=0
           key_column: stop_id
         trips:
           url: http://jeap.rio.rj.gov.br/MOB/get_trips.rule?sys=MOB
