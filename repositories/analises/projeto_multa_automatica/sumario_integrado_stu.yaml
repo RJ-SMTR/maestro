@@ -1,0 +1,8 @@
+solids:
+  query_data:
+    config:
+      query_table: "projeto_multa_automatica.view_sumario_multa_stu"
+  upload:
+    config:
+      dataset_id: "projeto_multa_automatica"
+      table_id: "sumario_multa_integrado_stu"
