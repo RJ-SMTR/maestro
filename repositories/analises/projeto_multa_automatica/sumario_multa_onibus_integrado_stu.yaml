@@ -5,4 +5,4 @@ solids:
   upload:
     config:
       dataset_id: "projeto_multa_automatica"
-      table_id: "sumario_multa_integrado_stu"
+      table_id: "sumario_multa_onibus_integrado_stu"

@@ -24,16 +24,17 @@ def br_rj_riodejaneiro_brt_gtfs_gps_realized_trips(date):
 
 
 @daily_schedule(
-    pipeline_name="projeto_multa_automatica_multas_aplicaveis_onibus",
+    pipeline_name="projeto_multa_automatica_sumario_multa_onibus_integrado_stu",
     start_date=datetime(2021, 1, 1),
-    name="projeto_multa_automatica_multas_aplicaveis_onibus",
+    name="projeto_multa_automatica_sumario_multa_onibus_integrado_stu",
     execution_time=time(2, 0),
     mode="dev",
     execution_timezone="America/Sao_Paulo",
 )
-def projeto_multa_automatica_multas_aplicaveis_onibus(date):
+def projeto_multa_automatica_sumario_multa_onibus_integrado_stu(date):
     config = read_config(
-        Path(__file__).parent / "projeto_multa_automatica/multas_aplicaveis_onibus.yaml"
+        Path(__file__).parent
+        / "projeto_multa_automatica/sumario_multa_onibus_integrado_stu.yaml"
     )
     config["resources"]["schedule_run_date"] = {
         "config": {"date": date.strftime("%Y-%m-%d")}

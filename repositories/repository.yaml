@@ -49,9 +49,9 @@ analises:
     - module: repositories.analises.br_rj_riodejaneiro_brt_gtfs_gps.realized_trips
       objects:
         - br_rj_riodejaneiro_brt_gtfs_gps_realized_trips
-    - module: repositories.analises.projeto_multa_automatica.multas_aplicaveis_onibus
+    - module: repositories.analises.projeto_multa_automatica.sumario_multa_onibus_integrado_stu
       objects:
-        - projeto_multa_automatica_multas_aplicaveis_onibus
+        - projeto_multa_automatica_sumario_multa_onibus_integrado_stu
 
 queries:
   pipelines:

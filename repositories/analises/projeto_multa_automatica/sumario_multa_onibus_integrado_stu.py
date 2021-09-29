@@ -74,7 +74,7 @@ def cleanup(context, filename):
         },
     },
 )
-def projeto_multa_automatica_sumario_integrado_stu():
+def projeto_multa_automatica_sumario_multa_onibus_integrado_stu():
     cleanup(
         upload(
             query_data()
