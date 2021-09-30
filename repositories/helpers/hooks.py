@@ -1,8 +1,10 @@
 from datetime import datetime
 
 import pendulum
+from pottery.redlock import Redlock
 import requests
 from croniter import croniter
+from redis import Redis
 from redis_pal import RedisPal
 from dagster import success_hook, failure_hook, HookContext
 

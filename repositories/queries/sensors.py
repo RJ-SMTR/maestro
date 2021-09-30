@@ -1,5 +1,8 @@
 import os
 import time
+from typing import List
+from pottery.redlock import Redlock
+from redis import Redis
 import yaml
 import datetime
 from pathlib import Path
@@ -7,20 +10,19 @@ from pathlib import Path
 import pytz
 from redis_pal import RedisPal
 from google.cloud.storage.blob import Blob
-from dagster.core.definitions.run_request import SkipReason
+from dagster.core.definitions.run_request import PipelineRunReaction, SkipReason
 from dagster import RunRequest, sensor, SensorExecutionContext
 
 from repositories.helpers.helpers import read_config
 from repositories.helpers.constants import constants
-from repositories.helpers.datetime import determine_whether_to_execute_or_not, convert_datetime_to_datetime_string
+from repositories.helpers.datetime import determine_whether_to_execute_or_not, convert_datetime_to_unix_time
 from repositories.helpers.io import (
     build_run_key,
-    get_blob,
     get_list_of_blobs,
-    parse_filepath_to_tablename,
     parse_run_key,
     fetch_branch_sha,
 )
+from repositories.queries.utils import get_largest_blob_mtime, filter_blobs_by_mtime
 
 SENSOR_BUCKET = os.getenv("SENSOR_BUCKET", "rj-smtr-dev")
 VIEWS_PREFIX = os.getenv("VIEWS_PREFIX", "queries/views/")
@@ -35,168 +37,95 @@ def materialized_views_update_sensor(context: SensorExecutionContext):
     For every new or modified file, the pipeline `update_managed_materialized_views`
     is triggered. This ensures BQ materialized views are always up-to-date.
     """
-    # Start RedisPal (we use that to check on deleted files)
-    rp: RedisPal = RedisPal(host=constants.REDIS_HOST.value)
+    # Store largest mtime
+    largest_mtime = 0
 
-    # Get last modification time
-    last_mtime = parse_run_key(context.last_run_key)[
-        1] if context.last_run_key else 0
+    # Store deleted and modified blobs
+    deleted_blobs = []
+    modified_blobs = []
 
-    # Get list of files
-    list_of_blobs: list = get_list_of_blobs(
-        MATERIALIZED_VIEWS_PREFIX, SENSOR_BUCKET)
+    # Get connection to Redis
+    rp = RedisPal(host=constants.REDIS_HOST.value)
 
-    # Get previous set of files from Redis
-    prev_set_of_blobs: set = rp.get("materialized_views_files_set")
+    # Get list of blobs in bucket
+    blobs_list = get_list_of_blobs(MATERIALIZED_VIEWS_PREFIX, SENSOR_BUCKET)
 
-    # Parse current list of files to set
-    set_of_blobs: set = set([blob.name for blob in list_of_blobs])
+    # Get previous set of blobs in Redis
+    previous_blobs_set: set = rp.get(
+        constants.REDIS_KEY_MAT_VIEWS_BLOBS_SET.value)
 
-    # If we've cached a previous list of files
-    if prev_set_of_blobs is not None:
+    # If there is no previous set, create it
+    if not previous_blobs_set:
+        rp.set(constants.REDIS_KEY_MAT_VIEWS_BLOBS_SET.value,
+               set([b.name for b in blobs_list]))
 
-        # Get deleted files
-        deleted: set = prev_set_of_blobs - set_of_blobs
+    # If there is a previous set, compare it to the current set
+    else:
+        deleted_blobs: set = previous_blobs_set - \
+            set([b.name for b in blobs_list])
 
-        # For every deleted file, delete corresponding view
-        blob_name: str = None
-        for blob_name in deleted:
-            if blob_name.endswith(".sql"):
+    # Get previous run mtime
+    previous_run_mtime = rp.get(
+        constants.REDIS_KEY_MAT_VIEWS_LAST_RUN_MTIME.value)
 
-                # Set a run key so we can keep track of changes
-                run_key: str = build_run_key(
-                    "delete-view-" + blob_name, last_mtime)
+    # If there is no previous run mtime, set modified blobs to the current blobs
+    if not previous_run_mtime:
+        modified_blobs = blobs_list
 
-                # Get dataset name
-                blob_path = "/".join([n for n in blob_name.split("/")
-                                      if n != ""][:-1])
-                dataset_name: str = blob_path.split("/")[-1]
+    # If there is a previous run mtime, compare it to the current list
+    # and get modified files
+    else:
+        modified_blobs = filter_blobs_by_mtime(blobs_list, previous_run_mtime)
 
-                # Get defaults
-                defaults_path = blob_path + "/defaults.yaml"
-                defaults_blob = get_blob(
-                    defaults_path, SENSOR_BUCKET, mode="staging")
-                defaults_dict: dict = yaml.safe_load(
-                    defaults_blob.download_as_string().decode("utf-8"))
+    # Update last run time
+    largest_mtime = get_largest_blob_mtime(blobs_list)
+    rp.set(constants.REDIS_KEY_MAT_VIEWS_LAST_RUN_MTIME.value, largest_mtime)
 
-                # Load run configuration
-                config: dict = read_config(
-                    Path(__file__).parent / "materialized_views_update.yaml")
+    # If there are modified or deleted files, trigger pipeline
+    if modified_blobs or deleted_blobs:
 
-                # Set inputs
-                config["solids"]["update_materialized_view_on_redis"]["inputs"]["blob_name"]["value"] = blob_name
-                config["solids"]["update_materialized_view_on_redis"]["inputs"]["delete"]["value"] = True
-                config["solids"]["update_materialized_view_on_redis"]["inputs"]["dataset_name"]["value"] = dataset_name
-                config["solids"]["update_materialized_view_on_redis"]["inputs"]["defaults_dict"]["value"] = defaults_dict
+        # Load run configuration and set inputs
+        config: dict = read_config(
+            Path(__file__).parent / "materialized_views_update.yaml")
+        config["solids"]["delete_managed_views"]["inputs"]["blob_names"]["value"] = list(
+            deleted_blobs)
+        config["solids"]["update_managed_views"]["inputs"]["blob_names"]["value"] = [
+            b.name for b in modified_blobs]
 
-                # Yield a run request
-                yield RunRequest(run_key=run_key, run_config=config)
+        # Set a run key
+        run_key: str = build_run_key(
+            "update-managed-views", largest_mtime)
 
-    # Cache current file list
-    rp.set("materialized_views_files_set", set_of_blobs)
+        # Yield a run request
+        yield RunRequest(run_key=run_key, run_config=config)
 
-    # Iterate over all files
-    blob: Blob = None
-    for blob in list_of_blobs:
-
-        # Get file's last modification timestamp
-        file_mtime = time.mktime(blob.updated.timetuple())
-
-        # If file has modified
-        if file_mtime > last_mtime:
-
-            # Check for updated yaml files
-            if blob.name.endswith(".yaml") or blob.name.endswith(".yml"):
-
-                # Extract configs from file
-                materialized_view_config: dict = yaml.safe_load(
-                    blob.download_as_string().decode("utf-8"))
-
-                # Is defaults.yaml
-                defaults_yaml = blob.name.endswith("defaults.yaml")
-
-                # Get dataset name
-                blob_path = "/".join([n for n in blob.name.split("/")
-                                      if n != ""][:-1])
-                dataset_name: str = blob_path.split("/")[-1]
-
-                # Get cron expression
-                if defaults_yaml:
-                    cron_expression: str = ""
-                    defaults_dict: dict = materialized_view_config
-                else:
-                    defaults_path = blob_path + "/defaults.yaml"
-                    defaults_blob = get_blob(
-                        defaults_path, SENSOR_BUCKET, mode="staging")
-                    defaults_dict: dict = yaml.safe_load(
-                        defaults_blob.download_as_string().decode("utf-8"))
-                    if "scheduling" in materialized_view_config:
-                        if "cron" in materialized_view_config["scheduling"]:
-                            cron_expression: str = materialized_view_config["scheduling"]["cron"]
-                        else:
-                            cron_expression: str = defaults_dict["scheduling"]["cron"]
-                    else:
-                        cron_expression: str = defaults_dict["scheduling"]["cron"]
-
-                # Set a run key so we can keep track of changes
-                run_key: str = build_run_key(
-                    "update-config-" + blob.name, file_mtime)
-
-                # Load run configuration
-                config: dict = read_config(
-                    Path(__file__).parent / "materialized_views_update.yaml")
-
-                # Set inputs
-                config["solids"]["update_materialized_view_on_redis"]["inputs"]["blob_name"]["value"] = blob.name
-                config["solids"]["update_materialized_view_on_redis"]["inputs"]["cron_expression"]["value"] = cron_expression
-                config["solids"]["update_materialized_view_on_redis"]["inputs"]["defaults_yaml"]["value"] = defaults_yaml
-                config["solids"]["update_materialized_view_on_redis"]["inputs"]["defaults_dict"]["value"] = defaults_dict
-                config["solids"]["update_materialized_view_on_redis"]["inputs"]["dataset_name"]["value"] = dataset_name
-
-                # Yield a run request
-                yield RunRequest(run_key=run_key, run_config=config)
-
-            # Check for updated sql files
-            elif blob.name.endswith(".sql"):
-
-                # Set a run key so we can keep track of changes
-                run_key: str = build_run_key(
-                    "update-query-" + blob.name, file_mtime)
-
-                # Get dataset name
-                blob_path = "/".join([n for n in blob.name.split("/")
-                                      if n != ""][:-1])
-                dataset_name: str = blob_path.split("/")[-1]
-
-                # Get defaults dict
-                defaults_path = blob_path + "/defaults.yaml"
-                defaults_blob = get_blob(
-                    defaults_path, SENSOR_BUCKET, mode="staging")
-                defaults_dict: dict = yaml.safe_load(
-                    defaults_blob.download_as_string().decode("utf-8"))
-
-                # Load run configuration
-                config: dict = read_config(
-                    Path(__file__).parent / "materialized_views_update.yaml")
-
-                # Set inputs
-                config["solids"]["update_materialized_view_on_redis"]["inputs"]["blob_name"]["value"] = blob.name
-                config["solids"]["update_materialized_view_on_redis"]["inputs"]["query_modified"]["value"] = True
-                config["solids"]["update_materialized_view_on_redis"]["inputs"]["dataset_name"]["value"] = dataset_name
-                config["solids"]["update_materialized_view_on_redis"]["inputs"]["defaults_dict"]["value"] = defaults_dict
-
-                # Yield a run request
-                yield RunRequest(run_key=run_key, run_config=config)
+    # If there are no modified or deleted files,
+    # skip the pipeline
+    else:
+        yield SkipReason(
+            f"Modified files: {len(modified_blobs)}. Deleted files: {len(deleted_blobs)}")
 
 
 @sensor(pipeline_name="materialize_view", mode="dev")
 def materialized_views_execute_sensor(context: SensorExecutionContext):
     """Sensor for executing materialized views based on cron expressions."""
-    # Start RedisPal (we use that to check cron expressions)
-    rp: RedisPal = RedisPal(host=constants.REDIS_HOST.value)
+    # Setup Redis and Redlock
+    lock = Redlock(key=constants.REDIS_KEY_MAT_VIEWS_MATERIALIZE_SENSOR_LOCK.value,
+                   auto_release_time=constants.REDIS_LOCK_AUTO_RELEASE_TIME.value)
+
+    if lock.acquire(timeout=2):
+        lock.release()
+    else:
+        yield SkipReason("Another run is already in progress!")
+        return
+
+    rp = RedisPal(constants.REDIS_HOST.value)
 
     # Get managed materialized views
     managed_materialized_views: dict = rp.get("managed_materialized_views")
+    if managed_materialized_views is None:
+        managed_materialized_views = {}
+        managed_materialized_views["views"] = {}
 
     # Get current timestamp
     now = datetime.datetime.now(pytz.timezone("America/Sao_Paulo"))
@@ -206,8 +135,8 @@ def materialized_views_execute_sensor(context: SensorExecutionContext):
     queries_to_execute: list = []
     for blob_name, view_config in managed_materialized_views["views"].items():
         if (view_config["last_run"] is None or
-                    determine_whether_to_execute_or_not(
-                    view_config["cron_expression"], now, view_config["last_run"])
+                determine_whether_to_execute_or_not(
+                view_config["cron_expression"], now, view_config["last_run"])
                 ) and (view_config["materialized"]):
             # Add to list of queries to execute
             queries_to_execute.append(blob_name)
