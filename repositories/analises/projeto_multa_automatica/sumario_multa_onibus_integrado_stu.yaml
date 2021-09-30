@@ -6,3 +6,4 @@ solids:
     config:
       dataset_id: "projeto_multa_automatica"
       table_id: "sumario_multa_onibus_integrado_stu"
+resources:
