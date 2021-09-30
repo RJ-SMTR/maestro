@@ -96,7 +96,7 @@ def release_materialization_process(context, lock, done: Any):
     return True
 
 
-@solid  # (retry_policy=RetryPolicy(max_retries=3, delay=5))
+@solid(retry_policy=RetryPolicy(max_retries=3, delay=5))
 def delete_managed_views(
     context,
     blob_names,
@@ -135,7 +135,7 @@ def delete_managed_views(
 
 
 @solid(
-    # retry_policy=RetryPolicy(max_retries=3, delay=5),
+    retry_policy=RetryPolicy(max_retries=3, delay=5),
     output_defs=[DynamicOutputDefinition(dict)],
 )
 def update_managed_views(
@@ -312,7 +312,7 @@ def update_managed_views(
         raise
 
 
-@solid  # (retry_policy=RetryPolicy(max_retries=3, delay=30))
+@solid(retry_policy=RetryPolicy(max_retries=3, delay=30))
 def manage_view(context, input_dict):
 
     view_name = input_dict["view_name"]
@@ -380,7 +380,7 @@ def manage_view(context, input_dict):
         raise
 
 
-@solid  # (retry_policy=RetryPolicy(max_retries=3, delay=30))
+@solid(retry_policy=RetryPolicy(max_retries=3, delay=30))
 def materialize(context, input_dict: dict):
 
     config_dict = input_dict["config_dict"]
@@ -448,16 +448,16 @@ def materialize(context, input_dict: dict):
                     f'For parent table {parent_query}, args are {dict(**base_params, **parent_queries[parent_query]["query_params"]["parameters"], **custom_params)}')
                 context.log.info(
                     f'For parent table {parent_query}, query is {parent_queries[parent_query]["base_query"]}')
-                parent_queries[parent_query]["base_query"] = jinja2.Template(
+                parent_queries[parent_query]["rendered_query"] = jinja2.Template(
                     parent_queries[parent_query]["base_query"]).render(
                         **base_params, **parent_queries[parent_query]["query_params"]["parameters"], **custom_params)
                 context.log.info(
-                    f'Parent query {parent_query} -> {parent_queries[parent_query]["base_query"]}')
+                    f'Parent query {parent_query} -> {parent_queries[parent_query]["rendered_query"]}')
 
             # Replace parent queries
             for parent_query in parent_queries:
                 query, count = replace_table_name_with_query(
-                    parent_query, parent_queries[parent_query]["base_query"], query)
+                    parent_query, parent_queries[parent_query]["rendered_query"], query)
                 context.log.info(
                     f"Replaced {count} occurences of parent table {parent_query}")
             context.log.info(f"Query -> {query}")
@@ -512,16 +512,16 @@ def materialize(context, input_dict: dict):
             for parent_query in parent_queries:
                 context.log.info(
                     f'For parent table {parent_query}, args are {dict(**base_params, **parent_queries[parent_query]["query_params"]["parameters"], **custom_params)}')
-                parent_queries[parent_query]["base_query"] = jinja2.Template(
+                parent_queries[parent_query]["rendered_query"] = jinja2.Template(
                     parent_queries[parent_query]["base_query"]).render(
                         **base_params, **parent_queries[parent_query]["query_params"]["parameters"], **custom_params)
                 context.log.info(
-                    f'Parent query {parent_query} -> {parent_queries[parent_query]["base_query"]}')
+                    f'Parent query {parent_query} -> {parent_queries[parent_query]["rendered_query"]}')
 
             # Replace parent queries
             for parent_query in parent_queries:
                 query, count = replace_table_name_with_query(
-                    parent_query, parent_queries[parent_query]["base_query"], query)
+                    parent_query, parent_queries[parent_query]["rendered_query"], query)
                 context.log.info(
                     f"Replaced {count} occurences of parent table {parent_query}")
             context.log.info(f"Query -> {query}")
@@ -556,7 +556,7 @@ def materialize(context, input_dict: dict):
 
 
 @solid(
-    #retry_policy=RetryPolicy(max_retries=3, delay=30),
+    retry_policy=RetryPolicy(max_retries=3, delay=30),
     output_defs=[DynamicOutputDefinition(dict)]
 )
 def get_configs_for_materialized_view(context, query_names: list, materialization_locked: bool, materialization_lock) -> dict:
@@ -704,7 +704,7 @@ def get_configs_for_materialized_view(context, query_names: list, materializatio
 
 
 @solid(
-    #retry_policy=RetryPolicy(max_retries=3, delay=5),
+    retry_policy=RetryPolicy(max_retries=3, delay=5),
     output_defs=[DynamicOutputDefinition(str)]
 )
 def resolve_dependencies_and_execute(context, queries_names, materialization_locked: bool, materialization_lock):
