@@ -1,13 +1,13 @@
 import os
 import time
 from typing import List
-from pottery.redlock import Redlock
-from redis import Redis
 import yaml
 import datetime
 from pathlib import Path
 
 import pytz
+from redis import Redis
+from pottery import Redlock
 from redis_pal import RedisPal
 from google.cloud.storage.blob import Blob
 from dagster.core.definitions.run_request import PipelineRunReaction, SkipReason
@@ -110,8 +110,9 @@ def materialized_views_update_sensor(context: SensorExecutionContext):
 def materialized_views_execute_sensor(context: SensorExecutionContext):
     """Sensor for executing materialized views based on cron expressions."""
     # Setup Redis and Redlock
+    r = Redis(constants.REDIS_HOST.value)
     lock = Redlock(key=constants.REDIS_KEY_MAT_VIEWS_MATERIALIZE_SENSOR_LOCK.value,
-                   auto_release_time=constants.REDIS_LOCK_AUTO_RELEASE_TIME.value)
+                   auto_release_time=constants.REDIS_LOCK_AUTO_RELEASE_TIME.value, masters=[r])
 
     if lock.acquire(timeout=2):
         lock.release()
