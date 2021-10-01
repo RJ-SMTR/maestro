@@ -698,9 +698,12 @@ def get_configs_for_materialized_view(context, query_names: list, materializatio
                     {"config_dict": configs,
                         "materialization_lock": materialization_lock},
                     mapping_key=f'{configs["table_name"]}_{configs["last_run"]}_{configs["now"]}'.replace(".", "_").replace("-", "_").replace(" ", "_").replace(":", "_"))
-    except:
-        locks.release(materialization_lock)
-        raise
+    except Exception as e:
+        try:
+            locks.release(materialization_lock)
+        except:
+            pass
+        raise e
 
 
 @solid(
