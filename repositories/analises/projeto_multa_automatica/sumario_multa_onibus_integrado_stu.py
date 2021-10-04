@@ -10,7 +10,7 @@ from repositories.analises.resources import schedule_run_date
 
 
 @solid(
-    config_schema={"query_table": str},
+    config_schema={"query_table": str, "date_format": str},
     required_resource_keys={"bd_client", "schedule_run_date"},
 )
 def query_data(context):
@@ -24,7 +24,7 @@ def query_data(context):
     """
     run_date = datetime.strptime(
         context.resources.schedule_run_date["date"], "%Y-%m-%d"
-    ).strftime("%Y%m%d")
+    ).strftime(f"{context.solid_config['date_format']}")
 
     filename = f"{run_date}/multas{run_date}.csv"
 

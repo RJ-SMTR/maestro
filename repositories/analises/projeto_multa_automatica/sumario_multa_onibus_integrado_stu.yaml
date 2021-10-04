@@ -2,6 +2,8 @@ solids:
   query_data:
     config:
       query_table: "projeto_multa_automatica.view_sumario_multa_stu"
+      date_format: "%Y%m%d"
+
   upload:
     config:
       dataset_id: "projeto_multa_automatica"
