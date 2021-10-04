@@ -375,9 +375,12 @@ def manage_view(context, input_dict):
         update_view(table_name, defaults_dict, dataset_name, view_name.split(".")[-1],
                     view_yaml, delete=False, context=context)
 
-    except:
-        materialization_lock.release()
-        raise
+    except Exception as e:
+        try:
+            materialization_lock.release()
+        except:
+            pass
+        raise e
 
 
 @solid(retry_policy=RetryPolicy(max_retries=3, delay=30))
