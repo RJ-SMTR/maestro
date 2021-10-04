@@ -389,7 +389,7 @@ def manage_view(context, input_dict):
         raise e
 
 
-@solid(retry_policy=RetryPolicy(max_retries=3, delay=30))
+@solid  # (retry_policy=RetryPolicy(max_retries=3, delay=30))
 def materialize(context, input_dict: dict):
 
     config_dict = input_dict["config_dict"]
