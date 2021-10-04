@@ -646,6 +646,8 @@ def get_configs_for_materialized_view(context, query_names: list, materializatio
             # Get parent queries on GCS
             parent_queries = {}
             for query_name in d["depends_on"]:
+                if query_name in managed["views"] and managed["views"][query_name]["materialized"]:
+                    continue
                 query_file = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, "/".join(query_name.split(".")[:2]))}.sql'
                 query_blob = get_blob(
                     query_file, SENSOR_BUCKET, mode="staging")
