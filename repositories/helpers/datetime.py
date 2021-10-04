@@ -1,3 +1,4 @@
+import pytz
 import croniter
 import datetime
 
@@ -38,14 +39,18 @@ def determine_whether_to_execute_or_not(cron_expression: str, datetime_now: date
         return False
 
 
-def convert_datetime_string_to_datetime(datetime_string: str, format: str = "%Y-%m-%d %H:%M:%S"):
+def convert_datetime_string_to_datetime(datetime_string: str, format: str = "%Y-%m-%d %H:%M:%S", tz: str = None):
     """
     Converts a datetime string to a datetime object.
     :param datetime_string: The datetime string to convert.
     :param format: Format for conversion. Default is "%Y-%m-%d %H:%M:%S".
+    :param tz: Timezone for conversion. Default is None.
     :return: A datetime object.
     """
-    return datetime.datetime.strptime(datetime_string, format)
+    base_dt = datetime.datetime.strptime(datetime_string, format)
+    if tz is not None:
+        base_dt = pytz.timezone(tz).localize(base_dt)
+    return base_dt
 
 
 def convert_datetime_to_datetime_string(datetime: datetime.datetime, format: str = "%Y-%m-%d %H:%M:%S"):
@@ -56,3 +61,26 @@ def convert_datetime_to_datetime_string(datetime: datetime.datetime, format: str
     :return: A datetime string.
     """
     return datetime.strftime(format)
+
+
+def get_date_ranges(start_date: str, interval: dict, end_date: str, format: str = "%Y-%m-%d %H:%M:%S"):
+    """
+    Gets a list of date ranges.
+    :param start_date: The start date.
+    :param interval: The interval.
+    :param end_date: The end date.
+    :param format: Format for conversion. Default is "%Y-%m-%d %H:%M:%S".
+    :return: A list of date ranges.
+    """
+    if isinstance(start_date, str):
+        start_date = convert_datetime_string_to_datetime(
+            start_date, format, tz="America/Sao_Paulo")
+    if isinstance(end_date, str):
+        end_date = convert_datetime_string_to_datetime(
+            end_date, format, tz="America/Sao_Paulo")
+    date_ranges = []
+    while start_date < end_date:
+        date_ranges.append(start_date)
+        start_date += datetime.timedelta(**interval)
+    date_ranges.append(end_date)
+    return date_ranges

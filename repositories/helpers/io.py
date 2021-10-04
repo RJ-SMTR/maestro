@@ -1,14 +1,17 @@
 import os
 import time
 import json
+from typing import Union
 import yaml
 import base64
 import datetime
 import requests
+import traceback
 from pathlib import Path
 
 import pytz
 import jinja2
+from dagster import SolidExecutionContext
 from google.oauth2 import service_account
 from google.cloud import storage, bigquery
 from google.cloud.exceptions import NotFound
@@ -27,6 +30,19 @@ def get_bigquery_client() -> bigquery.Client:
     """Returns a BigQuery client"""
     credentials = get_credentials_from_env()
     return bigquery.Client(project=os.getenv("BQ_PROJECT_NAME"), credentials=credentials)
+
+
+def test_query(query: str) -> Union[None, str]:
+    """Tests a query on BigQuery"""
+    client = get_bigquery_client()
+    job_config = bigquery.QueryJobConfig(dry_run=True, use_query_cache=False)
+    try:
+        query_job = client.query(query, job_config=job_config)
+        _ = query_job.total_bytes_processed
+        return None
+    except:
+        exc = traceback.format_exc()
+        return exc
 
 
 def run_query(query: str, timeout: float = None):
@@ -51,6 +67,13 @@ def check_if_table_exists(table_name: str):
         return True
     except NotFound:
         return False
+
+
+def get_table_type(table_name: str):
+    """Returns the type of a table in BigQuery"""
+    client = get_bigquery_client()
+    table = client.get_table(table_name)
+    return table.table_type
 
 
 def get_session_builder() -> sessionmaker:
@@ -178,7 +201,7 @@ def fetch_branch_sha(github_repo_name: str, branch_name: str):
     return None
 
 
-def update_view(table_name: str, defaults_dict: dict, dataset_name: str, view_name: str, view_yaml: str, delete: bool = False):
+def update_view(table_name: str, defaults_dict: dict, dataset_name: str, view_name: str, view_yaml: str, delete: bool = False, context: SolidExecutionContext = None):
 
     from repositories.queries.sensors import SENSOR_BUCKET
     from repositories.queries.sensors import MATERIALIZED_VIEWS_PREFIX
@@ -229,8 +252,12 @@ def update_view(table_name: str, defaults_dict: dict, dataset_name: str, view_na
 
         # Get query on GCS
         query_file = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, dataset_name, view_name)}.sql'
+        if context:
+            context.log.info(f"Fetching query from GCS: {query_file}")
         query_blob = get_blob(
             query_file, SENSOR_BUCKET, mode="staging")
+        if query_blob is None:
+            raise Exception(f"Query file not found: {query_file}")
         base_query = query_blob.download_as_string().decode("utf-8")
 
         # Build query for view

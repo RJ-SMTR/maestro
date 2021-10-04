@@ -1,4 +1,5 @@
 import importlib
+from typing import Iterable
 import yaml
 import traceback
 from pathlib import Path
@@ -6,6 +7,18 @@ import os
 from jinja2 import Environment, FileSystemLoader
 
 from repositories.helpers.logging import logger
+
+
+def remove_duplicates(iterable: Iterable):
+    """
+    Remove duplicates from an iterable.
+    Returns a generator.
+    """
+    seen = set()
+    for item in iterable:
+        if item not in seen:
+            yield item
+            seen.add(item)
 
 
 def env_override(value, key):
