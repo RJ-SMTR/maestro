@@ -30,7 +30,11 @@ MATERIALIZED_VIEWS_PREFIX = os.getenv(
     "MATERIALIZED_VIEWS_PREFIX", "queries/smtr/")
 
 
-@sensor(pipeline_name="update_managed_materialized_views", mode="dev")
+@sensor(
+    pipeline_name="update_managed_materialized_views",
+    mode="dev",
+    minimum_interval_seconds=constants.MATERIALIZED_VIEWS_UPDATE_SENSOR_MIN_INTERVAL.value,
+)
 def materialized_views_update_sensor(context: SensorExecutionContext):
     """Sensor for updating materialized views on file changes.
 
@@ -106,7 +110,11 @@ def materialized_views_update_sensor(context: SensorExecutionContext):
             f"Modified files: {len(modified_blobs)}. Deleted files: {len(deleted_blobs)}")
 
 
-@sensor(pipeline_name="materialize_view", mode="dev")
+@sensor(
+    pipeline_name="materialize_view",
+    mode="dev",
+    minimum_interval_seconds=constants.MATERIALIZED_VIEWS_EXECUTE_SENSOR_MIN_INTERVAL.value,
+)
 def materialized_views_execute_sensor(context: SensorExecutionContext):
     """Sensor for executing materialized views based on cron expressions."""
     # Setup Redis and Redlock
