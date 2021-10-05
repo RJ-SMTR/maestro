@@ -2,7 +2,11 @@ solids:
   get_raw:
     inputs:
       url:
-        value: http://webapibrt.rio.rj.gov.br/api/v1/brt
+        value: http://citgisbrj.tacom.srv.br:9977/gtfs-realtime-exporter/findAll/json
+  pre_treatment_br_rj_riodejaneiro_brt_gps:
+    inputs:
+      key_column:
+        value: vei_nro_gestor
 resources:
   basedosdados_config:
     config:

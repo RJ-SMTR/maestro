@@ -74,3 +74,10 @@ def load_module(obj_type: str, module: str, function_list: list):
         logger.info(err)
 
     return repository_list
+
+
+def safe_cast(val, to_type, default=None):
+    try:
+        return to_type(val)
+    except ValueError:
+        return default
