@@ -1,4 +1,5 @@
 import shutil
+import basedosdados as bd
 from dagster import solid, pipeline, ModeDefinition
 from basedosdados import Storage
 from pathlib import Path
