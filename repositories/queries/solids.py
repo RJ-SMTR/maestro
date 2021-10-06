@@ -129,9 +129,12 @@ def delete_managed_views(
                     context.log.info("View not found, skipping...")
             rp.set(constants.REDIS_KEY_MAT_VIEWS_MANAGED_VIEWS.value,
                    materialized_views)
-    except:
-        materialization_lock.release()
-        raise
+    except Exception as e:
+        try:
+            materialization_lock.release()
+        except:
+            pass
+        raise e
 
 
 @solid(
@@ -307,9 +310,12 @@ def update_managed_views(
         # Execute queries in topological order
         for q in order:
             yield DynamicOutput({"view_name": q, "materialization_lock": materialization_lock}, mapping_key=q.replace(".", "_"))
-    except:
-        materialization_lock.release()
-        raise
+    except Exception as e:
+        try:
+            materialization_lock.release()
+        except:
+            pass
+        raise e
 
 
 @solid(retry_policy=RetryPolicy(max_retries=3, delay=30))
@@ -375,12 +381,15 @@ def manage_view(context, input_dict):
         update_view(table_name, defaults_dict, dataset_name, view_name.split(".")[-1],
                     view_yaml, delete=False, context=context)
 
-    except:
-        materialization_lock.release()
-        raise
+    except Exception as e:
+        try:
+            materialization_lock.release()
+        except:
+            pass
+        raise e
 
 
-@solid(retry_policy=RetryPolicy(max_retries=3, delay=30))
+@solid  # (retry_policy=RetryPolicy(max_retries=3, delay=30))
 def materialize(context, input_dict: dict):
 
     config_dict = input_dict["config_dict"]
@@ -637,6 +646,8 @@ def get_configs_for_materialized_view(context, query_names: list, materializatio
             # Get parent queries on GCS
             parent_queries = {}
             for query_name in d["depends_on"]:
+                if query_name in managed["views"] and managed["views"][query_name]["materialized"]:
+                    continue
                 query_file = f'{os.path.join(MATERIALIZED_VIEWS_PREFIX, "/".join(query_name.split(".")[:2]))}.sql'
                 query_blob = get_blob(
                     query_file, SENSOR_BUCKET, mode="staging")

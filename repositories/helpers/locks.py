@@ -16,4 +16,7 @@ def release(locks: Union[List[Redlock], Redlock]):
     if isinstance(locks, Redlock):
         locks = [locks]
     for lock in locks:
-        lock.release()
+        try:
+            lock.release()
+        except:
+            pass
