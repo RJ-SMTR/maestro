@@ -27,7 +27,7 @@ def br_rj_riodejaneiro_brt_gtfs_gps_realized_trips(date):
     pipeline_name="projeto_multa_automatica_sumario_multa_onibus_integrado_stu",
     start_date=datetime(2021, 1, 1),
     name="projeto_multa_automatica_sumario_multa_onibus_integrado_stu",
-    execution_time=time(14, 28),
+    execution_time=time(20, 30),
     mode="dev",
     execution_timezone="America/Sao_Paulo",
 )

@@ -1,11 +1,9 @@
 import shutil
-import pandas as pd
-import basedosdados as bd
 from dagster import solid, pipeline, ModeDefinition
-from basedosdados import Table
+from basedosdados import Storage
 from pathlib import Path
-from datetime import datetime, timedelta
-from repositories.libraries.basedosdados.resources import basedosdados_config, bd_client
+from datetime import datetime
+from repositories.libraries.basedosdados.resources import bd_client
 from repositories.analises.resources import schedule_run_date
 
 
@@ -32,34 +30,29 @@ def query_data(context):
         f"Downloading query results and saving as {run_date}/multas{run_date}.csv"
     )
     bd.download(
-        savepath=filename, query=query, billing_project_id=project, index=False, sep=";"
+        savepath=filename,
+        query=query,
+        billing_project_id=project,
+        from_file=True,
+        index=False,
+        sep=";",
     )
     return filename
 
 
-@solid(config_schema={"dataset_id": str, "table_id": str})
+@solid(
+    config_schema={"dataset_id": str, "table_id": str},
+    required_resource_keys={"bd_client"},
+)
 def upload(context, filename):
-    tb = Table(
-        table_id=context.solid_config["table_id"],
+    st = Storage(
         dataset_id=context.solid_config["dataset_id"],
+        table_id=context.solid_config["table_id"],
     )
-    if not tb.table_exists("staging"):
-        context.log.info(
-            f"Table does not exist at STAGING, creating table {context.solid_config['dataset_id']}.{context.solid_config['table_id']}"
-        )
-        tb.create(
-            path=filename, if_table_config_exists="pass", if_storage_data_exists="pass"
-        )
-    elif not tb.table_exists("prod"):
-        context.log.info(
-            f"Table does not exist at PROD, creating view {context.solid_config['dataset_id']}.{context.solid_config['table_id']}"
-        )
-        tb.publish()
-    else:
-        context.log.info(
-            f"Table already exists, appending to table {context.solid_config['dataset_id']}.{context.solid_config['table_id']}"
-        )
-        tb.append(filename)
+    context.log.info(
+        f"Uploading {filename} to GCS at {context.resources.bd_client.project}/staging/{context.solid_config['dataset_id']}/{context.solid_config['table_id']}"
+    )
+    st.upload(path=filename, mode="staging")
 
     return filename
 
@@ -67,7 +60,7 @@ def upload(context, filename):
 @solid()
 def cleanup(context, filename):
     context.log.info(f"Starting cleanup, deleting {filename} from local")
-    return shutil.rmtree(filename)
+    return shutil.rmtree(Path(filename).parent)
 
 
 @pipeline(
