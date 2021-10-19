@@ -76,12 +76,22 @@ def pre_treatment_br_rj_riodejaneiro_onibus_gps(context, data, timestamp, prev_e
     try:
         datahora_col = "datahora"
         df_treated = df
-        df_treated[datahora_col] = df_treated[datahora_col].apply(
-            lambda x: x.tz_convert(timezone)
-        )
-        df_treated["timestamp_captura"] = df_treated["timestamp_captura"].apply(
-            lambda x: x.tz_convert(timezone)
-        )
+        try:
+            df_treated[datahora_col] = df_treated[datahora_col].apply(
+                lambda x: x.tz_convert(timezone)
+            )
+        except TypeError:
+            df_treated[datahora_col] = df_treated[datahora_col].apply(
+                lambda x: x.tz_localize(timezone)
+            )
+        try:
+            df_treated["timestamp_captura"] = df_treated["timestamp_captura"].apply(
+                lambda x: x.tz_convert(timezone)
+            )
+        except TypeError:
+            df_treated["timestamp_captura"] = df_treated["timestamp_captura"].apply(
+                lambda x: x.tz_localize(timezone)
+            )
         mask = (df_treated["timestamp_captura"] - df_treated[datahora_col]).apply(
             lambda x: timedelta(seconds=0) <= x <= timedelta(minutes=1)
         )
