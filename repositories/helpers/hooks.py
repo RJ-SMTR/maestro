@@ -34,7 +34,7 @@ def discord_message_on_success(context: HookContext):
 
 @failure_hook(required_resource_keys={"discord_webhook"})
 def discord_message_on_failure(context: HookContext):
-    message = f"Solid {context.solid.name} failed"
+    message = f"@all Solid {context.solid.name} failed"
     url = context.resources.discord_webhook["url"]
     post_message_to_discord(message, url)
 
