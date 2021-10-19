@@ -8,6 +8,8 @@ from dagster import (
     solid,
     pipeline,
     ModeDefinition,
+    Output,
+    OutputDefinition,
 )
 
 from repositories.capturas.resources import (
@@ -34,8 +36,19 @@ from repositories.capturas.solids import (
 from repositories.libraries.basedosdados.solids import upload_to_bigquery
 
 
-@solid(required_resource_keys={"basedosdados_config", "timezone_config"},)
-def pre_treatment_br_rj_riodejaneiro_stpl_gps(context, data, timestamp):
+@solid(
+    required_resource_keys={"basedosdados_config", "timezone_config"},
+    output_defs=[
+        OutputDefinition(name="treated_data", is_required=True),
+        OutputDefinition(name="error", is_required=False)],
+)
+def pre_treatment_br_rj_riodejaneiro_stpl_gps(context, data, timestamp, prev_error=None):
+
+    if prev_error is not None:
+        yield Output(pd.DataFrame(), output_name="treated_data")
+        yield Output(prev_error, output_name="error")
+
+    error = None
 
     timezone = context.resources.timezone_config["timezone"]
 
@@ -53,12 +66,22 @@ def pre_treatment_br_rj_riodejaneiro_stpl_gps(context, data, timestamp):
     try:
         datahora_col = "dataHora"
         df_treated = df
-        df_treated[datahora_col] = df_treated[datahora_col].apply(
-            lambda x: x.tz_convert(timezone)
-        )
-        df_treated["timestamp_captura"] = df_treated["timestamp_captura"].apply(
-            lambda x: x.tz_convert(timezone)
-        )
+        try:
+            df_treated[datahora_col] = df_treated[datahora_col].apply(
+                lambda x: x.tz_convert(timezone)
+            )
+        except TypeError:
+            df_treated[datahora_col] = df_treated[datahora_col].apply(
+                lambda x: x.tz_localize(timezone)
+            )
+        try:
+            df_treated["timestamp_captura"] = df_treated["timestamp_captura"].apply(
+                lambda x: x.tz_convert(timezone)
+            )
+        except TypeError:
+            df_treated["timestamp_captura"] = df_treated["timestamp_captura"].apply(
+                lambda x: x.tz_localize(timezone)
+            )
         mask = (df_treated["timestamp_captura"] - df_treated[datahora_col]).apply(
             lambda x: timedelta(seconds=0) <= x <= timedelta(minutes=1)
         )
@@ -66,13 +89,14 @@ def pre_treatment_br_rj_riodejaneiro_stpl_gps(context, data, timestamp):
         context.log.info(f"Shape antes da filtragem: {df.shape}")
         context.log.info(f"Shape após a filtrage: {df_treated.shape}")
         if df_treated.shape[0] == 0:
-            raise ValueError("After filtering, the dataframe is empty!")
+            error = ValueError("After filtering, the dataframe is empty!")
         df = df_treated
     except:
         err = traceback.format_exc()
         log_critical(f"Failed to filter STPL data: \n{err}")
 
-    return df
+    yield Output(df, output_name="treated_data")
+    yield Output(error, output_name="error")
 
 
 @discord_message_on_failure
@@ -110,11 +134,12 @@ def br_rj_riodejaneiro_stpl_gps_registros():
 
     data, timestamp, error = get_raw()
 
-    upload_logs_to_bq(timestamp, error)
-
     raw_file_path = save_raw_local(data, file_path)
 
-    treated_data = pre_treatment_br_rj_riodejaneiro_stpl_gps(data, timestamp)
+    treated_data, error = pre_treatment_br_rj_riodejaneiro_stpl_gps(
+        data, timestamp, prev_error=error)
+
+    upload_logs_to_bq(timestamp, error)
 
     treated_file_path = save_treated_local(treated_data, file_path)
 
