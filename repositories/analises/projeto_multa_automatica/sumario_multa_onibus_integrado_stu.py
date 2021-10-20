@@ -3,7 +3,7 @@ import basedosdados as bd
 from dagster import solid, pipeline, ModeDefinition
 from basedosdados import Storage
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from repositories.libraries.basedosdados.resources import bd_client
 from repositories.analises.resources import schedule_run_date
 
@@ -17,13 +17,53 @@ def query_data(context):
     context.log.info(
         f"Fetching data from {project}.{context.solid_config['query_table']}"
     )
-    query = f"""
-        SELECT *
-        FROM {project}.{context.solid_config['query_table']}
-    """
-    run_date = datetime.strptime(
-        context.resources.schedule_run_date["date"], "%Y-%m-%d"
+    run_date = (
+        datetime.strptime(context.resources.schedule_run_date["date"], "%Y-%m-%d")
+        - timedelta(days=1)
     ).strftime(f"{context.solid_config['date_format']}")
+
+    query = f"""
+    WITH
+    consorcios as (
+    SELECT 
+        l.consorcio,
+        codigo as permissao,
+        linha,  
+    FROM (
+        select * 
+        from rj-smtr.br_rj_riodejaneiro_transporte.linhas_sppo
+        WHERE servico = 'REGULAR') l
+    join (
+        select
+        codigo,
+        consorcio
+        from rj-smtr.br_rj_riodejaneiro_transporte.codigos_consorcios
+    ) c
+    on Normalize_and_Casefold(l.consorcio) = Normalize_and_Casefold(c.consorcio)
+    ),
+    sumario AS (
+    SELECT
+        "" as placa,
+        "" as ordem,
+        linha,
+        artigo_multa as codigo_infracao,
+        concat(
+        replace(cast(data as string), "-", ""),
+        " ",
+        replace(faixa_horaria, ":", "")
+        ) as data_infracao
+    FROM rj-smtr.projeto_multa_automatica.sumario_multa_linha_onibus
+    WHERE DATE(data) = {run_date}
+    )
+
+    SELECT
+    permissao,
+    s.*
+    FROM sumario s
+    JOIN consorcios c
+    ON s.linha=c.linha
+    """
+    context.log.info(f"Running query\n {query}")
 
     filename = f"{run_date}/multas{run_date}.csv"
 
