@@ -24,52 +24,16 @@ def query_data(context):
     ).strftime("%Y-%m-%d")
 
     query = f"""
-    WITH
-    consorcios as (
-    SELECT 
-        l.consorcio,
-        codigo as permissao,
-        linha,  
-    FROM (
-        select * 
-        from rj-smtr.br_rj_riodejaneiro_transporte.linhas_sppo
-        WHERE servico = 'REGULAR') l
-    join (
-        select
-        codigo,
-        consorcio
-        from rj-smtr.br_rj_riodejaneiro_transporte.codigos_consorcios
-    ) c
-    on Normalize_and_Casefold(l.consorcio) = Normalize_and_Casefold(c.consorcio)
-    ),
-    sumario AS (
-    SELECT
-        "" as placa,
-        "" as ordem,
-        linha,
-        artigo_multa as codigo_infracao,
-        concat(
-        replace(cast(data as string), "-", ""),
-        " ",
-        replace(faixa_horaria, ":", "")
-        ) as data_infracao
-    FROM rj-smtr.projeto_multa_automatica.sumario_multa_linha_onibus
-    WHERE DATE(data) = "{run_date}"
-    and prioridade = 1
-    )
-
-    SELECT
-    permissao,
-    s.*
-    FROM sumario s
-    JOIN consorcios c
-    ON s.linha=c.linha
+        SELECT *
+        FROM {context.solid_config.query_table}
+        WHERE data = '{run_date}'
     """
     context.log.info(f"Running query\n {query}")
 
     filename = f"{run_date}/multas{run_date.replace('-','')}.csv"
 
     context.log.info(f"Downloading query results and saving as {filename}")
+
     bd.download(
         savepath=filename,
         query=query,
