@@ -1,3 +1,4 @@
+from os import replace
 import shutil
 import basedosdados as bd
 from dagster import solid, pipeline, ModeDefinition
@@ -20,7 +21,7 @@ def query_data(context):
     run_date = (
         datetime.strptime(context.resources.schedule_run_date["date"], "%Y-%m-%d")
         - timedelta(days=1)
-    ).strftime(f"{context.solid_config['date_format']}")
+    ).strftime("%Y-%m-%d")
 
     query = f"""
     WITH
@@ -53,7 +54,8 @@ def query_data(context):
         replace(faixa_horaria, ":", "")
         ) as data_infracao
     FROM rj-smtr.projeto_multa_automatica.sumario_multa_linha_onibus
-    WHERE DATE(data) = {run_date}
+    WHERE DATE(data) = "{run_date}"
+    and prioridade = 1
     )
 
     SELECT
@@ -65,11 +67,9 @@ def query_data(context):
     """
     context.log.info(f"Running query\n {query}")
 
-    filename = f"{run_date}/multas{run_date}.csv"
+    filename = f"{run_date}/multas{run_date.replace('-','')}.csv"
 
-    context.log.info(
-        f"Downloading query results and saving as {run_date}/multas{run_date}.csv"
-    )
+    context.log.info(f"Downloading query results and saving as {filename}")
     bd.download(
         savepath=filename,
         query=query,
@@ -93,7 +93,7 @@ def upload(context, filename):
     context.log.info(
         f"Uploading {filename} to GCS at {context.resources.bd_client.project}/staging/{context.solid_config['dataset_id']}/{context.solid_config['table_id']}"
     )
-    st.upload(path=filename, mode="staging")
+    st.upload(path=filename, mode="staging", if_exists=replace)
 
     return filename
 
