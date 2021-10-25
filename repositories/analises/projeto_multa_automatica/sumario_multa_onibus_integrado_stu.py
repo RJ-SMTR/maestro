@@ -1,11 +1,10 @@
 from os import replace
 import shutil
 import basedosdados as bd
-import basedosdados
+import time
 from dagster import solid, pipeline, ModeDefinition
 from basedosdados import Storage
 from pathlib import Path
-from datetime import datetime, timedelta
 from repositories.libraries.basedosdados.resources import bd_client, basedosdados_config
 from repositories.analises.resources import schedule_run_date
 
@@ -57,14 +56,21 @@ def query_data(context):
     required_resource_keys={"bd_client", "basedosdados_config"},
 )
 def upload(context, filename):
-    st = Storage(
-        dataset_id=context.resources.basedosdados_config["dataset_id"],
-        table_id=context.resources.basedosdados_config["table_id"],
-    )
+    dataset_id = context.resources.basedosdados_config["dataset_id"]
+    table_id = context.resources.basedosdados_config["table_id"]
+
+    st = Storage(dataset_id, table_id)
+
     context.log.info(
         f"Uploading {filename} to GCS at:{context.resources.bd_client.project}/staging/{context.resources.basedosdados_config['dataset_id']}/{context.resources.basedosdados_config['table_id']}",
     )
     st.upload(path=filename, mode="staging", if_exists="replace")
+
+    context.log.info("Waiting to publicize access to file")
+    time.sleep(10)
+
+    obj = st.bucket.blob(f"staging/{dataset_id}/{table_id}/{Path(filename).name}")
+    obj.make_public()
 
     return filename
 
