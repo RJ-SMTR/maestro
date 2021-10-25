@@ -7,6 +7,7 @@ from basedosdados import Storage
 from pathlib import Path
 from repositories.libraries.basedosdados.resources import bd_client, basedosdados_config
 from repositories.analises.resources import schedule_run_date
+from repositories.helpers.io import get_blob
 
 
 @solid(
@@ -69,7 +70,13 @@ def upload(context, filename):
     context.log.info("Waiting to publicize access to file")
     time.sleep(10)
 
-    obj = st.bucket.blob(f"staging/{dataset_id}/{table_id}/{Path(filename).name}")
+    obj = get_blob(
+        f"staging/{dataset_id}/{table_id}/{Path(filename).name}",
+        bucket_name=f"{st.bucket_name}",
+    )
+    context.log.info(
+        f"Fetched blob from {dataset_id}/{table_id}/{Path(filename).name} @ bucket: {context.resources.bd_client.project}"
+    )
     obj.make_public()
 
     return filename
