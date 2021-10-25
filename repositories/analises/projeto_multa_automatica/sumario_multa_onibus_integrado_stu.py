@@ -63,22 +63,9 @@ def upload(context, filename):
     st = Storage(dataset_id, table_id)
 
     context.log.info(
-        f"Uploading {filename} to GCS at:{context.resources.bd_client.project}/staging/{context.resources.basedosdados_config['dataset_id']}/{context.resources.basedosdados_config['table_id']}",
+        f"Uploading {filename} to GCS at:{st.bucket_name}/staging/{dataset_id}/{table_id}",
     )
     st.upload(path=filename, mode="staging", if_exists="replace")
-
-    context.log.info("Waiting to publicize access to file")
-    time.sleep(10)
-
-    obj = get_blob(
-        f"staging/{dataset_id}/{table_id}/{Path(filename).name}",
-        bucket_name=f"{st.bucket_name}",
-        mode="prod",
-    )
-    context.log.info(
-        f"Fetched blob from staging/{dataset_id}/{table_id}/{Path(filename).name} @ bucket: {st.bucket_name}"
-    )
-    obj.make_public()
 
     return filename
 
