@@ -7,7 +7,6 @@ from basedosdados import Storage
 from pathlib import Path
 from repositories.libraries.basedosdados.resources import bd_client, basedosdados_config
 from repositories.analises.resources import schedule_run_date
-from repositories.helpers.io import get_blob
 
 
 @solid(
