@@ -73,9 +73,10 @@ def upload(context, filename):
     obj = get_blob(
         f"staging/{dataset_id}/{table_id}/{Path(filename).name}",
         bucket_name=f"{st.bucket_name}",
+        mode="prod",
     )
     context.log.info(
-        f"Fetched blob from {dataset_id}/{table_id}/{Path(filename).name} @ bucket: {context.resources.bd_client.project}"
+        f"Fetched blob from staging/{dataset_id}/{table_id}/{Path(filename).name} @ bucket: {st.bucket_name}"
     )
     obj.make_public()
 
