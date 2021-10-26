@@ -1,5 +1,4 @@
 from datetime import datetime
-
 import pendulum
 from pottery.redlock import Redlock
 import requests
@@ -9,6 +8,7 @@ import pandas as pd
 from croniter import croniter
 from redis import Redis
 from redis_pal import RedisPal
+from discord import Webhook, File, RequestsWebhookAdapter
 from dagster import success_hook, failure_hook, HookContext
 
 from repositories.helpers.constants import constants
@@ -60,14 +60,20 @@ def redis_keepalive_on_failure(context: HookContext):
 
 @success_hook(required_resource_keys={"discord_webhook", "schedule_run_date"})
 def stu_post_success(context: HookContext):
+    ### Todas as classes referenciadas, são classes do Discord (Webhook, RequestsWebhookAdapter e File)
     run_date = context.resources.schedule_run_date["date"]
     filename = f"{run_date}/multas{run_date.replace('-','')}.csv"
-    df = pd.read_csv(filename, sep=";")
+    df = pd.read_csv(filename, sep=";", index_col=[0])
     message = f"""
-    [Multas STU] Sumário {run_date} - Total: {df.shape[0]}\n
-    {df.to_string(index=False,justify='center')}
+    [Multas STU] Sumário {run_date} - Total: {df.shape[0]}
     """
-    post_message_to_discord(message, url=context.resources.discord_webhook["url"])
+    webhook = Webhook.from_url(
+        url=context.resources.discord_webhook["url"],
+        adapter=RequestsWebhookAdapter(),
+    )
+    with open(filename, "rb") as f:
+        file = File(f)
+    webhook.send(message, file=file, username="stu_hook")
 
 
 @failure_hook(required_resource_keys={"basedosdados_config", "schedule_run_date"})
@@ -84,8 +90,8 @@ def stu_post_failure(context: HookContext):
         context.resources.basedosdados_config["table_id"],
     )
     st.upload(filename, mode="staging")
-    context.log.info(
-        f"Solid {context.solid.name} failed. Uploading {filename} to {st.bucket_name}/staging/{st.dataset_id}/{st.table_id}"
-    )
+
+    message = f"Solid {context.solid.name} failed. Uploading {filename} to {st.bucket_name}/staging/{st.dataset_id}/{st.table_id}"
+    post_message_to_discord(message, url=context.resources.discord_webhook["url"])
 
     return shutil.rmtree(filename.parent)

@@ -57,9 +57,7 @@ def query_data(context):
             sep=";",
         )
     else:
-        context.log.info(
-            f"{run_date} is weekend day. Uploading empting file {filename}"
-        )
+        context.log.info(f"{run_date} is weekend day. Uploading empty file: {filename}")
         content = {
             "permissao": "",
             "placa": "",
