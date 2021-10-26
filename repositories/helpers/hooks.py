@@ -3,12 +3,16 @@ from datetime import datetime
 import pendulum
 from pottery.redlock import Redlock
 import requests
+from pathlib import Path
+import shutil
+import pandas as pd
 from croniter import croniter
 from redis import Redis
 from redis_pal import RedisPal
 from dagster import success_hook, failure_hook, HookContext
 
 from repositories.helpers.constants import constants
+from basedosdados import Storage
 
 
 def post_message_to_discord(message, url):
@@ -52,3 +56,36 @@ def redis_keepalive_on_failure(context: HookContext):
     message = f"Although solid {context.solid.name} has failed, a keep-alive was sent to Redis!"
     url = context.resources.discord_webhook["url"]
     requests.post(url, data={"content": message})
+
+
+@success_hook(required_resource_keys={"discord_webhook", "schedule_run_date"})
+def stu_post_success(context: HookContext):
+    run_date = context.resources.schedule_run_date["date"]
+    filename = f"{run_date}/multas{run_date.replace('-','')}.csv"
+    df = pd.read_csv(filename, sep=";")
+    message = f"""
+    [Multas STU] Sumário {run_date} - Total: {df.shape[0]}\n
+    {df.to_string(index=False,justify='center')}
+    """
+    post_message_to_discord(message, url=context.resources.discord_webhook["url"])
+
+
+@failure_hook(required_resource_keys={"basedosdados_config", "schedule_run_date"})
+def stu_post_failure(context: HookContext):
+    run_date = context.resources.schedule_run_date["date"]
+    filename = Path(f"{run_date}/falha{run_date}.csv")
+    content = {"data": run_date, "falha": True}
+
+    df = pd.DataFrame(content, index=[0])
+    df.to_csv(filename)
+
+    st = Storage(
+        context.resources.basedosdados_config["dataset_id"],
+        context.resources.basedosdados_config["table_id"],
+    )
+    st.upload(filename, mode="staging")
+    context.log.info(
+        f"Solid {context.solid.name} failed. Uploading {filename} to {st.bucket_name}/staging/{st.dataset_id}/{st.table_id}"
+    )
+
+    return shutil.rmtree(filename.parent)

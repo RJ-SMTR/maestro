@@ -8,3 +8,7 @@ resources:
     config:
       dataset_id: "projeto_multa_automatica"
       table_id: "sumario_multa_linha_onibus"
+  discord_webhook:
+    config:
+      url: ""
+      success_cron: "00 08 * * *"
