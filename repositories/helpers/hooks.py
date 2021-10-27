@@ -12,7 +12,6 @@ from discord import Webhook, File, RequestsWebhookAdapter
 from dagster import success_hook, failure_hook, HookContext
 
 from repositories.helpers.constants import constants
-from basedosdados import Storage
 
 
 def post_message_to_discord(message, url):
@@ -21,6 +20,17 @@ def post_message_to_discord(message, url):
 
 def log_critical(message):
     post_message_to_discord(message, constants.CRITICAL_DISCORD_WEBHOOK.value)
+
+
+def post_to_discord_v2(url, username=None, message=None, filename=None):
+    ### Todas as classes referenciadas, são classes do Discord (Webhook, RequestsWebhookAdapter e File)
+    webhook = Webhook(url=url, adapter=RequestsWebhookAdapter())
+    if filename:
+        with open(filename, "rb") as f:
+            file = File(f)
+        return webhook.send(content=message, username=username, file=file)
+    else:
+        return webhook.send(content=message, username=username)
 
 
 @success_hook(required_resource_keys={"discord_webhook", "timezone_config"})
@@ -60,38 +70,32 @@ def redis_keepalive_on_failure(context: HookContext):
 
 @success_hook(required_resource_keys={"discord_webhook", "schedule_run_date"})
 def stu_post_success(context: HookContext):
-    ### Todas as classes referenciadas, são classes do Discord (Webhook, RequestsWebhookAdapter e File)
     run_date = context.resources.schedule_run_date["date"]
+    url = context.resources.discord_webhook["url"]
     filename = f"{run_date}/multas{run_date.replace('-','')}.csv"
     df = pd.read_csv(filename, sep=";", index_col=[0])
     message = f"""
     [Multas STU] Sumário {run_date} - Total: {df.shape[0]}
     """
-    webhook = Webhook.from_url(
-        url=context.resources.discord_webhook["url"],
-        adapter=RequestsWebhookAdapter(),
-    )
-    with open(filename, "rb") as f:
-        file = File(f)
-    webhook.send(message, file=file, username="stu_hook")
+    post_to_discord_v2(url=url, username="STU_hook", message=message, filename=filename)
 
 
-@failure_hook(required_resource_keys={"basedosdados_config", "schedule_run_date"})
+@failure_hook(
+    required_resource_keys={
+        "discord_webhook",
+        "schedule_run_date",
+        "timezone_config",
+    }
+)
 def stu_post_failure(context: HookContext):
     run_date = context.resources.schedule_run_date["date"]
-    filename = Path(f"{run_date}/falha{run_date}.csv")
-    content = {"data": run_date, "falha": True}
+    url = context.resources.discord_webhook["url"]
+    filename = Path(f"{run_date}")
 
-    df = pd.DataFrame(content, index=[0])
-    df.to_csv(filename)
-
-    st = Storage(
-        context.resources.basedosdados_config["dataset_id"],
-        context.resources.basedosdados_config["table_id"],
-    )
-    st.upload(filename, mode="staging")
-
-    message = f"Solid {context.solid.name} failed. Uploading {filename} to {st.bucket_name}/staging/{st.dataset_id}/{st.table_id}"
-    post_message_to_discord(message, url=context.resources.discord_webhook["url"])
+    message = f"""
+    ####### Solid {context.solid.name} run on {run_date} failed. ########
+            Execution time: {pendulum.now(context.resources.timezone_config['timezone'])}
+    """
+    post_to_discord_v2(url=url, message=message, username="STU_hook")
 
     return shutil.rmtree(filename.parent)
