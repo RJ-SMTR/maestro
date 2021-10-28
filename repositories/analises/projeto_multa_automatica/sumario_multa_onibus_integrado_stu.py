@@ -11,7 +11,7 @@ from repositories.libraries.basedosdados.resources import (
 )
 from repositories.capturas.resources import discord_webhook
 from repositories.analises.resources import schedule_run_date
-from repositories.helpers.hooks import stu_post_success, stu_post_failure
+from repositories.helpers.hooks import stu_post_success, stu_post_failure, mail_failure
 
 
 @solid(
@@ -94,6 +94,8 @@ def cleanup(context, filename):
     return shutil.rmtree(Path(filename).parent)
 
 
+@stu_post_failure
+@mail_failure
 @pipeline(
     mode_defs=[
         ModeDefinition(
@@ -119,4 +121,4 @@ def cleanup(context, filename):
     },
 )
 def projeto_multa_automatica_sumario_multa_onibus_integrado_stu():
-    cleanup(upload.with_hooks({stu_post_success, stu_post_failure})(query_data()))
+    cleanup(upload.with_hooks({stu_post_success})(query_data()))
