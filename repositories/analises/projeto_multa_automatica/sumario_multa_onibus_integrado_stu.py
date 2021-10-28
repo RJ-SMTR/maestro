@@ -9,8 +9,8 @@ from repositories.libraries.basedosdados.resources import (
     bd_client,
     basedosdados_config,
 )
-from repositories.capturas.resources import discord_webhook
-from repositories.analises.resources import schedule_run_date
+from repositories.capturas.resources import discord_webhook, timezone_config
+from repositories.analises.resources import automail_config, schedule_run_date
 from repositories.helpers.hooks import stu_post_success, stu_post_failure, mail_failure
 
 
@@ -70,7 +70,6 @@ def query_data(context):
         pd.DataFrame(content, index=[0]).to_csv(filename, sep=";", index=False)
     return filename
 
-
 @solid(
     required_resource_keys={"bd_client", "basedosdados_config"},
 )
@@ -105,6 +104,8 @@ def cleanup(context, filename):
                 "basedosdados_config": basedosdados_config,
                 "schedule_run_date": schedule_run_date,
                 "discord_webhook": discord_webhook,
+                "timezone_config": timezone_config,
+                "automail_config": automail_config,
             },
         )
     ],

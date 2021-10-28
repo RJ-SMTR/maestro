@@ -11,14 +11,16 @@ resources:
   discord_webhook:
     config:
       url: ""
-      success_cron: "00 08 * * *"
+  timezone_config:
+    config:
+      timezone: "America/Sao_Paulo"
   automail_config:
     config:
-      from: "{{ '' | env_override('STU_AUTOMAIL_USER') }}"
-      password: "{{ '' | env_override('STU_AUTOMAIL_PW') }}"
-      to: "{{ '' | env_override('STU_AUTOMAIL_TOADDR') }}"
+      from:
+      password:
+      to:
       subject: "SMTR - falha no processamento"
       content:
-        - "f'{context.resources.schedule_run_date['date']}:'"
-        - "Houve uma falha no processamento"
+        - "Houve uma falha no processamento do arquivo de multas para o dia "
         - "Estaremos investigando o ocorrido e lançando novamente a rotina."
+        - "Essa é uma mensagem automática, favor não responder"

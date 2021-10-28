@@ -12,7 +12,7 @@ def schedule_run_date(context):
     {
         "from": Field(str, is_required=True),
         "password": Field(str, is_required=True),
-        "to": Field(list, is_required=True),
+        "to": Field(str, is_required=True),
         "subject": Field(str, is_required=False),
         "content": Field(
             list,

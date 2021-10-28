@@ -12,6 +12,7 @@ from redis_pal import RedisPal
 from discord import Webhook, File, RequestsWebhookAdapter
 from dagster import success_hook, failure_hook, HookContext
 from repositories.helpers.constants import constants
+from repositories.helpers.io import decode_str
 
 
 def post_message_to_discord(message, url):
@@ -24,7 +25,7 @@ def log_critical(message):
 
 def post_to_discord_v2(url, username=None, message=None, filename=None):
     ### Todas as classes referenciadas, são classes do Discord (Webhook, RequestsWebhookAdapter e File)
-    webhook = Webhook(url=url, adapter=RequestsWebhookAdapter())
+    webhook = Webhook.from_url(url=url, adapter=RequestsWebhookAdapter())
     if filename:
         with open(filename, "rb") as f:
             file = File(f)
@@ -90,24 +91,26 @@ def stu_post_success(context: HookContext):
 def stu_post_failure(context: HookContext):
     run_date = context.resources.schedule_run_date["date"]
     url = context.resources.discord_webhook["url"]
-    filename = Path(f"{run_date}")
+    dirname = Path(f"{run_date}")
 
     message = f"""
     ####### Solid {context.solid.name} run on {run_date} failed. ########
             Execution time: {pendulum.now(context.resources.timezone_config['timezone'])}
     """
     post_to_discord_v2(url=url, message=message, username="STU_hook")
-
-    return shutil.rmtree(filename.parent)
+    if dirname.is_dir():
+        return shutil.rmtree(dirname)
 
 
 @failure_hook(required_resource_keys={"automail_config", "schedule_run_date"})
 def mail_failure(context: HookContext):
+    content = context.resources.automail_config["content"][:]
+    content[0] += f"{context.resources.schedule_run_date['date']}."
     return yagmail.SMTP(
-        context.resources.automail_config["from"],
-        context.resources.automail_config["password"],
+        decode_str(context.resources.automail_config["from"]),
+        decode_str(context.resources.automail_config["password"]),
     ).send(
-        context.resources.automail_config["to"],
+        decode_str(context.resources.automail_config["to"]),
         context.resources.automail_config["subject"],
-        context.resources.automail_config["content"],
+        content,
     )
