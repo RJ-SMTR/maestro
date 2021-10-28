@@ -28,7 +28,7 @@ def post_to_discord_v2(url, username=None, message=None, filename=None):
     webhook = Webhook.from_url(url=url, adapter=RequestsWebhookAdapter())
     if filename:
         with open(filename, "rb") as f:
-            file = File(f)
+            file = File(f, filename=Path(filename).name)
         return webhook.send(content=message, username=username, file=file)
     else:
         return webhook.send(content=message, username=username)
@@ -94,8 +94,8 @@ def stu_post_failure(context: HookContext):
     dirname = Path(f"{run_date}")
 
     message = f"""
-    ####### Solid {context.solid.name} run on {run_date} failed. ########
-            Execution time: {pendulum.now(context.resources.timezone_config['timezone'])}
+    #######   Solid {context.solid.name} run on {run_date} failed.   #######
+    #######   Execution time: {pendulum.now(context.resources.timezone_config['timezone']).format("YYYY-MM-DD HH:mm:ss")}   #######
     """
     post_to_discord_v2(url=url, message=message, username="STU_hook")
     if dirname.is_dir():
