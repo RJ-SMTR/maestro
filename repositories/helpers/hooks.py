@@ -2,6 +2,7 @@ from datetime import datetime
 import pendulum
 from pottery.redlock import Redlock
 import requests
+import yagmail
 from pathlib import Path
 import shutil
 import pandas as pd
@@ -10,7 +11,6 @@ from redis import Redis
 from redis_pal import RedisPal
 from discord import Webhook, File, RequestsWebhookAdapter
 from dagster import success_hook, failure_hook, HookContext
-
 from repositories.helpers.constants import constants
 
 
@@ -99,3 +99,15 @@ def stu_post_failure(context: HookContext):
     post_to_discord_v2(url=url, message=message, username="STU_hook")
 
     return shutil.rmtree(filename.parent)
+
+
+@failure_hook(required_resource_keys={"automail_config", "schedule_run_date"})
+def mail_failure(context: HookContext):
+    return yagmail.SMTP(
+        context.resources.automail_config["from"],
+        context.resources.automail_config["password"],
+    ).send(
+        context.resources.automail_config["to"],
+        context.resources.automail_config["subject"],
+        context.resources.automail_config["content"],
+    )

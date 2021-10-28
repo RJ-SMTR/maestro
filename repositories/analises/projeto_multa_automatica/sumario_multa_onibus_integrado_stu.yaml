@@ -12,3 +12,13 @@ resources:
     config:
       url: ""
       success_cron: "00 08 * * *"
+  automail_config:
+    config:
+      from: "{{ '' | env_override('STU_AUTOMAIL_USER') }}"
+      password: "{{ '' | env_override('STU_AUTOMAIL_PW') }}"
+      to: "{{ '' | env_override('STU_AUTOMAIL_TOADDR') }}"
+      subject: "SMTR - falha no processamento"
+      content:
+        - "f'{context.resources.schedule_run_date['date']}:'"
+        - "Houve uma falha no processamento"
+        - "Estaremos investigando o ocorrido e lançando novamente a rotina."
