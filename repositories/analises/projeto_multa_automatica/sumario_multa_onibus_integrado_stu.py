@@ -36,8 +36,12 @@ def query_data(context):
     ### Filtering weekends & holidays (todo: change this filter to the view)
     holidays = ["2021-11-01", "2021-11-02", "2021-11-15", "2021-11-20"]
 
-    if (run_date in holidays) or (datetime.strptime(run_date, "%Y-%m-%d").isoweekday() > 5):
-        context.log.info(f"{run_date} is weekend or holyday. Uploading empty file: {filename}")
+    if (run_date in holidays) or (
+        datetime.strptime(run_date, "%Y-%m-%d").isoweekday() > 5
+    ):
+        context.log.info(
+            f"{run_date} is weekend or holyday. Uploading empty file: {filename}"
+        )
         content = {
             "permissao": "",
             "placa": "",
@@ -47,7 +51,7 @@ def query_data(context):
             "data_infracao": "",
         }
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
-        pd.DataFrame(content, index=[0]).to_csv(filename, sep=";", index=False)
+        pd.DataFrame(columns=content.keys()).to_csv(filename, sep=";", index=False)
 
     else:
         context.log.info(
@@ -73,6 +77,7 @@ def query_data(context):
         )
 
     return filename
+
 
 @solid(
     required_resource_keys={"bd_client", "basedosdados_config"},
