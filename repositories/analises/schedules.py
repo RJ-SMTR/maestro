@@ -30,6 +30,7 @@ def br_rj_riodejaneiro_brt_gtfs_gps_realized_trips(date):
     execution_time=time(21, 30),
     mode="dev",
     execution_timezone="America/Sao_Paulo",
+    partition_days_offset=0,
 )
 def projeto_multa_automatica_sumario_multa_onibus_integrado_stu(date):
     config = read_config(
