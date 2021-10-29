@@ -1,12 +1,17 @@
-from os import replace
 import shutil
 import basedosdados as bd
-import time
+import pandas as pd
+from datetime import datetime
 from dagster import solid, pipeline, ModeDefinition
 from basedosdados import Storage
 from pathlib import Path
-from repositories.libraries.basedosdados.resources import bd_client, basedosdados_config
-from repositories.analises.resources import schedule_run_date
+from repositories.libraries.basedosdados.resources import (
+    bd_client,
+    basedosdados_config,
+)
+from repositories.capturas.resources import discord_webhook, timezone_config
+from repositories.analises.resources import automail_config, schedule_run_date
+from repositories.helpers.hooks import stu_post_success, stu_post_failure, mail_failure
 
 
 @solid(
@@ -25,32 +30,49 @@ def query_data(context):
         schedule_run_date: {context.resources.schedule_run_date}
     """
     )
-    context.log.info(
-        f"Fetching data from {project}.{context.solid_config['query_table']}"
-    )
     run_date = context.resources.schedule_run_date["date"]
-
-    query = f"""
-        SELECT * except(data)
-        FROM {context.solid_config['query_table']}
-        WHERE data = '{run_date}'
-    """
-    context.log.info(f"Running query\n {query}")
-
     filename = f"{run_date}/multas{run_date.replace('-','')}.csv"
 
-    context.log.info(f"Downloading query results and saving as {filename}")
+    ### Filtering weekends & holidays (todo: change this filter to the view)
+    holidays = ["2021-11-01", "2021-11-02", "2021-11-15", "2021-11-20"]
 
-    bd.download(
-        savepath=filename,
-        query=query,
-        billing_project_id=project,
-        from_file=True,
-        index=False,
-        sep=";",
-    )
+    if (run_date in holidays) or (datetime.strptime(run_date, "%Y-%m-%d").isoweekday() > 5):
+        context.log.info(f"{run_date} is weekend or holyday. Uploading empty file: {filename}")
+        content = {
+            "permissao": "",
+            "placa": "",
+            "ordem": "",
+            "linha": "",
+            "codigo_infracao": "",
+            "data_infracao": "",
+        }
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame(content, index=[0]).to_csv(filename, sep=";", index=False)
+
+    else:
+        context.log.info(
+            f"Fetching data from {project}.{context.solid_config['query_table']}"
+        )
+
+        query = f"""
+            SELECT * except(data)
+            FROM {context.solid_config['query_table']}
+            WHERE data = '{run_date}'
+        """
+        context.log.info(f"Running query\n {query}")
+
+        context.log.info(f"Downloading query results and saving as {filename}")
+
+        bd.download(
+            savepath=filename,
+            query=query,
+            billing_project_id=project,
+            from_file=True,
+            index=False,
+            sep=";",
+        )
+
     return filename
-
 
 @solid(
     required_resource_keys={"bd_client", "basedosdados_config"},
@@ -75,6 +97,8 @@ def cleanup(context, filename):
     return shutil.rmtree(Path(filename).parent)
 
 
+@stu_post_failure
+@mail_failure
 @pipeline(
     mode_defs=[
         ModeDefinition(
@@ -83,6 +107,9 @@ def cleanup(context, filename):
                 "bd_client": bd_client,
                 "basedosdados_config": basedosdados_config,
                 "schedule_run_date": schedule_run_date,
+                "discord_webhook": discord_webhook,
+                "timezone_config": timezone_config,
+                "automail_config": automail_config,
             },
         )
     ],
@@ -99,4 +126,4 @@ def cleanup(context, filename):
     },
 )
 def projeto_multa_automatica_sumario_multa_onibus_integrado_stu():
-    cleanup(upload(query_data()))
+    cleanup(upload.with_hooks({stu_post_success})(query_data()))

@@ -25,7 +25,9 @@ from repositories.helpers.constants import constants
 from repositories.helpers.implicit_ftp import ImplicitFTP_TLS
 from repositories.helpers.datetime import convert_datetime_to_datetime_string
 
-
+def decode_str(string):
+    return base64.b64decode(string).decode('utf-8')
+    
 def get_bigquery_client() -> bigquery.Client:
     """Returns a BigQuery client"""
     credentials = get_credentials_from_env()
