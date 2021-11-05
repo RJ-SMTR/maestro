@@ -15,6 +15,9 @@ resources:
         frota_determinada:
           url: http://jeap.rio.rj.gov.br/MOB/get_frota_determinada.rule?sys=MOB
           key_column: route_id
+        holidays:
+          url: http://jeap.rio.rj.gov.br/MOB/get_holiday.rule?sys=MOB
+          key_column: Data
         linhas:
           url: http://jeap.rio.rj.gov.br/MOB/get_linhas.rule?sys=MOB
           key_column: linha_id
