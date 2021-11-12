@@ -1,0 +1,26 @@
+solids:
+  query_data:
+    config:
+      query_table: "projeto_multa_automatica.view_sumario_multa_integrado_stu"
+      date_format: "%Y%m%d"
+resources:
+  basedosdados_config:
+    config:
+      dataset_id: "projeto_multa_automatica"
+      table_id: "sumario_multa_linha_onibus"
+  discord_webhook:
+    config:
+      url: "{{ '' | env_override('STU_DISCORD_WEBHOOK') }}"
+  timezone_config:
+    config:
+      timezone: "America/Sao_Paulo"
+  automail_config:
+    config:
+      from: "{{ '' | env_override('STU_AUTOMAIL_USER') }}"
+      password: "{{ '' | env_override('STU_AUTOMAIL_PW') }}"
+      to: "{{ '' | env_override('STU_AUTOMAIL_TOADDR') }}"
+      subject: "SMTR - falha no processamento"
+      content:
+        - "Houve uma falha no processamento do arquivo de multas para o dia "
+        - "Estaremos investigando o ocorrido e lançando novamente a rotina."
+        - "Essa é uma mensagem automática, favor não responder"
