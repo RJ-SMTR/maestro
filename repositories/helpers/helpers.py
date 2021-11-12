@@ -9,6 +9,15 @@ from jinja2 import Environment, FileSystemLoader
 from repositories.helpers.logging import logger
 
 
+def map_dict_keys(data: dict, mapping: dict) -> None:
+    pop_keys = [old_key for old_key in data.keys() if old_key not in mapping.keys()]
+    for old_key, new_key in mapping.items():
+        data[new_key] = data.pop(old_key)
+    for key in pop_keys:
+        data.pop(key)
+    return None
+
+
 def remove_duplicates(iterable: Iterable):
     """
     Remove duplicates from an iterable.

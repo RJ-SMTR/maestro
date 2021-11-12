@@ -22,6 +22,10 @@ def timezone_config(context):
 def endpoints(context):
     return context.resource_config
 
+@resource({"map": Field(dict, is_required=True, description='column map from api response to project structure')})
+def mapping(context):
+    return context.resource_config
+
 
 @resource(
     {

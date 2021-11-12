@@ -6,7 +6,7 @@ solids:
   pre_treatment_br_rj_riodejaneiro_brt_gps:
     inputs:
       key_column:
-        value: vei_nro_gestor
+        value: id_veiculo
 resources:
   basedosdados_config:
     config:
@@ -15,6 +15,16 @@ resources:
   timezone_config:
     config:
       timezone: "America/Sao_Paulo"
+  mapping:
+    config:
+      map:
+        vei_nro_gestor: id_veiculo
+        linha: servico
+        latitude: latitude
+        longitude: longitude
+        comunicacao: timestamp_gps
+        velocidade: velocidade
+        nomeItinerario: sentido
   discord_webhook:
     config:
       url: "{{ '' | env_override('BRT_DISCORD_WEBHOOK') }}"

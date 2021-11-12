@@ -14,12 +14,13 @@ from dagster.core.definitions.output import OutputDefinition
 
 from repositories.capturas.resources import (
     keepalive_key,
+    mapping,
     timezone_config,
     discord_webhook,
 )
 from repositories.helpers.constants import constants
 from repositories.helpers.datetime import convert_unix_time_to_datetime
-from repositories.helpers.helpers import safe_cast
+from repositories.helpers.helpers import safe_cast, map_dict_keys
 from repositories.libraries.basedosdados.resources import basedosdados_config
 from repositories.helpers.hooks import (
     discord_message_on_failure,
@@ -39,8 +40,9 @@ from repositories.capturas.solids import (
 from repositories.libraries.basedosdados.solids import upload_to_bigquery
 
 
+
 @solid(
-    required_resource_keys={"basedosdados_config", "timezone_config"},
+    required_resource_keys={"basedosdados_config", "timezone_config", 'mapping'},
     output_defs=[
         OutputDefinition(name="treated_data", is_required=True),
         OutputDefinition(name="error", is_required=False)],
@@ -63,15 +65,17 @@ def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data, timestamp, key_colum
     df = pd.DataFrame(columns=columns)
     timestamp_captura = pd.to_datetime(timestamp).tz_convert(timezone)
     context.log.info(f"Timestamp captura is {timestamp_captura}")
+    # map_dict_keys change data keys to match project data structure
+    df["content"] = [map_dict_keys(piece, context.resources.mapping['map']) for piece in data]
     df[key_column] = [piece[key_column] for piece in data]
     df["timestamp_captura"] = timestamp_captura
-    df["content"] = [piece for piece in data]
+
 
     # Filter data for 0 <= time diff <= 1min
     try:
         context.log.info(f"Shape antes da filtragem: {df.shape}")
         df["timestamp_gps"] = df["content"].apply(
-            lambda x: pd.to_datetime(convert_unix_time_to_datetime(safe_cast(x["comunicacao"], float, 0))).tz_localize(
+            lambda x: pd.to_datetime(convert_unix_time_to_datetime(safe_cast(x["timestamp_gps"], float, 0))).tz_localize(
                 timezone
             )
         )
@@ -81,12 +85,11 @@ def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data, timestamp, key_colum
         )
         df = df[mask]
         df = df[columns]
-        context.log.info(f"Shape após a filtragem: {df.shape}")
         if df.shape[0] == 0:
             raise ValueError("After filtering, the dataframe is empty!")
     except Exception as e:
         err = traceback.format_exc()
-        log_critical(f"Failed to filter STPL data: \n{err}")
+        log_critical(f"Failed to filter BRT data: \n{err}")
         df = pd.DataFrame(columns=columns)
         error = e
 
@@ -108,6 +111,7 @@ def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data, timestamp, key_colum
                 "timezone_config": timezone_config,
                 "discord_webhook": discord_webhook,
                 "keepalive_key": keepalive_key,
+                "mapping": mapping
             },
         ),
     ],
