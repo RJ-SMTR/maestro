@@ -15,7 +15,7 @@ def map_dict_keys(data: dict, mapping: dict) -> None:
         data[new_key] = data.pop(old_key)
     for key in pop_keys:
         data.pop(key)
-    return None
+    return data
 
 
 def remove_duplicates(iterable: Iterable):
