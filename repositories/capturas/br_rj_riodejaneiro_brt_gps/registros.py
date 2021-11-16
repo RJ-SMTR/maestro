@@ -37,7 +37,7 @@ from repositories.capturas.solids import (
     save_treated_local,
     upload_logs_to_bq,
 )
-from repositories.libraries.basedosdados.solids import upload_to_bigquery
+from repositories.libraries.basedosdados.solids import bq_upload, upload_to_bigquery
 
 
 
@@ -69,17 +69,20 @@ def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data, timestamp, key_colum
     df["content"] = [map_dict_keys(piece, context.resources.mapping['map']) for piece in data]
     df[key_column] = [piece[key_column] for piece in data]
     df["timestamp_captura"] = timestamp_captura
-
-
-    # Filter data for 0 <= time diff <= 1min
-    try:
-        context.log.info(f"Shape antes da filtragem: {df.shape}")
-        df["timestamp_gps"] = df["content"].apply(
+    df["timestamp_gps"] = df["content"].apply(
             lambda x: pd.to_datetime(convert_unix_time_to_datetime(safe_cast(x["timestamp_gps"], float, 0))).tz_localize(
                 timezone
             )
         )
-        context.log.info(f'Timestamp GPS is {df["timestamp_gps"]}')
+    # Filter data for 0 <= time diff <= 1min
+    try:
+        context.log.info(f"Shape antes da filtragem: {df.shape}")
+        # df["timestamp_gps"] = df["content"].apply(
+        #     lambda x: pd.to_datetime(convert_unix_time_to_datetime(safe_cast(x["timestamp_gps"], float, 0))).tz_localize(
+        #         timezone
+        #     )
+        # )
+        # context.log.info(f'Timestamp GPS is {df["timestamp_gps"]}')
         mask = (df["timestamp_captura"] - df["timestamp_gps"]).apply(
             lambda x: timedelta(seconds=0) <= x <= timedelta(minutes=1)
         )
@@ -143,4 +146,4 @@ def br_rj_riodejaneiro_brt_gps_registros():
 
     treated_file_path = save_treated_local(treated_data, file_path)
 
-    upload_to_bigquery([raw_file_path, treated_file_path], partitions)
+    bq_upload(raw_file_path, treated_file_path, partitions)
