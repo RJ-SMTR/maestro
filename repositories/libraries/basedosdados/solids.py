@@ -70,7 +70,7 @@ def config_mapping_fn(config):
         },
     }
 @solid(required_resource_keys={'basedosdados_config'})
-def bq_upload(context, raw_filepath, filepath, partitions=None):
+def bq_upload(context, filepath,raw_filepath=None, partitions=None):
     table_id = context.resources.basedosdados_config['table_id']
     dataset_id=context.resources.basedosdados_config['dataset_id']
     context.log.info(f"""
@@ -82,12 +82,13 @@ def bq_upload(context, raw_filepath, filepath, partitions=None):
     partitions = {partitions}, type = {type(partitions)}
     """)
     # Upload raw to staging
-    st = Storage(
-        table_id = table_id,
-        dataset_id=dataset_id
-    )
-    context.log.info(f"Uploading raw file: {raw_filepath} to bucket {st.bucket_name} at {st.bucket_name}/{dataset_id}/{table_id}")
-    st.upload(path=raw_filepath, partitions=partitions, mode='raw', if_exists='replace')
+    if raw_filepath:
+        st = Storage(
+            table_id = table_id,
+            dataset_id=dataset_id
+        )
+        context.log.info(f"Uploading raw file: {raw_filepath} to bucket {st.bucket_name} at {st.bucket_name}/{dataset_id}/{table_id}")
+        st.upload(path=raw_filepath, partitions=partitions, mode='raw', if_exists='replace')
     
     # creates and publish table if it does not exist, append to it otherwise
     if partitions:
@@ -99,8 +100,7 @@ def bq_upload(context, raw_filepath, filepath, partitions=None):
 
     # Delete local Files
     context.log.info(f"Deleting local files: {raw_filepath}, {filepath}")
-    Path(raw_filepath).unlink(missing_ok=True)
-    Path(filepath).unlink(missing_ok=True)
+    cleanup_local(filepath, raw_filepath)
 
 def create_or_append_table(context, dataset_id, table_id, path):
     tb = Table(
@@ -133,7 +133,12 @@ def create_or_append_table(context, dataset_id, table_id, path):
         context.log.info("Published table in PROD successfully.")
     else:
         context.log.info("Table already published in PROD.")
-    
+
+def cleanup_local(filepath, raw_filepath=None):
+    if raw_filepath:
+        Path(raw_filepath).unlink(missing_ok=True)
+    Path(filepath).unlink(missing_ok=True)
+
 @solid(
     required_resource_keys={"basedosdados_config"},
     config_schema={

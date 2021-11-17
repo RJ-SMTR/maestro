@@ -146,4 +146,4 @@ def br_rj_riodejaneiro_brt_gps_registros():
 
     treated_file_path = save_treated_local(treated_data, file_path)
 
-    bq_upload(raw_file_path, treated_file_path, partitions)
+    bq_upload(treated_file_path, raw_filepath=raw_file_path, partitions=partitions)
