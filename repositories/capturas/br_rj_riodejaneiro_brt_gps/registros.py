@@ -49,7 +49,7 @@ from repositories.libraries.basedosdados.solids import bq_upload, upload_to_bigq
 )
 def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data, timestamp, key_column, prev_error):
 
-    columns = [key_column, "timestamp_captura", "content"]
+    columns = [key_column,"timestamp_gps", "timestamp_captura", "content"]
 
     context.log.info(f"Previous error is {prev_error}")
 
@@ -74,6 +74,7 @@ def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data, timestamp, key_colum
                 timezone
             )
         )
+    context.log.info(f"Timestamp GPS is {df['timestamp_gps']}")
     # Filter data for 0 <= time diff <= 1min
     try:
         context.log.info(f"Shape antes da filtragem: {df.shape}")
