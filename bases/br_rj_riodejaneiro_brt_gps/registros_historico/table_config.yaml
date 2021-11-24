@@ -137,7 +137,7 @@ columns: # REQUIRED
   
     -   
         name: id_migracao_trajeto
-        description: Não sei (???)
+        description: N/A
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
   
