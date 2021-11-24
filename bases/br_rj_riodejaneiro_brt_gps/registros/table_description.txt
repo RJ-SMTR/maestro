@@ -15,7 +15,10 @@ Código: https://github.com/rj-smtr/maestro/repositories/capturas/br_rj_riodejan
 
 Tratado por
 -----------
-Nome: <nome>
+Nome: Caio R. S. dos Santos SMTR-RJ
+Código: https://github.com/rj-smtr/maestro/repositories/capturas/br_rj_riodejaneiro_brt_gps/registros.py
+Website:
+Email: caiorogerio.santos@gmail.com
 
 Partições (Filtre a tabela por essas colunas para economizar dinheiro e tempo)
 ---------
