@@ -13,7 +13,7 @@ from google.cloud import bigquery
 from google.api_core.exceptions import Conflict
 from pathlib import Path
 import basedosdados as bd
-
+from basedosdados import Table, Storage
 from repositories.libraries.jinja2.solids import render
 from repositories.helpers.io import get_credentials_from_env
 
@@ -69,7 +69,75 @@ def config_mapping_fn(config):
             }
         },
     }
+@solid(required_resource_keys={'basedosdados_config'})
+def bq_upload(context, filepath,raw_filepath=None, partitions=None):
+    table_id = context.resources.basedosdados_config['table_id']
+    dataset_id=context.resources.basedosdados_config['dataset_id']
+    context.log.info(f"""
+    Received inputs:
+    raw_filepath = {raw_filepath}, type = {type(raw_filepath)}
+    treated_filepath = {filepath}, type = {type(filepath)}
+    dataset_id = {dataset_id}, type = {type(dataset_id)}
+    table_id = {table_id}, type = {type(table_id)}
+    partitions = {partitions}, type = {type(partitions)}
+    """)
+    # Upload raw to staging
+    if raw_filepath:
+        st = Storage(
+            table_id = table_id,
+            dataset_id=dataset_id
+        )
+        context.log.info(f"Uploading raw file: {raw_filepath} to bucket {st.bucket_name} at {st.bucket_name}/{dataset_id}/{table_id}")
+        st.upload(path=raw_filepath, partitions=partitions, mode='raw', if_exists='replace')
+    
+    # creates and publish table if it does not exist, append to it otherwise
+    if partitions:
+        # If table is partitioned, get parent directory wherein partitions are stored
+        tb_dir = filepath.split(partitions)[0]
+        create_or_append_table(context, dataset_id, table_id, tb_dir)
+    else:
+        create_or_append_table(context, dataset_id, table_id, filepath)
 
+    # Delete local Files
+    context.log.info(f"Deleting local files: {raw_filepath}, {filepath}")
+    cleanup_local(filepath, raw_filepath)
+
+def create_or_append_table(context, dataset_id, table_id, path):
+    tb = Table(
+        table_id = table_id,
+        dataset_id= dataset_id
+    )
+    if not tb.table_exists('staging'):
+        context.log.info(
+                "Table does not exist in STAGING, creating table...")
+        tb.create(
+            path=path,
+            if_table_exists="pass",
+            if_storage_data_exists="replace",
+            if_table_config_exists="pass",
+        )
+        context.log.info("Table created in STAGING")
+    else:
+        context.log.info(
+            "Table already exists in STAGING, appending to it...")
+        tb.append(
+            filepath=path, 
+            if_exists="replace",
+            timeout=600,
+            chunk_size=1024*1024*10)
+        context.log.info("Appended to table on STAGING successfully.")
+
+    if not tb.table_exists("prod"):
+        context.log.info("Table does not exist in PROD, publishing...")
+        tb.publish(if_exists="pass")
+        context.log.info("Published table in PROD successfully.")
+    else:
+        context.log.info("Table already published in PROD.")
+
+def cleanup_local(filepath, raw_filepath=None):
+    if raw_filepath:
+        Path(raw_filepath).unlink(missing_ok=True)
+    Path(filepath).unlink(missing_ok=True)
 
 @solid(
     required_resource_keys={"basedosdados_config"},
@@ -149,7 +217,7 @@ def upload_to_bigquery(
     modes=["raw", "staging"],
     table_config="replace",
     publish_config="pass",
-    is_init=False,
+    is_init=True,
     table_id=None,
 ):
     if is_init:

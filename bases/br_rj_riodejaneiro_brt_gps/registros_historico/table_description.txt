@@ -1,4 +1,4 @@
-Registros de GPS do BRT do município do Rio de Janeiro a cada 1 minuto.
+Registros de GPS do BRT do município do Rio de Janeiro a cada 30 segundos.
 
 
 Para saber mais acesse:
@@ -10,15 +10,15 @@ Apoia-se: https://apoia.se/basedosdados
 
 Publicado por
 -------------
-Nome: Caio R. S. dos Santos SMTR-RJ
-Código: https://github.com/rj-smtr/maestro/repositories/capturas/br_rj_riodejaneiro_brt_gps/registros.py
-
-Tratado por
+Nome: João Carabetta - SMTR-RJ
+Código: https://github.com/RJ-SMTR/maestro/tree/master/bases/br_rj_riodejaneiro_brt_gps/code
+Website: 
+Email: joao.carabetta@gmail.comTratado por
 -----------
-Nome: Caio R. S. dos Santos SMTR-RJ
-Código: https://github.com/rj-smtr/maestro/repositories/capturas/br_rj_riodejaneiro_brt_gps/registros.py
-Website:
-Email: caiorogerio.santos@gmail.com
+Nome: João Carabetta - SMTR-RJ
+Código: https://github.com/RJ-SMTR/maestro/tree/master/bases/br_rj_riodejaneiro_brt_gps/code
+Website: 
+Email: joao.carabetta@gmail.com
 
 Partições (Filtre a tabela por essas colunas para economizar dinheiro e tempo)
 ---------
@@ -32,7 +32,7 @@ Nível da Observação (i.e. a granularidade da linha)
 Colunas identificando linhas unicamente
 -------------------
 - timestamp_captura
-- id_veiculo
+- placa
 
 Cobertura Temporal
 ------------------
@@ -46,13 +46,11 @@ Cobertura Espacial
 
 Tratamento
 ----------
-Padronizei os nomes das colunas
-Adicionei a coluna timestamp_captura, relativa ao minuto em que capturamos a API
-Extraí o campo comunicacao (em unix seconds) para timestamp_gps (timestamp)
-Estruturei o campo content, contendo toda a resposta da API na sua forma original
+Adicionei coluna da hora da captura
+Tranformei a coluna DataHora que era em millis para timestamp
 
 Frequencia de Atualização
 -------------------------
-a cada 1 minuto
+a cada 30 segundos
 
 

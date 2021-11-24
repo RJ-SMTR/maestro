@@ -1,6 +1,7 @@
 import traceback
 from datetime import timedelta
 
+import requests
 import pendulum
 import pandas as pd
 from dagster import (
@@ -8,12 +9,18 @@ from dagster import (
     pipeline,
     ModeDefinition,
 )
+from dagster.core.definitions.events import Output
+from dagster.core.definitions.output import OutputDefinition
 
 from repositories.capturas.resources import (
     keepalive_key,
+    mapping,
     timezone_config,
     discord_webhook,
 )
+from repositories.helpers.constants import constants
+from repositories.helpers.datetime import convert_unix_time_to_datetime
+from repositories.helpers.helpers import safe_cast, map_dict_keys
 from repositories.libraries.basedosdados.resources import basedosdados_config
 from repositories.helpers.hooks import (
     discord_message_on_failure,
@@ -30,48 +37,69 @@ from repositories.capturas.solids import (
     save_treated_local,
     upload_logs_to_bq,
 )
-from repositories.libraries.basedosdados.solids import upload_to_bigquery
+from repositories.libraries.basedosdados.solids import bq_upload, upload_to_bigquery
 
 
-@solid(required_resource_keys={"basedosdados_config", "timezone_config"},)
-def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data, timestamp):
 
+@solid(
+    required_resource_keys={"basedosdados_config", "timezone_config", 'mapping'},
+    output_defs=[
+        OutputDefinition(name="treated_data", is_required=True),
+        OutputDefinition(name="error", is_required=False)],
+)
+def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data, timestamp, key_column, prev_error):
+
+    columns = [key_column,"timestamp_gps", "timestamp_captura", "content"]
+
+    context.log.info(f"Previous error is {prev_error}")
+
+    if prev_error is not None:
+        yield Output(pd.DataFrame(), output_name="treated_data")
+        yield Output(prev_error, output_name="error")
+        return
+
+    error = None
     timezone = context.resources.timezone_config["timezone"]
 
     data = data.json()
-    df = pd.DataFrame(data["veiculos"])
-    timestamp_captura = pd.to_datetime(timestamp)
+    df = pd.DataFrame(columns=columns)
+    timestamp_captura = pd.to_datetime(timestamp).tz_convert(timezone)
+    context.log.info(f"Timestamp captura is {timestamp_captura}")
+    # map_dict_keys change data keys to match project data structure
+    df["content"] = [map_dict_keys(piece, context.resources.mapping['map']) for piece in data]
+    df[key_column] = [piece[key_column] for piece in data]
     df["timestamp_captura"] = timestamp_captura
-    df["dataHora"] = df["dataHora"].apply(
-        lambda ms: pd.to_datetime(
-            pendulum.from_timestamp(ms / 1000.0, timezone).isoformat()
+    df["timestamp_gps"] = df["content"].apply(
+            lambda x: pd.to_datetime(convert_unix_time_to_datetime(safe_cast(x["timestamp_gps"], float, 0))).tz_localize(
+                timezone
+            )
         )
-    )
-
+    context.log.info(f"Timestamp GPS is {df['timestamp_gps']}")
     # Filter data for 0 <= time diff <= 1min
     try:
-        datahora_col = "dataHora"
-        df_treated = df
-        df_treated[datahora_col] = df_treated[datahora_col].apply(
-            lambda x: x.tz_convert(timezone)
-        )
-        df_treated["timestamp_captura"] = df_treated["timestamp_captura"].apply(
-            lambda x: x.tz_convert(timezone)
-        )
-        mask = (df_treated["timestamp_captura"] - df_treated[datahora_col]).apply(
+        context.log.info(f"Shape antes da filtragem: {df.shape}")
+        # df["timestamp_gps"] = df["content"].apply(
+        #     lambda x: pd.to_datetime(convert_unix_time_to_datetime(safe_cast(x["timestamp_gps"], float, 0))).tz_localize(
+        #         timezone
+        #     )
+        # )
+        # context.log.info(f'Timestamp GPS is {df["timestamp_gps"]}')
+        mask = (df["timestamp_captura"] - df["timestamp_gps"]).apply(
             lambda x: timedelta(seconds=0) <= x <= timedelta(minutes=1)
         )
-        df_treated = df_treated[mask]
-        context.log.info(f"Shape antes da filtragem: {df.shape}")
-        context.log.info(f"Shape após a filtrage: {df_treated.shape}")
-        if df_treated.shape[0] == 0:
+        df = df[mask]
+        df = df[columns]
+        if df.shape[0] == 0:
             raise ValueError("After filtering, the dataframe is empty!")
-        df = df_treated
-    except:
+    except Exception as e:
         err = traceback.format_exc()
-        log_critical(f"Failed to filter STPL data: \n{err}")
+        log_critical(f"Failed to filter BRT data: \n{err}")
+        df = pd.DataFrame(columns=columns)
+        error = e
 
-    return df
+    context.log.info(f"Error now is {error}")
+    yield Output(df, output_name="treated_data")
+    yield Output(error, output_name="error")
 
 
 @discord_message_on_failure
@@ -87,6 +115,7 @@ def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data, timestamp):
                 "timezone_config": timezone_config,
                 "discord_webhook": discord_webhook,
                 "keepalive_key": keepalive_key,
+                "mapping": mapping
             },
         ),
     ],
@@ -109,12 +138,13 @@ def br_rj_riodejaneiro_brt_gps_registros():
 
     data, timestamp, error = get_raw()
 
-    upload_logs_to_bq(timestamp, error)
-
     raw_file_path = save_raw_local(data, file_path)
 
-    treated_data = pre_treatment_br_rj_riodejaneiro_brt_gps(data, timestamp)
+    treated_data, error = pre_treatment_br_rj_riodejaneiro_brt_gps(
+        data, timestamp, prev_error=error)
+
+    upload_logs_to_bq(timestamp, error)
 
     treated_file_path = save_treated_local(treated_data, file_path)
 
-    upload_to_bigquery([raw_file_path, treated_file_path], partitions)
+    bq_upload(treated_file_path, raw_filepath=raw_file_path, partitions=partitions)

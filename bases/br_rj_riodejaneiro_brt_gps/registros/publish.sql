@@ -21,17 +21,10 @@ TIPOS:
 
 CREATE VIEW rj-smtr.br_rj_riodejaneiro_brt_gps.registros AS
 SELECT 
-SAFE_CAST(codigo AS STRING) codigo,
-SAFE_CAST(placa AS STRING) placa,
-SAFE_CAST(linha AS STRING) linha,
-SAFE_CAST(latitude AS FLOAT64) latitude,
-SAFE_CAST(longitude AS FLOAT64) longitude,
-SAFE_CAST(DATETIME(TIMESTAMP(timestamp_gps), "America/Sao_Paulo") AS DATETIME) timestamp_gps,
-SAFE_CAST(velocidade AS INT64) velocidade,
-SAFE_CAST(id_migracao_trajeto AS STRING) id_migracao_trajeto,
-SAFE_CAST(sentido AS STRING) sentido,
-SAFE_CAST(trajeto AS STRING) trajeto,
-SAFE_CAST(DATETIME(TIMESTAMP(timestamp_captura), "America/Sao_Paulo") AS DATETIME) timestamp_captura,
-SAFE_CAST(data AS DATE) data,
-SAFE_CAST(hora AS INT64) hora
+SAFE_CAST(id_veiculo AS STRING) id_veiculo,
+SAFE_CAST(DATETIME(TIMESTAMP(timestamp_gps), "America/Sao_Paulo" ) AS DATETIME) timestamp_gps,
+SAFE_CAST(DATETIME(TIMESTAMP_TRUNC(TIMESTAMP(timestamp_captura), SECOND), "America/Sao_Paulo" ) AS DATETIME) timestamp_captura,
+REPLACE(content,"None","") content,
+data,
+hora
 from rj-smtr-staging.br_rj_riodejaneiro_brt_gps_staging.registros as t

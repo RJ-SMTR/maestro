@@ -2,7 +2,11 @@ solids:
   get_raw:
     inputs:
       url:
-        value: http://webapibrt.rio.rj.gov.br/api/v1/brt
+        value: http://citgisbrj.tacom.srv.br:9977/gtfs-realtime-exporter/findAll/json
+  pre_treatment_br_rj_riodejaneiro_brt_gps:
+    inputs:
+      key_column:
+        value: id_veiculo
 resources:
   basedosdados_config:
     config:
@@ -11,6 +15,16 @@ resources:
   timezone_config:
     config:
       timezone: "America/Sao_Paulo"
+  mapping:
+    config:
+      map:
+        vei_nro_gestor: id_veiculo
+        linha: servico
+        latitude: latitude
+        longitude: longitude
+        comunicacao: timestamp_gps
+        velocidade: velocidade
+        nomeItinerario: sentido
   discord_webhook:
     config:
       url: "{{ '' | env_override('BRT_DISCORD_WEBHOOK') }}"
