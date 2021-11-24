@@ -7,7 +7,7 @@ dataset_id: br_rj_riodejaneiro_brt_gps # AUTO GENERATED
 url_ckan: https://basedosdados.org/dataset/br-rj-riodejaneiro-brt-gps # AUTO GENERATED
 url_github: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_brt_gps # AUTO GENERATED
 
-version: <vA.B> # REQUIRED
+version: 1.0 # REQUIRED
 
 last_updated: 2021-11-16 # AUTO GENERATED
 
