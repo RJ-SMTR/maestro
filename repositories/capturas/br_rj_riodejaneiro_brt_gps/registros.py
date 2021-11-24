@@ -72,7 +72,7 @@ def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data, timestamp, key_colum
     df["timestamp_gps"] = df["content"].apply(
             lambda x: pd.to_datetime(convert_unix_time_to_datetime(safe_cast(x["timestamp_gps"], float, 0))).tz_localize(
                 timezone
-            )
+            ).tz_convert(timezone)
         )
     context.log.info(f"Timestamp GPS is {df['timestamp_gps']}")
     # Filter data for 0 <= time diff <= 1min
