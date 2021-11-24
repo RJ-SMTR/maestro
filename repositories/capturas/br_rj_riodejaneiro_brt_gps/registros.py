@@ -70,10 +70,8 @@ def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data, timestamp, key_colum
     df[key_column] = [piece[key_column] for piece in data]
     df["timestamp_captura"] = timestamp_captura
     df["timestamp_gps"] = df["content"].apply(
-            lambda x: pd.to_datetime(convert_unix_time_to_datetime(safe_cast(x["timestamp_gps"], float, 0))).tz_localize(
-                timezone
-            )
-        )
+    lambda x: pd.to_datetime(pendulum.from_timestamp(safe_cast(x["timestamp_gps"], int, 0)).replace(tzinfo=None).set(tz="UTC").isoformat()).tz_convert(timezone)
+)
     context.log.info(f"Timestamp GPS is {df['timestamp_gps']}")
     # Filter data for 0 <= time diff <= 1min
     try:
@@ -96,7 +94,7 @@ def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data, timestamp, key_colum
         log_critical(f"Failed to filter BRT data: \n{err}")
         df = pd.DataFrame(columns=columns)
         error = e
-
+    context.log.info(f"Shape depois da filtragem: {df.shape}")
     context.log.info(f"Error now is {error}")
     yield Output(df, output_name="treated_data")
     yield Output(error, output_name="error")
