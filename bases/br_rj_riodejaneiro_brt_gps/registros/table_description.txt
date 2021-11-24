@@ -1,4 +1,4 @@
-<descrição>
+Registros de GPS do BRT do município do Rio de Janeiro a cada 1 minuto.
 
 
 Para saber mais acesse:
