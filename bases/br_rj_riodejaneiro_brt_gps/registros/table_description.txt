@@ -22,6 +22,34 @@ Partições (Filtre a tabela por essas colunas para economizar dinheiro e tempo)
 - data
 - hora
 
+Nível da Observação (i.e. a granularidade da linha)
+-------------------
+- timestamp_captura
 
+Colunas identificando linhas unicamente
+-------------------
+- timestamp_captura
+- id_veiculo
+
+Cobertura Temporal
+------------------
+- 2021
+
+Cobertura Espacial
+------------------
+- brasil
+- RJ
+- Rio de Janeiro
+
+Tratamento
+----------
+Padronizei os nomes das colunas
+Adicionei a coluna timestamp_captura, relativa ao minuto em que capturamos a API
+Extraí o campo comunicacao (em unix seconds) para timestamp_gps (timestamp)
+Estruturei o campo content, contendo toda a resposta da API na sua forma original
+
+Frequencia de Atualização
+-------------------------
+a cada 1 minuto
 
 
