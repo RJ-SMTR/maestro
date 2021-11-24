@@ -11,7 +11,7 @@ Apoia-se: https://apoia.se/basedosdados
 Publicado por
 -------------
 Nome: Caio R. S. dos Santos SMTR-RJ
-Código: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_brt_gps/codeTratado por
+Código: https://github.com/rj-smtr/maestro/repositories/capturas/br_rj_riodejaneiro_brt_gps/registros.py```
 -----------
 Nome: <nome>
 
