@@ -94,7 +94,7 @@ def pre_treatment_br_rj_riodejaneiro_brt_gps(context, data, timestamp, key_colum
         log_critical(f"Failed to filter BRT data: \n{err}")
         df = pd.DataFrame(columns=columns)
         error = e
-
+    context.log.info(f"Shape depois da filtragem: {df.shape}")
     context.log.info(f"Error now is {error}")
     yield Output(df, output_name="treated_data")
     yield Output(error, output_name="error")
