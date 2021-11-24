@@ -12,6 +12,8 @@ Publicado por
 -------------
 Nome: Caio R. S. dos Santos SMTR-RJ
 Código: https://github.com/rj-smtr/maestro/repositories/capturas/br_rj_riodejaneiro_brt_gps/registros.py```
+
+Tratado por
 -----------
 Nome: <nome>
 
