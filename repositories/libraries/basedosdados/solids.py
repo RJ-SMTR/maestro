@@ -217,7 +217,7 @@ def upload_to_bigquery(
     modes=["raw", "staging"],
     table_config="replace",
     publish_config="pass",
-    is_init=True,
+    is_init=False,
     table_id=None,
 ):
     if is_init:

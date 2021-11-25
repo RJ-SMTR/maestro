@@ -34,7 +34,7 @@ from repositories.capturas.solids import (
     save_treated_local,
     upload_logs_to_bq,
 )
-from repositories.libraries.basedosdados.solids import upload_to_bigquery
+from repositories.libraries.basedosdados.solids import bq_upload, upload_to_bigquery
 
 
 @solid(
@@ -153,4 +153,4 @@ def br_rj_riodejaneiro_onibus_gps_registros():
 
     treated_file_path = save_treated_local(treated_data, file_path)
 
-    upload_to_bigquery([raw_file_path, treated_file_path], partitions)
+    bq_upload(raw_filepath=raw_file_path, filepath=treated_file_path, partitions=partitions)
