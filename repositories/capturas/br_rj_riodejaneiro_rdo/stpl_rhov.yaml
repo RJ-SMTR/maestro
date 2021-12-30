@@ -21,6 +21,18 @@ solids:
     inputs:
       bucket_path:
         value: raw/br_rj_riodejaneiro_rdo/rho5_registros_stpl/ano=2021/mes=01/dia=07/RDO_00638_00001_20210307_20210312_045044.csv
+  aux_get_list:
+    filename: raw/br_rj_riodejaneiro_rdo/aux_riocard_permissionarios/2021-12-16.csv
+    read_csv_kwargs:
+      delimiter: ","
+      usecols:
+        - "MODAL"
+        - "NM_RAZAO_SOCIAL"
+    filter:
+      MODAL: "VANS_MUNIC"
+    extract: 
+      col: "NM_RAZAO_SOCIAL"
+      pattern: '(?:VAN)(\d+)'
   upload_to_bigquery:
     inputs:
       modes:
@@ -30,20 +42,15 @@ solids:
     config:
       read_csv_kwargs:
         delimiter: ";"
-        skiprows: 1
-        names:
-          - "operadora"
-          - "linha"
-          - "data_transacao"
-          - "hora_transacao"
-          - "total_gratuidades"
-          - "total_pagantes"
         index_col: false
+      map:
+        - operadora: codigo
       reindex_kwargs:
         columns:
-          - "operadora"
-          - "linha"
-          - "data_transacao"
-          - "hora_transacao"
-          - "total_gratuidades"
-          - "total_pagantes"
+          - operadora
+          - linha
+          - data_transacao
+          - hora_transacao
+          - total_gratuidades
+          - total_pagantes
+          - codigo

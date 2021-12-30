@@ -32,7 +32,7 @@ from repositories.libraries.basedosdados.solids import (
 )
 from repositories.helpers.storage import StoragePlus
 
-ALLOWED_FOLDERS = ["SPPO", "STPL"]
+ALLOWED_FOLDERS = ["STPL"]  # TODO: resetar aqui para ["SPPO", "STPL"]
 FTPS_DIRECTORY = os.getenv("FTPS_DATA", "/opt/dagster/app/data/FTPS_DATA")
 
 #
@@ -66,7 +66,7 @@ def fn_parse_file_path_and_partitions(context, bucket_path):
 
     folder = f"{os.getcwd()}/{data_folder}/{{mode}}/{dataset_id}/{table_id}/"
     file_path = f"{folder}/{partitions}/{filename}.{{filetype}}"
-    context.log.info(f"creating file path {file_path}")
+    context.log.info(f"Creating file path: {file_path}")
 
     return filename, filetype, file_path, partitions
 
@@ -104,7 +104,6 @@ def fn_get_file_from_storage(
     table_id=None,
     dataset_id=None,
 ):
-
     # Download from storage
     # If not specific table_id, use resource one
     if not table_id:
@@ -129,17 +128,40 @@ def fn_get_file_from_storage(
     return _file_path
 
 
-def fn_load_and_reindex_csv(
-    file_path: str, read_csv_kwargs: dict, reindex_kwargs: dict
+def _fn_aux_get_list(
+    context, file_path: str, read_csv_kwargs: dict, filter: dict, extract: dict
 ):
-    # Rearrange columns
-    # df = pd.read_csv(file_path, delimiter=delimiter,
-    #                  skiprows=header_lines,
-    #                  names=original_header,
-    #                  index_col=False)
+    """
+    Read auxiliar file and return a list of values from it. Used to get
+    the list of permission codes from bus and vans.
+    """
     df = pd.read_csv(file_path, **read_csv_kwargs)
-    df = df.reindex(**reindex_kwargs)
-    return df
+    for col, value in filter.items():
+        df[col] = df[col].str.strip()
+        df = df[df[col] == value]
+    if "pattern" in extract.keys():
+        df[extract["col"]] = df[extract["col"]].str.extract(extract["pattern"])
+    return df[extract["col"]].values
+
+
+def fn_load_and_reindex_csv(
+    file_path: str,
+    aux_code_list: list,
+    read_csv_kwargs: dict,
+    reindex_kwargs: dict,
+    map: dict = None,
+    map_values: list = None,
+):
+    df = pd.read_csv(file_path, header=None, **read_csv_kwargs)
+    # Set column names for those already on file
+    # TODO: checar erro de len colunas
+    df.columns = reindex_kwargs["columns"][: len(df.columns)]
+    # Fill columns not in the file
+    for col, mapped_col in map:
+        if not mapped_col in df.columns:
+            df[mapped_col] = df[col].map(map_values)
+    # Return ordered columns
+    return df[reindex_kwargs["columns"]]
 
 
 def fn_add_timestamp(context, df):
@@ -210,26 +232,28 @@ def fn_save_treated_local(context, df, file_path, mode="staging"):
     retry_policy=RetryPolicy(max_retries=3, delay=30),
 )
 def get_runs(context, execution_date):
+    # Define date constants
     execution_date = datetime.strptime(execution_date, "%Y-%m-%d")
     now = execution_date + timedelta(hours=11, minutes=30)
     this_time_yesterday = now - timedelta(days=1)
     min_timestamp = convert_datetime_to_unix_time(this_time_yesterday)
     max_timestamp = convert_datetime_to_unix_time(now)
+
     context.log.info(f"{execution_date} of type {type(execution_date)}")
+
+    # Connect to FTP
     ftp_client = connect_ftp(
         os.getenv("FTPS_HOST"), os.getenv("FTPS_USERNAME"), os.getenv("FTPS_PWD")
     )
-
     # Change to working directory
     ftp_client.cwd("/")
-    for folder in ftp_client.mlsd():
 
+    for folder in ftp_client.mlsd():
         # Config yaml file will be folder_fileprefix.yaml
         if folder[1]["type"] == "dir" and folder[0] in ALLOWED_FOLDERS:
             # CWD to folder
             context.log.info(f"Entering folder {folder[0]}")
             folder_name = folder[0].lower()
-
             # Read file list
             for filepath in ftp_client.mlsd(folder_name):
                 filename = filepath[0]
@@ -238,12 +262,15 @@ def get_runs(context, execution_date):
                 file_mtime = datetime.timestamp(parser.parse(timestamp))
 
                 if file_mtime >= min_timestamp and file_mtime < max_timestamp:
-
+                    context.log.info(
+                        f"Found file {filename}" + " with timestamp " + str(file_mtime)
+                    )
                     # Download file to local folder
                     try:
                         config = read_config(
                             Path(__file__).parent / f"{folder_name}_{fileprefix}.yaml"
                         )
+                        context.log.info(f"CONFIG: {folder_name}_{fileprefix}.yaml")
                         table_id = config["resources"]["basedosdados_config"]["config"][
                             "table_id"
                         ]
@@ -336,6 +363,25 @@ def execute_run(context, run_config: dict):
         table_id=table_id,
         dataset_id=dataset_id,
     )
+    # Get auxilar file from GCS
+    aux_config = run_config["solids"]["aux_get_list"]
+    context.log.info(f"Get auxiliar file. Aux config: {aux_config}")
+    aux_code_list = _fn_aux_get_list(
+        context,
+        file_path=fn_get_file_from_storage(
+            context,
+            file_path=aux_config["filename"],
+            filename=aux_config["filename"].split("/")[-1].split(".")[0],
+            filetype=aux_config["filename"].split("/")[-1].split(".")[1],
+            uploaded=True,
+            table_id=aux_config["filename"].split("/")[2],
+            dataset_id=aux_config["filename"].split("/")[1],
+            partitions=None,
+        ),
+        read_csv_kwargs=aux_config["read_csv_kwargs"],
+        filter=aux_config["filter"],
+        extract=aux_config["extract"],
+    )
 
     # Extract, load and transform
     try:
@@ -356,8 +402,12 @@ def execute_run(context, run_config: dict):
             f"Error reading reindex_kwargs config file for {filename} in folder {file_path}. Skipping file."
         )
         reindex_kwargs = None
+
     treated_data = fn_load_and_reindex_csv(
-        raw_file_path, read_csv_kwargs=read_csv_kwargs, reindex_kwargs=reindex_kwargs
+        raw_file_path,
+        aux_code_list,
+        read_csv_kwargs=read_csv_kwargs,
+        reindex_kwargs=reindex_kwargs,
     )
     treated_data = fn_add_timestamp(context, treated_data)
     try:
