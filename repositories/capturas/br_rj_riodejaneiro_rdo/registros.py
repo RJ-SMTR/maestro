@@ -141,30 +141,29 @@ def _fn_aux_get_list(
         df = df[df[col] == value]
     if "pattern" in extract.keys():
         df[extract["col"]] = df[extract["col"]].str.extract(extract["pattern"])
-    return df[extract["col"]].values
+    return dict(df[extract["col"]])
 
 
-def fn_load_and_reindex_csv(
+def fn_load_and_transform_csv(
+    context,
     file_path: str,
-    aux_code_list: list,
     read_csv_kwargs: dict,
     reindex_kwargs: dict,
-    map: dict = None,
-    map_values: list = None,
+    map_columns: dict = None,
+    map_values: dict = None,
 ):
     df = pd.read_csv(file_path, header=None, **read_csv_kwargs)
     # Set column names for those already on file
-    # TODO: checar erro de len colunas
     df.columns = reindex_kwargs["columns"][: len(df.columns)]
     # Fill columns not in the file
-    for col, mapped_col in map:
+    for col, mapped_col in map_columns.items():
         if not mapped_col in df.columns:
             df[mapped_col] = df[col].map(map_values)
     # Return ordered columns
     return df[reindex_kwargs["columns"]]
 
 
-def fn_add_timestamp(context, df):
+def fn_add_timestamp(context, df: pd.DataFrame):
     timezone = context.resources.timezone_config["timezone"]
     timestamp_captura = pd.to_datetime(pendulum.now(timezone).isoformat())
     df["timestamp_captura"] = timestamp_captura
@@ -292,11 +291,11 @@ def get_runs(context, execution_date):
                         local_path = str(Path(local_filepath, filename))
 
                         # Run pipeline
-                        config["solids"]["download_file_from_ftp"]["inputs"] = {
+                        config["solids"]["download_file_from_ftp"] = {
                             "ftp_path": {"value": ftp_path},
                             "local_path": {"value": local_path},
                         }
-                        config["solids"]["parse_file_path_and_partitions"]["inputs"][
+                        config["solids"]["parse_file_path_and_partitions"][
                             "bucket_path"
                         ]["value"] = f"{relative_filepath}/{filename}"
                         config["solids"]["upload_file_to_storage"] = {
@@ -331,18 +330,14 @@ def execute_run(context, run_config: dict):
     dataset_id = run_config["resources"]["basedosdados_config"]["config"]["dataset_id"]
 
     # Get file from FTPS and save it locally
-    ftp_path = run_config["solids"]["download_file_from_ftp"]["inputs"]["ftp_path"][
-        "value"
-    ]
-    local_path = run_config["solids"]["download_file_from_ftp"]["inputs"]["local_path"][
-        "value"
-    ]
+    ftp_path = run_config["solids"]["download_file_from_ftp"]["ftp_path"]["value"]
+    local_path = run_config["solids"]["download_file_from_ftp"]["local_path"]["value"]
     fn_download_file_from_ftp(ftp_path, local_path)
 
     # Parse file path and get partitions
-    bucket_path = run_config["solids"]["parse_file_path_and_partitions"]["inputs"][
-        "bucket_path"
-    ]["value"]
+    bucket_path = run_config["solids"]["parse_file_path_and_partitions"]["bucket_path"][
+        "value"
+    ]
     filename, filetype, file_path, partitions = fn_parse_file_path_and_partitions(
         context, bucket_path
     )
@@ -363,6 +358,7 @@ def execute_run(context, run_config: dict):
         table_id=table_id,
         dataset_id=dataset_id,
     )
+
     # Get auxilar file from GCS
     aux_config = run_config["solids"]["aux_get_list"]
     context.log.info(f"Get auxiliar file. Aux config: {aux_config}")
@@ -384,48 +380,32 @@ def execute_run(context, run_config: dict):
     )
 
     # Extract, load and transform
-    try:
-        read_csv_kwargs = run_config["solids"]["load_and_reindex_csv"]["config"][
-            "read_csv_kwargs"
-        ]
-    except:
-        context.log.warning(
-            f"Error reading read_csv_kwargs config file for {filename} in folder {file_path}. Skipping file."
-        )
-        read_csv_kwargs = None
-    try:
-        reindex_kwargs = run_config["solids"]["load_and_reindex_csv"]["config"][
-            "reindex_kwargs"
-        ]
-    except:
-        context.log.warning(
-            f"Error reading reindex_kwargs config file for {filename} in folder {file_path}. Skipping file."
-        )
-        reindex_kwargs = None
+    treat_config = run_config["solids"]["load_and_transform_csv"]["config"]
 
-    treated_data = fn_load_and_reindex_csv(
-        raw_file_path,
-        aux_code_list,
-        read_csv_kwargs=read_csv_kwargs,
-        reindex_kwargs=reindex_kwargs,
+    treated_data = fn_add_timestamp(
+        context,
+        df=fn_load_and_transform_csv(
+            context,
+            raw_file_path,
+            read_csv_kwargs=treat_config["read_csv_kwargs"],
+            reindex_kwargs=treat_config["reindex_kwargs"],
+            map_columns=treat_config["map"],
+            map_values=aux_code_list,
+        ),
     )
-    treated_data = fn_add_timestamp(context, treated_data)
-    try:
-        cols_to_divide = run_config["solids"]["divide_columns"]["inputs"][
-            "cols_to_divide"
-        ]["value"]
-    except:
-        context.log.warning(
-            f"No cols_to_divide was found in config file. Using default cols_to_divide."
-        )
-        cols_to_divide = None
-    treated_data = fn_divide_columns(treated_data, cols_to_divide)
+
+    treated_data = fn_divide_columns(
+        treated_data,
+        run_config["solids"]["divide_columns"]["values"]
+        if "divide_columns" in run_config["solids"]
+        else None,
+    )
 
     # Save treated file locally
     treated_file_path = fn_save_treated_local(context, treated_data, file_path)
 
     # Upload treated to BigQuery
-    modes = run_config["solids"]["upload_to_bigquery"]["inputs"]["modes"]["value"]
+    modes = run_config["solids"]["upload_to_bigquery"]["modes"]["value"]
     fn_upload_to_bigquery(
         context,
         [treated_file_path],
