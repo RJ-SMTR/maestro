@@ -3,13 +3,6 @@ resources:
     config:
       table_id: rdo5_registros
       dataset_id: br_rj_riodejaneiro_rdo
-  timezone_config:
-    config:
-      timezone: "America/Sao_Paulo"
-  discord_webhook:
-    config:
-      url: "{{ '' | env_override('SPPO_DISCORD_WEBHOOK') }}"
-      success_cron: "* * * * *"
 solids:
   paths:
     ftp_path: SPPO/ARQUIVO.TXT # Replaced in runtime
@@ -88,3 +81,4 @@ solids:
       - registro_processado
       - data_processamento
       - linha_rcti
+      - codigo
