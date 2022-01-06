@@ -9,7 +9,7 @@ url_github: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodeja
 
 version: 0.1 # REQUIRED
 
-last_updated: 2021-04-01 # AUTO GENERATED
+last_updated: 2022-01-06 # AUTO GENERATED
 
 # Descreva a tabela. Essas são as primeiras frases que um usuário vai ver.
 # Você não precisa ser muito conciso. Sinta-se a vontade para dar exemplos de
@@ -354,7 +354,13 @@ columns: # REQUIRED
         description: Número da linha operadora na Base da RCTI
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
-  
+
+    -   
+        name: codigo
+        description: Código do permissionário
+        is_in_staging: True # Bool [True, False], whether the column is in the staging table
+        is_partition: False # Bool [True, False], whether the column is a partition.
+
     -   
         name: timestamp_captura
         description: Data e hora de captura do registro
