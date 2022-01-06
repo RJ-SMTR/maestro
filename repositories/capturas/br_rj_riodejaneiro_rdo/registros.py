@@ -42,23 +42,16 @@ def fn_download_file_from_ftp(context, ftp_path: str, local_path: str) -> None:
     ftp_client = connect_ftp(
         os.getenv("FTPS_HOST"), os.getenv("FTPS_USERNAME"), os.getenv("FTPS_PWD")
     )
-    context.log.info(f"Downloading file: {ftp_path}")
+    context.log.info(f"Downloading file from FTP: {ftp_path}")
     ftp_client.retrbinary("RETR " + ftp_path, open(local_path, "wb").write)
     ftp_client.quit()
 
 
-def fn_parse_file_path(
-    context, config: dict, table_id: str = None, dataset_id: str = None
-):
+def fn_parse_file_path(context, config: dict, table_id: str, dataset_id: str):
     """
     Parse file path on dict to get the file name, type, path and
     partitions as new keys on dict (config).
     """
-    # Get dataset and table ids
-    if not table_id:
-        table_id = context.resources.basedosdados_config["table_id"]
-    if not dataset_id:
-        dataset_id = context.resources.basedosdados_config["dataset_id"]
     # Parse bucket path to get filename & type
     path_list = config["bucket_path"].split("/")
     # Get data folder from environment variable
@@ -82,16 +75,15 @@ def fn_parse_file_path(
 def fn_upload_file_to_storage(
     context,
     local_path: str,
+    table_id: str,
+    dataset_id: str,
     partitions: list = None,
     mode: str = "raw",
 ):
-    # Get dataset and table ids
-    table_id = context.resources.basedosdados_config["table_id"]
-    dataset_id = context.resources.basedosdados_config["dataset_id"]
     # Upload to GCS
     st = bd.Storage(table_id=table_id, dataset_id=dataset_id)
     context.log.debug(
-        f"Uploading file {local_path} to mode {mode} with partitions {partitions}"
+        f"Uploading file {local_path} to {mode}/{dataset_id}/{table_id} with partitions {partitions}"
     )
     st.upload(
         path=local_path,
@@ -113,11 +105,6 @@ def fn_get_file_from_storage(
     table_id: str = None,
     dataset_id: str = None,
 ):
-    # Get dataset and table ids
-    if not table_id:
-        table_id = context.resources.basedosdados_config["table_id"]
-    if not dataset_id:
-        dataset_id = context.resources.basedosdados_config["dataset_id"]
     # Set paths and iniciate
     _file_path = file_path.format(mode=mode, file_type=file_type)
     st = StoragePlus(table_id=table_id, dataset_id=dataset_id)
@@ -191,6 +178,8 @@ def fn_divide_columns(df: pd.DataFrame, cols_to_divide: list = None, value: int 
 
 def fn_upload_to_datalake(
     context,
+    table_id: str,
+    dataset_id: str,
     file_paths: list,
     partitions: list = None,
     modes: list = ["raw", "staging"],
@@ -198,14 +187,12 @@ def fn_upload_to_datalake(
     publish_config: str = "pass",
     is_init: bool = False,
 ):
-    # Get dataset and table ids
-    table_id = context.resources.basedosdados_config["table_id"]
-    dataset_id = context.resources.basedosdados_config["dataset_id"]
     # Upload to BigQuery
     if is_init:
         # Only available for mode staging
-        try:
+        if "staging" in modes:
             idx = modes.index("staging")
+            context.log.info(f"Publishing table to BQ: {dataset_id}.{table_id}")
             create_table_bq(
                 context,
                 file_paths[idx],
@@ -214,7 +201,7 @@ def fn_upload_to_datalake(
                 table_id=table_id,
                 dataset_id=dataset_id,
             )
-        except ValueError:
+        else:
             raise RuntimeError("Publishing table outside staging mode")
     else:
         append_to_bigquery(
@@ -242,25 +229,22 @@ def fn_save_treated_local(
 
 @solid(
     output_defs=[DynamicOutputDefinition(dict)],
+    required_resource_keys={"timezone_config", "basedosdados_config"},
     retry_policy=RetryPolicy(max_retries=3, delay=30),
 )
 def get_runs(context, execution_date):
     # Define date constants
     execution_date = datetime.strptime(execution_date, "%Y-%m-%d")
     now = execution_date + timedelta(hours=11, minutes=30)
-    this_time_yesterday = now - timedelta(days=1)
-    min_timestamp = convert_datetime_to_unix_time(this_time_yesterday)
+    min_timestamp = convert_datetime_to_unix_time(now - timedelta(days=1))
     max_timestamp = convert_datetime_to_unix_time(now)
-
     context.log.info(f"{execution_date} of type {type(execution_date)}")
-
     # Connect to FTP
     ftp_client = connect_ftp(
         os.getenv("FTPS_HOST"), os.getenv("FTPS_USERNAME"), os.getenv("FTPS_PWD")
     )
     # Change to working directory
     ftp_client.cwd("/")
-
     for folder in ftp_client.mlsd():
         # Config yaml file will be folder_fileprefix.yaml
         if folder[1]["type"] == "dir" and folder[0] in ALLOWED_FOLDERS:
@@ -271,56 +255,53 @@ def get_runs(context, execution_date):
             for filepath in ftp_client.mlsd(folder_name):
                 filename = filepath[0]
                 fileprefix = filename.split("_")[0].lower()
-                timestamp = filepath[1]["modify"]
-                file_mtime = datetime.timestamp(parser.parse(timestamp))
+                file_mtime = datetime.timestamp(parser.parse(filepath[1]["modify"]))
 
                 if file_mtime >= min_timestamp and file_mtime < max_timestamp:
                     context.log.info(
                         f"Found file {filename}" + " with timestamp " + str(file_mtime)
                     )
-                    # Download file to local folder
-                    try:
-                        config = read_config(
-                            Path(__file__).parent / f"{folder_name}_{fileprefix}.yaml"
-                        )
-                        table_id = config["resources"]["basedosdados_config"]["config"][
-                            "table_id"
-                        ]
-                        date = tuple(re.findall("\d+", filename))
-                        ano = date[2][:4]
-                        mes = date[2][4:6]
-                        dia = date[2][6:]
-                        relative_filepath = Path(
-                            "raw/br_rj_riodejaneiro_rdo",
-                            table_id,
-                            f"ano={ano}",
-                            f"mes={mes}",
-                            f"dia={dia}",
-                        )
-                        local_filepath = Path(FTPS_DIRECTORY, relative_filepath)
-                        Path(local_filepath).mkdir(parents=True, exist_ok=True)
-
-                        ftp_path = str(Path(folder_name, filename))
-                        local_path = str(Path(local_filepath, filename))
-
-                        # Run pipeline
-                        config["solids"]["paths"] = {
-                            "ftp_path": ftp_path,
-                            "local_path": local_path,
-                            "bucket_path": f"{relative_filepath}/{filename}",
-                            "partitions": config["solids"]["paths"]["partitions"],
-                            "file_path": local_path,
-                        }
-                        yield DynamicOutput(
-                            config,
-                            mapping_key=f"{folder_name}_{fileprefix}_{uuid.uuid4().hex}",
-                        )
-
-                    except jinja2.TemplateNotFound as err:
-                        context.log.warning(
-                            f"Config file for file {filename} was not found. Skipping file."
-                        )
-                        context.log.warning(f"{Path(__file__).parent}")
+                    # Get config for modal
+                    config = read_config(
+                        Path(__file__).parent / f"{folder_name}_{fileprefix}.yaml"
+                    )
+                    # Set global variables
+                    # Get file paths
+                    date = tuple(re.findall("\d+", filename))
+                    ano = date[2][:4]
+                    mes = date[2][4:6]
+                    dia = date[2][6:]
+                    dataset_id = config["resources"]["basedosdados_config"]["config"][
+                        "dataset_id"
+                    ]
+                    table_id = config["resources"]["basedosdados_config"]["config"][
+                        "table_id"
+                    ]
+                    relative_filepath = Path(
+                        "raw",
+                        dataset_id,
+                        table_id,
+                        f"ano={ano}",
+                        f"mes={mes}",
+                        f"dia={dia}",
+                    )
+                    local_filepath = Path(FTPS_DIRECTORY, relative_filepath)
+                    Path(local_filepath).mkdir(parents=True, exist_ok=True)
+                    # Set config paths to execute pipeline
+                    config["solids"]["paths"] = {
+                        "ftp_path": str(Path(folder_name, filename)),
+                        "local_path": str(Path(local_filepath, filename)),
+                        "bucket_path": f"{relative_filepath}/{filename}",
+                        "partitions": config["solids"]["paths"]["partitions"],
+                        "file_path": str(Path(local_filepath, filename)),
+                        "dataset_id": dataset_id,
+                        "table_id": table_id,
+                    }
+                    context.log.info(f"Set config paths: {config['solids']['paths']}")
+                    yield DynamicOutput(
+                        config,
+                        mapping_key=f"{folder_name}_{fileprefix}_{uuid.uuid4().hex}",
+                    )
                 ftp_client.cwd("/")
         else:
             context.log.warning(
@@ -343,21 +324,22 @@ def execute_run(context, run_config: dict):
         ftp_path=config["paths"]["ftp_path"],
         local_path=config["paths"]["local_path"],
     )
-
     # Parse file path and get partitions
     config["paths"] = fn_parse_file_path(
         context,
         config=config["paths"],
+        table_id=config["paths"]["table_id"],
+        dataset_id=config["paths"]["dataset_id"],
     )
-
     # Upload file to GCS
     uploaded = fn_upload_file_to_storage(
         context,
+        table_id=config["paths"]["table_id"],
+        dataset_id=config["paths"]["dataset_id"],
         local_path=config["paths"]["local_path"],
         partitions=config["paths"]["partitions"],
     )
-
-    # Get file from GCS
+    # Get data from GCS
     raw_file_path = fn_get_file_from_storage(
         context,
         file_path=config["paths"]["file_path"],
@@ -365,12 +347,12 @@ def execute_run(context, run_config: dict):
         file_type=config["paths"]["file_type"],
         partitions=config["paths"]["partitions"],
         uploaded=uploaded,
+        table_id=config["paths"]["table_id"],
+        dataset_id=config["paths"]["dataset_id"],
     )
-
     # Get auxilar file from GCS
     aux_config = config["aux_get_list"]
     context.log.info(f"Get auxiliar file. Aux config: {aux_config}")
-
     # Parse file path and get partitions
     aux_config["paths"] = fn_parse_file_path(
         context,
@@ -378,7 +360,7 @@ def execute_run(context, run_config: dict):
         table_id=aux_config["paths"]["table_id"],
         dataset_id=aux_config["paths"]["dataset_id"],
     )
-
+    # Extract aux list
     aux_code_list = _fn_aux_get_list(
         context,
         file_path=fn_get_file_from_storage(
@@ -394,10 +376,8 @@ def execute_run(context, run_config: dict):
         read_csv_kwargs=aux_config["read_csv_kwargs"],
         transform=aux_config["transform"],
     )
-
-    # Extract, load and transform
+    # Extract, load and transform data
     treat_config = config["load_and_transform_csv"]
-
     treated_data = fn_add_timestamp(
         context,
         df=fn_load_and_transform_csv(
@@ -412,12 +392,10 @@ def execute_run(context, run_config: dict):
             else None,
         ),
     )
-
     treated_data = fn_divide_columns(
         df=treated_data,
         cols_to_divide=config["divide_columns"] if "divide_columns" in config else None,
     )
-
     # Save treated file locally
     treated_file_path = fn_save_treated_local(
         context,
@@ -425,13 +403,15 @@ def execute_run(context, run_config: dict):
         file_path=config["paths"]["file_path"],
         file_type=config["paths"]["file_type"],
     )
-
     # Upload treated to BigQuery
     fn_upload_to_datalake(
         context,
+        table_id=config["paths"]["table_id"],
+        dataset_id=config["paths"]["dataset_id"],
         file_paths=[treated_file_path],
         partitions=config["paths"]["partitions"],
         modes=config["upload_to_datalake"]["modes"],
+        # is_init=True,  # TODO: não está funcionando a subida de dados aqui!
     )
 
 
