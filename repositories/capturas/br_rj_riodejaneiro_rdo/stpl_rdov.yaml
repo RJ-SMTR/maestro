@@ -11,82 +11,81 @@ resources:
       url: "{{ '' | env_override('SPPO_DISCORD_WEBHOOK') }}"
       success_cron: "* * * * *"
 solids:
-  download_file_from_ftp:
-    ftp_path:
-      value: SPPO/ARQUIVO.TXT
-    local_path:
-      value: /tmp/ARQUIVO.TXT
-  parse_file_path_and_partitions:
-    bucket_path:
-      value: raw/br_rj_riodejaneiro_rdo/rdo5_registros_stpl/ano=2021/mes=01/dia=07/RDO_00638_00001_20210307_20210312_045044.csv
+  paths:
+    ftp_path: SPPO/ARQUIVO.TXT # Replaced in runtime
+    local_path: /tmp/ARQUIVO.TXT # Replaced in runtime
+    bucket_path: raw/br_rj_riodejaneiro_rdo/rdo5_registros_stpl/ano=2021/mes=01/dia=07/RDO_00638_00001_20210307_20210312_045044.csv # Replaced in runtime
+    partitions: True # Replaced in runtime
   aux_get_list:
-    filename: raw/br_rj_riodejaneiro_rdo/aux_riocard_permissionarios/2021-12-16.csv
+    paths:
+      bucket_path: raw/br_rj_riodejaneiro_rdo/aux_riocard_permissionarios/2021-12-16.csv
+      partitions: False
+      table_id: aux_riocard_permissionarios
+      dataset_id: br_rj_riodejaneiro_rdo
     read_csv_kwargs:
       delimiter: ","
       index_col: "CD_OPERAD"
       usecols:
         - "CD_OPERAD"
+        - "CODIGO"
         - "MODAL"
-        - "NM_RAZAO_SOCIAL"
-    filter:
-      MODAL: "VANS_MUNIC"
-    extract: 
-      col: "NM_RAZAO_SOCIAL"
-      pattern: '(?:VAN)(\d+)'
-  upload_to_bigquery:
+    transform:
+      filter:
+        MODAL: "VANS_MUNIC"
+      column_to_dict: "CODIGO"
+  upload_to_datalake:
     modes:
-      value:
         - staging
   load_and_transform_csv:
-    config:
-      read_csv_kwargs:
-        delimiter: ";"
-        index_col: false
-      map:
-        operadora: codigo
-      strip:
-        - linha
-      reindex_kwargs:
-        columns:
-          - operadora
-          - linha
-          - tarifa_valor
-          - data_transacao
-          - gratuidade_idoso
-          - gratuidade_especial
-          - gratuidade_estudante_federal
-          - gratuidade_estudante_estadual
-          - gratuidade_estudante_municipal
-          - universitario
-          - buc_1a_perna
-          - buc_2a_perna
-          - buc_receita
-          - buc_supervia_1a_perna
-          - buc_supervia_2a_perna
-          - buc_supervia_receita
-          - buc_van_1a_perna
-          - buc_van_2a_perna
-          - buc_van_receita
-          - buc_brt_1a_perna
-          - buc_brt_2a_perna
-          - buc_brt_3a_perna
-          - buc_brt_receita
-          - buc_inter_1a_perna
-          - buc_inter_2a_perna
-          - buc_inter_receita
-          - buc_metro_1a_perna
-          - buc_metro_2a_perna
-          - buc_metro_receita
-          - cartao
-          - receita_cartao
-          - especie_passageiro_transportado
-          - especie_receita
-          - registro_processado
-          - data_processamento
-          - linha_rcti
-          - codigo
+    read_csv_kwargs:
+      delimiter: ";"
+      index_col: false
+    map:
+      operadora: codigo
+    strip:
+      - linha
+    reindex_columns:
+      - operadora
+      - linha
+      - tarifa_valor
+      - data_transacao
+      - gratuidade_idoso
+      - gratuidade_especial
+      - gratuidade_estudante_federal
+      - gratuidade_estudante_estadual
+      - gratuidade_estudante_municipal
+      - universitario
+      - buc_1a_perna
+      - buc_2a_perna
+      - buc_receita
+      - buc_supervia_1a_perna
+      - buc_supervia_2a_perna
+      - buc_supervia_receita
+      - buc_van_1a_perna
+      - buc_van_2a_perna
+      - buc_van_receita
+      - buc_brt_1a_perna
+      - buc_brt_2a_perna
+      - buc_brt_3a_perna
+      - buc_brt_receita
+      - buc_inter_1a_perna
+      - buc_inter_2a_perna
+      - buc_inter_receita
+      - buc_metro_1a_perna
+      - buc_metro_2a_perna
+      - buc_metro_receita
+      - cartao
+      - receita_cartao
+      - especie_passageiro_transportado
+      - especie_receita
+      - registro_processado
+      - data_processamento
+      - linha_rcti
+      - codigo
+    reorder_columns:
+      tarifa_valor: 3
+      data_transacao: 2 
   divide_columns:
-    values:
       - "tarifa_valor"
       - "buc_receita"
       - "buc_supervia_receita"

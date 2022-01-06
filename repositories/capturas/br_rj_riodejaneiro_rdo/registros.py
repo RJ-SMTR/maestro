@@ -32,164 +32,176 @@ from repositories.libraries.basedosdados.solids import (
 )
 from repositories.helpers.storage import StoragePlus
 
-ALLOWED_FOLDERS = ["STPL"]  # TODO: resetar aqui para ["SPPO", "STPL"]
+ALLOWED_FOLDERS = ["SPPO", "STPL"]
 FTPS_DIRECTORY = os.getenv("FTPS_DATA", "/opt/dagster/app/data/FTPS_DATA")
 
-#
-# Previous solids, now functions
-#
-def fn_download_file_from_ftp(ftp_path: str, local_path: str) -> None:
+
+def fn_download_file_from_ftp(context, ftp_path: str, local_path: str) -> None:
     """Downloads a file from FTP to the local storage"""
     Path(local_path).parent.mkdir(parents=True, exist_ok=True)
     ftp_client = connect_ftp(
         os.getenv("FTPS_HOST"), os.getenv("FTPS_USERNAME"), os.getenv("FTPS_PWD")
     )
+    context.log.info(f"Downloading file: {ftp_path}")
     ftp_client.retrbinary("RETR " + ftp_path, open(local_path, "wb").write)
     ftp_client.quit()
 
 
-def fn_parse_file_path_and_partitions(context, bucket_path):
-
-    # Parse bucket to get mode, dataset_id, table_id and filename
-    path_list = bucket_path.split("/")
-    dataset_id = path_list[1]
-    table_id = path_list[2]
-    filename = path_list[-1].split(".")[0]
-    filetype = path_list[-1].split(".")[1]
-
-    # Parse bucket to get partitions
-    partitions = re.findall("\/([^\/]*?)=(.*?)(?=\/)", bucket_path)
-    partitions = "/".join(["=".join([field for field in item]) for item in partitions])
-
-    # Get data folder from environment variable
-    data_folder = os.getenv("DATA_FOLDER", "data")
-
-    folder = f"{os.getcwd()}/{data_folder}/{{mode}}/{dataset_id}/{table_id}/"
-    file_path = f"{folder}/{partitions}/{filename}.{{filetype}}"
-    context.log.info(f"Creating file path: {file_path}")
-
-    return filename, filetype, file_path, partitions
-
-
-def fn_upload_file_to_storage(
-    context, file_path, partitions=None, mode="raw", table_id=None, dataset_id=None
+def fn_parse_file_path(
+    context, config: dict, table_id: str = None, dataset_id: str = None
 ):
-
-    # Upload to storage
-    # If not specific table_id, use resource one
+    """
+    Parse file path on dict to get the file name, type, path and
+    partitions as new keys on dict (config).
+    """
+    # Get dataset and table ids
     if not table_id:
         table_id = context.resources.basedosdados_config["table_id"]
     if not dataset_id:
         dataset_id = context.resources.basedosdados_config["dataset_id"]
+    # Parse bucket path to get filename & type
+    path_list = config["bucket_path"].split("/")
+    # Get data folder from environment variable
+    file_path = f"{os.getcwd()}/{os.getenv('DATA_FOLDER', 'data')}/{{mode}}/{dataset_id}/{table_id}/"
+    # Parse bucket to get partitions
 
+    if config["partitions"]:
+        partitions = re.findall("\/([^\/]*?)=(.*?)(?=\/)", config["bucket_path"])
+        config["partitions"] = "/".join(
+            ["=".join([field for field in item]) for item in partitions]
+        )
+        file_path += f"{config['partitions']}/"
+    # Set upload parameters
+    config["filename"] = path_list[-1].split(".")[0]
+    config["file_type"] = path_list[-1].split(".")[1]
+    config["file_path"] = file_path + f'{config["filename"]}.{{file_type}}'
+    context.log.info(f"Creating file path: {config['file_path']}")
+    return config
+
+
+def fn_upload_file_to_storage(
+    context,
+    local_path: str,
+    partitions: list = None,
+    mode: str = "raw",
+):
+    # Get dataset and table ids
+    table_id = context.resources.basedosdados_config["table_id"]
+    dataset_id = context.resources.basedosdados_config["dataset_id"]
+    # Upload to GCS
     st = bd.Storage(table_id=table_id, dataset_id=dataset_id)
-
-    context.log.debug(f"Table ID: {table_id}, Dataset ID: {dataset_id}")
     context.log.debug(
-        f"Uploading file {file_path} to mode {mode} with partitions {partitions}"
+        f"Uploading file {local_path} to mode {mode} with partitions {partitions}"
     )
-    st.upload(path=file_path, mode=mode, partitions=partitions, if_exists="replace")
-
+    st.upload(
+        path=local_path,
+        mode=mode,
+        partitions=partitions if partitions else None,
+        if_exists="replace",
+    )
     return True
 
 
 def fn_get_file_from_storage(
     context,
-    file_path,
-    filename,
-    partitions,
-    mode="raw",
-    filetype="xlsx",
-    uploaded=True,
-    table_id=None,
-    dataset_id=None,
+    file_path: str,
+    filename: str,
+    file_type: str,
+    partitions: str = None,
+    mode: str = "raw",
+    uploaded: bool = True,
+    table_id: str = None,
+    dataset_id: str = None,
 ):
-    # Download from storage
-    # If not specific table_id, use resource one
+    # Get dataset and table ids
     if not table_id:
         table_id = context.resources.basedosdados_config["table_id"]
     if not dataset_id:
         dataset_id = context.resources.basedosdados_config["dataset_id"]
-
-    _file_path = file_path.format(mode=mode, filetype=filetype)
-
+    # Set paths and iniciate
+    _file_path = file_path.format(mode=mode, file_type=file_type)
     st = StoragePlus(table_id=table_id, dataset_id=dataset_id)
-    context.log.debug(f"File path: {_file_path}")
-    context.log.debug(f"filename: {filename}")
-    context.log.debug(f"partition: {partitions}")
-    context.log.debug(f"mode: {mode}")
+    context.log.info(
+        f"Downloading file from storage: {mode}/{dataset_id}/{table_id}/{filename}.{file_type}"
+    )
+    # Download file from GCS
     st.download(
-        filename=filename + "." + filetype,
+        filename=filename + "." + file_type,
         file_path=_file_path,
-        partitions=partitions,
+        partitions=partitions if partitions else None,
         mode=mode,
         if_exists="replace",
     )
     return _file_path
 
 
-def _fn_aux_get_list(
-    context, file_path: str, read_csv_kwargs: dict, filter: dict, extract: dict
-):
+def _fn_aux_get_list(context, file_path: str, read_csv_kwargs: dict, transform: dict):
     """
     Read auxiliar file and return a list of values from it. Used to get
     the list of permission codes from bus and vans.
     """
     df = pd.read_csv(file_path, **read_csv_kwargs)
-    for col, value in filter.items():
+    for col, value in transform["filter"].items():
         df[col] = df[col].str.strip()
         df = df[df[col] == value]
-    if "pattern" in extract.keys():
-        df[extract["col"]] = df[extract["col"]].str.extract(extract["pattern"])
-    return dict(df[extract["col"]])
+    return dict(df[transform["column_to_dict"]])
 
 
 def fn_load_and_transform_csv(
     context,
     file_path: str,
     read_csv_kwargs: dict,
-    reindex_kwargs: dict,
+    reindex_columns: list,
     map_columns: dict = None,
     map_values: dict = None,
+    reorder_columns: dict = None,
 ):
     df = pd.read_csv(file_path, header=None, **read_csv_kwargs)
-    # Set column names for those already on file
-    df.columns = reindex_kwargs["columns"][: len(df.columns)]
-    # Fill columns not in the file
+    # Set column names for those already in the file
+    df.columns = reindex_columns[: len(df.columns)]
+    # Map new columns to values
     for col, mapped_col in map_columns.items():
-        if not mapped_col in df.columns:
-            df[mapped_col] = df[col].map(map_values)
+        df[mapped_col] = df[col].map(map_values)
     # Return ordered columns
-    return df[reindex_kwargs["columns"]]
+    if reorder_columns:
+        ordered = [
+            reorder_columns[col] if col in reorder_columns.keys() else i
+            for i, col in enumerate(reindex_columns)
+        ]
+        cols = [reindex_columns[col] for col in ordered]
+    else:
+        cols = reindex_columns
+    return df[cols]
 
 
 def fn_add_timestamp(context, df: pd.DataFrame):
     timezone = context.resources.timezone_config["timezone"]
     timestamp_captura = pd.to_datetime(pendulum.now(timezone).isoformat())
     df["timestamp_captura"] = timestamp_captura
-    context.log.debug(", ".join(list(df.columns)))
-
+    context.log.debug(f"Add timestamp column. Final columns: {df.columns}")
     return df
 
 
-def fn_divide_columns(df, cols_to_divide=None, value=100):
+def fn_divide_columns(df: pd.DataFrame, cols_to_divide: list = None, value: int = 100):
     if cols_to_divide:
         # Divide columns by value
         df[cols_to_divide] = df[cols_to_divide].apply(lambda x: x / value, axis=1)
     return df
 
 
-def fn_upload_to_bigquery(
+def fn_upload_to_datalake(
     context,
-    file_paths,
-    partitions,
-    modes=["raw", "staging"],
-    table_config="replace",
-    publish_config="pass",
-    is_init=False,
-    table_id=None,
-    dataset_id=None,
+    file_paths: list,
+    partitions: list = None,
+    modes: list = ["raw", "staging"],
+    table_config: str = "replace",
+    publish_config: str = "pass",
+    is_init: bool = False,
 ):
+    # Get dataset and table ids
+    table_id = context.resources.basedosdados_config["table_id"]
+    dataset_id = context.resources.basedosdados_config["dataset_id"]
+    # Upload to BigQuery
     if is_init:
         # Only available for mode staging
         try:
@@ -215,13 +227,15 @@ def fn_upload_to_bigquery(
         )
 
 
-def fn_save_treated_local(context, df, file_path, mode="staging"):
+def fn_save_treated_local(
+    context, df: pd.DataFrame, file_path: str, file_type: str, mode="staging"
+):
 
-    _file_path = file_path.format(mode=mode, filetype="csv")
+    _file_path = file_path.format(mode=mode, file_type=file_type)
     _file_path = Path(_file_path)
     _file_path.parent.mkdir(parents=True, exist_ok=True)
     _file_path = str(_file_path)
-    context.log.info(f"Saving df to {_file_path}")
+    context.log.info(f"Saving df to: {_file_path}")
     df.to_csv(_file_path, index=False)
     return _file_path
 
@@ -251,7 +265,7 @@ def get_runs(context, execution_date):
         # Config yaml file will be folder_fileprefix.yaml
         if folder[1]["type"] == "dir" and folder[0] in ALLOWED_FOLDERS:
             # CWD to folder
-            context.log.info(f"Entering folder {folder[0]}")
+            context.log.info(f"Entering folder: {folder[0]}")
             folder_name = folder[0].lower()
             # Read file list
             for filepath in ftp_client.mlsd(folder_name):
@@ -269,7 +283,6 @@ def get_runs(context, execution_date):
                         config = read_config(
                             Path(__file__).parent / f"{folder_name}_{fileprefix}.yaml"
                         )
-                        context.log.info(f"CONFIG: {folder_name}_{fileprefix}.yaml")
                         table_id = config["resources"]["basedosdados_config"]["config"][
                             "table_id"
                         ]
@@ -291,15 +304,12 @@ def get_runs(context, execution_date):
                         local_path = str(Path(local_filepath, filename))
 
                         # Run pipeline
-                        config["solids"]["download_file_from_ftp"] = {
-                            "ftp_path": {"value": ftp_path},
-                            "local_path": {"value": local_path},
-                        }
-                        config["solids"]["parse_file_path_and_partitions"][
-                            "bucket_path"
-                        ]["value"] = f"{relative_filepath}/{filename}"
-                        config["solids"]["upload_file_to_storage"] = {
-                            "inputs": {"file_path": {"value": local_path}}
+                        config["solids"]["paths"] = {
+                            "ftp_path": ftp_path,
+                            "local_path": local_path,
+                            "bucket_path": f"{relative_filepath}/{filename}",
+                            "partitions": config["solids"]["paths"]["partitions"],
+                            "file_path": local_path,
                         }
                         yield DynamicOutput(
                             config,
@@ -324,63 +334,69 @@ def get_runs(context, execution_date):
     retry_policy=RetryPolicy(max_retries=3, delay=30),
 )
 def execute_run(context, run_config: dict):
-
-    # Get table_id and dataset_id from run_config
-    table_id = run_config["resources"]["basedosdados_config"]["config"]["table_id"]
-    dataset_id = run_config["resources"]["basedosdados_config"]["config"]["dataset_id"]
+    # Get fixed paths
+    config = run_config["solids"]
 
     # Get file from FTPS and save it locally
-    ftp_path = run_config["solids"]["download_file_from_ftp"]["ftp_path"]["value"]
-    local_path = run_config["solids"]["download_file_from_ftp"]["local_path"]["value"]
-    fn_download_file_from_ftp(ftp_path, local_path)
+    fn_download_file_from_ftp(
+        context,
+        ftp_path=config["paths"]["ftp_path"],
+        local_path=config["paths"]["local_path"],
+    )
 
     # Parse file path and get partitions
-    bucket_path = run_config["solids"]["parse_file_path_and_partitions"]["bucket_path"][
-        "value"
-    ]
-    filename, filetype, file_path, partitions = fn_parse_file_path_and_partitions(
-        context, bucket_path
+    config["paths"] = fn_parse_file_path(
+        context,
+        config=config["paths"],
     )
 
     # Upload file to GCS
     uploaded = fn_upload_file_to_storage(
-        context, local_path, partitions, table_id=table_id, dataset_id=dataset_id
+        context,
+        local_path=config["paths"]["local_path"],
+        partitions=config["paths"]["partitions"],
     )
 
     # Get file from GCS
     raw_file_path = fn_get_file_from_storage(
         context,
-        file_path=file_path,
-        filename=filename,
-        partitions=partitions,
-        filetype=filetype,
+        file_path=config["paths"]["file_path"],
+        filename=config["paths"]["filename"],
+        file_type=config["paths"]["file_type"],
+        partitions=config["paths"]["partitions"],
         uploaded=uploaded,
-        table_id=table_id,
-        dataset_id=dataset_id,
     )
 
     # Get auxilar file from GCS
-    aux_config = run_config["solids"]["aux_get_list"]
+    aux_config = config["aux_get_list"]
     context.log.info(f"Get auxiliar file. Aux config: {aux_config}")
+
+    # Parse file path and get partitions
+    aux_config["paths"] = fn_parse_file_path(
+        context,
+        config=aux_config["paths"],
+        table_id=aux_config["paths"]["table_id"],
+        dataset_id=aux_config["paths"]["dataset_id"],
+    )
+
     aux_code_list = _fn_aux_get_list(
         context,
         file_path=fn_get_file_from_storage(
             context,
-            file_path=aux_config["filename"],
-            filename=aux_config["filename"].split("/")[-1].split(".")[0],
-            filetype=aux_config["filename"].split("/")[-1].split(".")[1],
+            file_path=aux_config["paths"]["file_path"],
+            filename=aux_config["paths"]["filename"],
+            file_type=aux_config["paths"]["file_type"],
+            partitions=aux_config["paths"]["partitions"],
             uploaded=True,
-            table_id=aux_config["filename"].split("/")[2],
-            dataset_id=aux_config["filename"].split("/")[1],
-            partitions=None,
+            table_id=aux_config["paths"]["table_id"],
+            dataset_id=aux_config["paths"]["dataset_id"],
         ),
         read_csv_kwargs=aux_config["read_csv_kwargs"],
-        filter=aux_config["filter"],
-        extract=aux_config["extract"],
+        transform=aux_config["transform"],
     )
 
     # Extract, load and transform
-    treat_config = run_config["solids"]["load_and_transform_csv"]["config"]
+    treat_config = config["load_and_transform_csv"]
 
     treated_data = fn_add_timestamp(
         context,
@@ -388,31 +404,34 @@ def execute_run(context, run_config: dict):
             context,
             raw_file_path,
             read_csv_kwargs=treat_config["read_csv_kwargs"],
-            reindex_kwargs=treat_config["reindex_kwargs"],
+            reindex_columns=treat_config["reindex_columns"],
             map_columns=treat_config["map"],
             map_values=aux_code_list,
+            reorder_columns=treat_config["reorder_columns"]
+            if "reorder_columns" in treat_config
+            else None,
         ),
     )
 
     treated_data = fn_divide_columns(
-        treated_data,
-        run_config["solids"]["divide_columns"]["values"]
-        if "divide_columns" in run_config["solids"]
-        else None,
+        df=treated_data,
+        cols_to_divide=config["divide_columns"] if "divide_columns" in config else None,
     )
 
     # Save treated file locally
-    treated_file_path = fn_save_treated_local(context, treated_data, file_path)
+    treated_file_path = fn_save_treated_local(
+        context,
+        df=treated_data,
+        file_path=config["paths"]["file_path"],
+        file_type=config["paths"]["file_type"],
+    )
 
     # Upload treated to BigQuery
-    modes = run_config["solids"]["upload_to_bigquery"]["modes"]["value"]
-    fn_upload_to_bigquery(
+    fn_upload_to_datalake(
         context,
-        [treated_file_path],
-        partitions,
-        modes=modes,
-        table_id=table_id,
-        dataset_id=dataset_id,
+        file_paths=[treated_file_path],
+        partitions=config["paths"]["partitions"],
+        modes=config["upload_to_datalake"]["modes"],
     )
 
 
