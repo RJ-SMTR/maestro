@@ -204,7 +204,7 @@ def pre_treatment_br_rj_riodejaneiro_rdo(
         mode="staging", file_type="csv"
     )
     Path(file_info["treated_path"]).parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(file_info["treated_path"])
+    df.to_csv(file_info["treated_path"], index=False)
     context.log.info(f'Saves treated data to: {file_info["treated_path"]}')
     return file_info
 
@@ -223,7 +223,7 @@ def _bq_upload(context, file_info):
     if file_info["raw_path"]:
         st = Storage(table_id=file_info["table_id"], dataset_id=dataset_id)
         context.log.info(
-            f'Uploading {file_info["raw_path"]} to {st.bucket_name}/{dataset_id}/{file_info["table_id"]}'
+            f'Uploading {file_info["raw_path"]} to {st.bucket_name}/raw/{dataset_id}/{file_info["table_id"]}'
         )
         st.upload(
             path=file_info["raw_path"],
@@ -238,7 +238,6 @@ def _bq_upload(context, file_info):
     else:
         path = file_info["treated_path"]
     context.log.info("Path: {}".format(path))
-    # TODO: create não está funcionando
     create_or_append_table(
         context,
         dataset_id=dataset_id,
