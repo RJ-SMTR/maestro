@@ -2,41 +2,8 @@ resources:
   basedosdados_config:
     config:
       table_id: rdo5_registros_stpl
-      dataset_id: br_rj_riodejaneiro_rdo
 solids:
-  paths:
-    ftp_path: SPPO/ARQUIVO.TXT # Replaced in runtime
-    local_path: /tmp/ARQUIVO.TXT # Replaced in runtime
-    bucket_path: raw/br_rj_riodejaneiro_rdo/rdo5_registros_stpl/ano=2021/mes=01/dia=07/RDO_00638_00001_20210307_20210312_045044.csv # Replaced in runtime
-    partitions: True # Replaced in runtime
-  aux_get_list:
-    paths:
-      bucket_path: raw/br_rj_riodejaneiro_rdo/aux_riocard_permissionarios/2021-12-16.csv
-      partitions: False
-      table_id: aux_riocard_permissionarios
-      dataset_id: br_rj_riodejaneiro_rdo
-    read_csv_kwargs:
-      delimiter: ","
-      index_col: "CD_OPERAD"
-      usecols:
-        - "CD_OPERAD"
-        - "CODIGO"
-        - "MODAL"
-    transform:
-      filter:
-        MODAL: "VANS_MUNIC"
-      column_to_dict: "CODIGO"
-  upload_to_datalake:
-    modes:
-        - staging
-  load_and_transform_csv:
-    read_csv_kwargs:
-      delimiter: ";"
-      index_col: false
-    map:
-      operadora: codigo
-    strip:
-      - linha
+  pre_treatment_br_rj_riodejaneiro_rdo:
     reindex_columns:
       - operadora
       - linha
@@ -78,13 +45,13 @@ solids:
     reorder_columns:
       tarifa_valor: 3
       data_transacao: 2 
-  divide_columns:
-      - "tarifa_valor"
-      - "buc_receita"
-      - "buc_supervia_receita"
-      - "buc_van_receita"
-      - "buc_brt_receita"
-      - "buc_inter_receita"
-      - "buc_metro_receita"
-      - "receita_cartao"
-      - "especie_receita"
+    divide_columns:
+        - "tarifa_valor"
+        - "buc_receita"
+        - "buc_supervia_receita"
+        - "buc_van_receita"
+        - "buc_brt_receita"
+        - "buc_inter_receita"
+        - "buc_metro_receita"
+        - "receita_cartao"
+        - "especie_receita"

@@ -22,8 +22,35 @@ def timezone_config(context):
 def endpoints(context):
     return context.resource_config
 
-@resource({"map": Field(dict, is_required=True, description='column map from api response to project structure')})
+
+@resource(
+    {
+        "map": Field(
+            dict,
+            is_required=True,
+            description="column map from api response to project structure",
+        )
+    }
+)
 def mapping(context):
+    return context.resource_config
+
+
+@resource(
+    {
+        "values": Field(
+            list, is_required=True, description="List of folders to access on FTP"
+        ),
+    }
+)
+def ftp_allowed_paths(context):
+    return context.resource_config
+
+
+@resource(
+    {"date": Field(str, is_required=True, description="Date partition from schedule")}
+)
+def schedule_run_date(context):
     return context.resource_config
 
 

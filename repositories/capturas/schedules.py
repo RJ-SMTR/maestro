@@ -78,8 +78,10 @@ def br_rj_riodejaneiro_sigmob_data(date):
     execution_timezone="America/Sao_Paulo",
 )
 def ftps_schedule(date):
-    config = read_config(Path(__file__).parent / "br_rj_riodejaneiro_rdo/base.yaml")
-    config["solids"]["get_runs"]["inputs"]["execution_date"]["value"] = date.strftime(
-        "%Y-%m-%d"
+    config = read_config(
+        Path(__file__).parent / "br_rj_riodejaneiro_rdo/registros.yaml"
     )
+    config["resources"]["schedule_run_date"] = {
+        "config": {"date": date.strftime("%Y-%m-%d")}
+    }
     return config
