@@ -6,7 +6,7 @@ import re
 import pendulum
 import pandas as pd
 from dateutil import parser
-from basedosdados import Storage
+from basedosdados import Storage, read_table
 
 # Dagster
 from dagster import solid, pipeline, ModeDefinition, RetryPolicy
@@ -36,30 +36,11 @@ from repositories.helpers.hooks import (
     # redis_keepalive_on_succes,
     # log_critical,
 )
-from repositories.capturas.solids import (
-    # upload_logs_to_bq,
-    get_file_from_storage,
-)
 from repositories.libraries.basedosdados.solids import (
     create_or_append_table,
     cleanup_local,
 )
 from repositories.helpers.io import connect_ftp
-
-
-@solid(required_resource_keys={"ftp_allowed_paths"})
-# TODO: mudar tabela auxiliar para a nova (com hash para stpl)
-def pre_treatment_aux_data(context, file_path, read_csv_kwargs, reindex_kwargs):
-    ftp_allowed_paths = context.resources.ftp_allowed_paths["values"]
-    # Transform data to dict
-    df = pd.read_csv(file_path, **read_csv_kwargs)
-    df["MODAL"] = df["MODAL"].str.strip().str.lower().map(reindex_kwargs)
-    map_codes = {
-        modal: df[df["MODAL"] == modal]["CODIGO"].to_dict()
-        for modal in ftp_allowed_paths
-    }
-    context.log.info(f"Generated aux code dict. Keys: {ftp_allowed_paths}")
-    return map_codes
 
 
 @solid(
@@ -162,25 +143,28 @@ def download_and_save_local_from_ftp(context, file_info):
     return file_info
 
 
-@solid
+@solid(
+    required_resource_keys={"basedosdados_config"},
+)
 def pre_treatment_br_rj_riodejaneiro_rdo(
     context,
     file_info,
-    map_values,
-    read_csv_kwargs: dict,
-    map_columns: dict,
     divide_columns_by: int,
 ):
+    dataset_id = context.resources.basedosdados_config["dataset_id"]
     config = read_config(file_info["config_path"])["solids"][
         "pre_treatment_br_rj_riodejaneiro_rdo"
     ]
-    context.log.info(f"Config: {config}")
-    df = pd.read_csv(file_info["raw_path"], header=None, **read_csv_kwargs)
+    context.log.info(f"Config for ETL: {config}")
+    # Load data
+    df = pd.read_csv(file_info["raw_path"], header=None, delimiter=";", index_col=False)
     # Set column names for those already in the file
     df.columns = config["reindex_columns"][: len(df.columns)]
-    # Map columns to new values
-    for col, mapped_col in map_columns.items():
-        df[mapped_col] = df[col].map(map_values)
+    # Treat column "codigo", add empty column if doesn't exist
+    if ("codigo" in df.columns) and (file_info["table_id"][-4:] == "stpl"):
+        df["codigo"] = df["codigo"].str.extract("(?:VAN)(\d+)").astype(str)
+    else:
+        df["codigo"] = ""
     # Order columns
     if config["reorder_columns"]:
         ordered = [
@@ -282,17 +266,12 @@ def _bq_upload(context, file_info):
     },
 )
 def br_rj_riodejaneiro_rdo_registros():
-    # Get auxiliar code dict for modals (operador -> codigo)
-    map_codes = pre_treatment_aux_data(file_path=get_file_from_storage())
     # Get ftp file paths & config for each modal
     file_records = get_file_paths_from_ftp()
     # Extract, transform and (up)load data
     file_records.map(
         lambda f: _bq_upload(
-            pre_treatment_br_rj_riodejaneiro_rdo(
-                download_and_save_local_from_ftp(f), map_codes
-            )
+            pre_treatment_br_rj_riodejaneiro_rdo(download_and_save_local_from_ftp(f))
         )
     )
-    # TODO: save errors & upload logs!
-    # upload_logs_to_bq(timestamp, error)
+    # TODO: upload_logs_to_bq(timestamp, error)

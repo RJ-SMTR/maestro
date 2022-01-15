@@ -1,21 +1,7 @@
 solids:
   pre_treatment_br_rj_riodejaneiro_rdo:
-    inputs: # weirdly, this is the only solid that doenst need "value" on input 
-      read_csv_kwargs: {'delimiter': ';', 'index_col': False}
-      map_columns: {"operadora": "codigo"}
+    inputs:
       divide_columns_by: 100
-  get_file_from_storage:
-    inputs:
-      filename: 
-        value: "2021-12-16.csv" # TODO: mudar tabela auxiliar para a nova (com hash para stpl)
-      table_id: 
-        value: "aux_riocard_permissionarios"
-  pre_treatment_aux_data:
-    inputs:
-      reindex_kwargs:
-        value: {"onibus": "SPPO", "vans": "STPL"}
-      read_csv_kwargs:
-        value: {'delimiter': ',', 'index_col': "CD_OPERAD", "usecols": ["CD_OPERAD", "CODIGO", "MODAL"]}
 resources:
   basedosdados_config:
     config:
