@@ -1,6 +1,6 @@
-source_bucket_name: rj-smtr-staging
-project_id_staging: rj-smtr-staging
-project_id_prod: rj-smtr
+source_bucket_name: rj-smtr-dev
+project_id_staging: rj-smtr-dev
+project_id_prod: rj-smtr-dev
 table_id: rdo5_registros # AUTO GENERATED
 dataset_id: br_rj_riodejaneiro_rdo # AUTO GENERATED
 
@@ -9,7 +9,7 @@ url_github: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodeja
 
 version: 0.1 # REQUIRED
 
-last_updated: 2022-01-06 # AUTO GENERATED
+last_updated: 2022-01-14 # AUTO GENERATED
 
 # Descreva a tabela. Essas são as primeiras frases que um usuário vai ver.
 # Você não precisa ser muito conciso. Sinta-se a vontade para dar exemplos de
@@ -20,22 +20,23 @@ description: |  # REQUIRED
 
 # Quem está completando esse arquivo config?
 published_by:
-    name: Laura Moraes - SMTR  # REQUIRED
+    name: Fernanda Scovino - SMTR  # REQUIRED
     code_url: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_brt_rdo/code # REQUIRED
-    email: laurinhamoraes@gmail.com
+    email: fscovinom@gmail.com
 
 # Qual organização/departamento/pessoa tratou os dados?
 # As vezes há um ponto intermediário entre os dados originais e subir na Base dos Dados.
 # Se essa pessoa é você, preencha abaixo com suas informações.
 treated_by:
-    name: Laura Moraes - SMTR  # REQUIRED
+    name: Fernanda Scovino e Laura Moraes - SMTR  # REQUIRED
     code_url: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_onibus_rdo/code # REQUIRED
-    email: laurinhamoraes@gmail.com
+    email: fscovinom@gmail.com / laurinhamoraes@gmail.com
 
 # Se houve passos de tratamento, limpeza e manipulação de dados, descreva-os aqui.
 treatment_description: | 
-    Reordenei e renomeei os headers
-    Adicionei coluna da hora da captura
+    - Adicionada coluna código (de permissionário) para padronização das tabelas do conjunto;
+    - Adicionada coluna de timestamp da captura;
+    - Reordenação das colunas para padronizar tabela;
 
 # Com qual frequência a base é atualizada?
 # Opções: hora | dia | semana | mes | 1 ano | 2 anos | 5 anos | 10 anos | unico | recorrente
@@ -74,8 +75,6 @@ coverage_geo:
 # Qual é a cobertura temporal (em anos) da tabela?
 # Opções: ..., 1990, 1991, ..., 1999, 2000, 2001, ..., 2019, 2020, ...
 coverage_time:
-    - 2019
-    - 2020
     - 2021
 
 # Liste as colunas da tabela que representam partições.
@@ -114,7 +113,7 @@ columns: # REQUIRED
         description: Data referente aos dados de RDO
         is_in_staging: True # Bool [True, False], whether the column is in the staging table
         is_partition: False # Bool [True, False], whether the column is a partition.
-      -   
+    -   
         name: tarifa_valor
         description: Tarifa praticada durante a viagem
         is_in_staging: True # Bool [True, False], whether the column is in the staging table

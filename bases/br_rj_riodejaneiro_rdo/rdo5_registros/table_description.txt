@@ -10,15 +10,15 @@ Apoia-se: https://apoia.se/basedosdados
 
 Publicado por
 -------------
-Nome: Laura Moraes - SMTR
+Nome: Fernanda Scovino - SMTR
 Código: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_brt_rdo/code
 Website: 
-Email: laurinhamoraes@gmail.comTratado por
+Email: fscovinom@gmail.comTratado por
 -----------
-Nome: Laura Moraes - SMTR
+Nome: Fernanda Scovino e Laura Moraes - SMTR
 Código: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_onibus_rdo/code
 Website: 
-Email: laurinhamoraes@gmail.com
+Email: fscovinom@gmail.com / laurinhamoraes@gmail.com
 
 Partições (Filtre a tabela por essas colunas para economizar dinheiro e tempo)
 ---------
@@ -42,8 +42,9 @@ Cobertura Espacial
 
 Tratamento
 ----------
-Reordenei e renomeei os headers
-Adicionei coluna da hora da captura
+- Adicionada coluna código (de permissionário) para padronização das tabelas do conjunto;
+- Adicionada coluna de timestamp da captura;
+- Reordenação das colunas para padronizar tabela;
 
 Frequencia de Atualização
 -------------------------

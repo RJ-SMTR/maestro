@@ -19,16 +19,17 @@ TIPOS:
 
 */
 
-CREATE VIEW rj-smtr.br_rj_riodejaneiro_rdo.rho5_registros_stpl AS
+CREATE VIEW rj-smtr-dev.br_rj_riodejaneiro_rdo.rho5_registros_stpl AS
 SELECT 
 SAFE_CAST(operadora AS STRING) operadora,
 SAFE_CAST(linha AS STRING) linha,
-SAFE_CAST(PARSE_DATETIME("%Y-%m-%d", data_transacao) AS DATETIME) data_transacao,
-SAFE_CAST(hora_transacao AS INT64) hora_transacao,
-SAFE_CAST(total_gratuidades AS INT64) total_gratuidades,
-SAFE_CAST(total_pagantes AS INT64) total_pagantes,
-SAFE_CAST(DATETIME(TIMESTAMP(timestamp_captura), "America/Sao_Paulo") AS DATETIME) timestamp_captura,
-SAFE_CAST(ano AS INT64) ano,
-SAFE_CAST(mes AS INT64) mes,
-SAFE_CAST(dia AS INT64) dia
-from rj-smtr-staging.br_rj_riodejaneiro_rdo_staging.rho5_registros_stpl as t
+SAFE_CAST(data_transacao AS STRING) data_transacao,
+SAFE_CAST(hora_transacao AS STRING) hora_transacao,
+SAFE_CAST(total_gratuidades AS STRING) total_gratuidades,
+SAFE_CAST(total_pagantes AS STRING) total_pagantes,
+SAFE_CAST(codigo AS STRING) codigo,
+SAFE_CAST(timestamp_captura AS STRING) timestamp_captura,
+SAFE_CAST(ano AS STRING) ano,
+SAFE_CAST(mes AS STRING) mes,
+SAFE_CAST(dia AS STRING) dia
+from rj-smtr-dev.br_rj_riodejaneiro_rdo_staging.rho5_registros_stpl as t

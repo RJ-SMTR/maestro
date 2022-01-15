@@ -10,15 +10,15 @@ Apoia-se: https://apoia.se/basedosdados
 
 Publicado por
 -------------
-Nome: Laura Moraes - SMTR
+Nome: Fernanda Scovino - SMTR
 Código: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_brt_rdo/code
 Website: 
-Email: laurinhamoraes@gmail.comTratado por
+Email: fscovinom@gmail.comTratado por
 -----------
-Nome: Laura Moraes - SMTR
+Nome: Fernanda Scovino e Laura Moraes - SMTR
 Código: https://github.com/basedosdados/mais/tree/master/bases/br_rj_riodejaneiro_onibus_rdo/code
 Website: 
-Email: laurinhamoraes@gmail.com
+Email: fscovinom@gmail.com / laurinhamoraes@gmail.com
 
 Partições (Filtre a tabela por essas colunas para economizar dinheiro e tempo)
 ---------
@@ -29,6 +29,12 @@ Partições (Filtre a tabela por essas colunas para economizar dinheiro e tempo)
 Nível da Observação (i.e. a granularidade da linha)
 -------------------
 - timestamp_captura
+
+Colunas identificando linhas unicamente
+-------------------
+- codigo
+- data_transacao
+- hora_transacao
 
 Cobertura Temporal
 ------------------
@@ -42,8 +48,10 @@ Cobertura Espacial
 
 Tratamento
 ----------
-Reordenei e renomeei os headers
-Adicionei coluna da hora da captura
+- Tratamento da coluna de nome do permissionário para obter somente o respectivo código;
+- Adicionada coluna de timestamp da captura;
+- Reordenação das colunas para padronizar tabela;
+- Divisão dos totais por 100 para obter valor em reais (R$).
 
 Frequencia de Atualização
 -------------------------
