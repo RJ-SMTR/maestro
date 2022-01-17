@@ -85,7 +85,8 @@ def parse_file_path_and_partitions(context, bucket_path):
 
     # Parse bucket to get partitions
     partitions = re.findall("\/([^\/]*?)=(.*?)(?=\/)", bucket_path)
-    partitions = "/".join(["=".join([field for field in item]) for item in partitions])
+    partitions = "/".join(["=".join([field for field in item])
+                          for item in partitions])
 
     # Get data folder from environment variable
     data_folder = os.getenv("DATA_FOLDER", "data")
@@ -100,24 +101,20 @@ def parse_file_path_and_partitions(context, bucket_path):
     yield Output(partitions, output_name="partitions")
 
 
-@solid(required_resource_keys={"basedosdados_config", "timezone_config"})
+@solid(required_resource_keys={'basedosdados_config', 'timezone_config'})
 def upload_logs_to_bq(context, timestamp, error):
 
-    dataset_id = context.resources.basedosdados_config["dataset_id"]
-    table_id = context.resources.basedosdados_config["table_id"] + "_logs"
+    dataset_id = context.resources.basedosdados_config['dataset_id']
+    table_id = context.resources.basedosdados_config['table_id'] + "_logs"
 
     filepath = Path(
-        f"{timestamp}/{table_id}/data={pendulum.parse(timestamp).date()}/{table_id}_{timestamp}.csv"
-    )
+        f"{timestamp}/{table_id}/data={pendulum.parse(timestamp).date()}/{table_id}_{timestamp}.csv")
     # create partition directory
     filepath.parent.mkdir(exist_ok=True, parents=True)
     # create dataframe to be uploaded
     df = pd.DataFrame(
-        {
-            "timestamp_captura": [pd.to_datetime(timestamp)],
-            "sucesso": [error is None],
-            "erro": [error],
-        }
+        {"timestamp_captura": [pd.to_datetime(timestamp)], "sucesso": [
+            error is None], "erro": [error]}
     )
     # save local
     df.to_csv(filepath, index=False)
@@ -134,7 +131,7 @@ def upload_logs_to_bq(context, timestamp, error):
     elif not tb.table_exists("prod"):
         tb.publish(if_exists="replace")
     else:
-        tb.append(filepath=f"{timestamp}/{table_id}", if_exists="replace")
+        tb.append(filepath=f"{timestamp}/{table_id}", if_exists='replace')
 
     # delete local file
     shutil.rmtree(f"{timestamp}")
@@ -144,8 +141,7 @@ def upload_logs_to_bq(context, timestamp, error):
     output_defs=[
         OutputDefinition(name="data", is_required=False),
         OutputDefinition(name="timestamp", is_required=False),
-        OutputDefinition(name="error", is_required=False),
-    ],
+        OutputDefinition(name="error", is_required=False)],
     required_resource_keys={"basedosdados_config", "timezone_config"},
 )
 def get_raw(context, url, headers=None):
@@ -202,9 +198,12 @@ def save_treated_local(context, df, file_path, mode="staging"):
 )
 def get_file_from_storage(
     context,
+    file_path,
     filename,
-    partitions=None,
+    partitions,
     mode="raw",
+    filetype="xlsx",
+    uploaded=True,
     table_id=None,
 ):
 
@@ -213,16 +212,16 @@ def get_file_from_storage(
     if not table_id:
         table_id = context.resources.basedosdados_config["table_id"]
     dataset_id = context.resources.basedosdados_config["dataset_id"]
-    # Set data path on bucket
-    data_folder = os.getenv("DATA_FOLDER", "data")
-    _file_path = (
-        f"{os.getcwd()}/{data_folder}/{mode}/{dataset_id}/{table_id}/{filename}"
-    )
-    # Download from bucket
+
+    _file_path = file_path.format(mode=mode, filetype=filetype)
+
     st = StoragePlus(table_id=table_id, dataset_id=dataset_id)
     context.log.debug(f"File path: {_file_path}")
+    context.log.debug(f"filename: {filename}")
+    context.log.debug(f"partition: {partitions}")
+    context.log.debug(f"mode: {mode}")
     st.download(
-        filename=filename,
+        filename=filename + "." + filetype,
         file_path=_file_path,
         partitions=partitions,
         mode=mode,
@@ -280,10 +279,10 @@ def delete_file(file_path):
 def download_file_from_ftp(ftp_path: str, local_path: str) -> None:
     """Downloads a file from FTP to the local storage"""
     Path(local_path).parent.mkdir(parents=True, exist_ok=True)
-    ftp_client = connect_ftp(
-        os.getenv("FTPS_HOST"), os.getenv("FTPS_USERNAME"), os.getenv("FTPS_PWD")
-    )
-    ftp_client.retrbinary("RETR " + ftp_path, open(local_path, "wb").write)
+    ftp_client = connect_ftp(os.getenv("FTPS_HOST"), os.getenv(
+        "FTPS_USERNAME"), os.getenv("FTPS_PWD"))
+    ftp_client.retrbinary(
+        "RETR " + ftp_path, open(local_path, "wb").write)
     ftp_client.quit()
 
 
@@ -305,7 +304,8 @@ def upload_file_to_storage(
     context.log.debug(
         f"Uploading file {file_path} to mode {mode} with partitions {partitions}"
     )
-    st.upload(path=file_path, mode=mode, partitions=partitions, if_exists="replace")
+    st.upload(path=file_path, mode=mode,
+              partitions=partitions, if_exists="replace")
 
     return True
 
@@ -314,13 +314,7 @@ def upload_file_to_storage(
     required_resource_keys={"basedosdados_config"},
 )
 def upload_blob_to_storage(
-    context,
-    blob_path,
-    partitions=None,
-    mode="raw",
-    table_id=None,
-    bucket_name="",
-    credential_mode="staging",
+    context, blob_path, partitions=None, mode="raw", table_id=None, bucket_name="", credential_mode="staging"
 ):
     # Extracted from basedosdados
     def _resolve_partitions(partitions):
@@ -335,12 +329,15 @@ def upload_blob_to_storage(
             # It should fail if there is folder which is not a partition
             try:
                 # check if it fits rule
-                {b.split("=")[0]: b.split("=")[1] for b in partitions.split("/")}
+                {b.split("=")[0]: b.split("=")[1]
+                 for b in partitions.split("/")}
             except IndexError:
-                raise Exception(f"The path {partitions} is not a valid partition")
+                raise Exception(
+                    f"The path {partitions} is not a valid partition")
             return partitions + "/"
         else:
-            raise Exception(f"Partitions format or type not accepted: {partitions}")
+            raise Exception(
+                f"Partitions format or type not accepted: {partitions}")
 
     if not table_id:
         table_id = context.resources.basedosdados_config["table_id"]
