@@ -34,13 +34,13 @@ def query_data(context):
     filename = f"{run_date}/multas{run_date.replace('-','')}.csv"
 
     ### Filtering weekends & holidays (todo: change this filter to the view)
-    holidays = ["2021-11-01", "2021-11-02", "2021-11-15", "2021-11-20"]
+    filter_dates = ["2022-02-14"]
 
-    if (run_date in holidays) or (
+    if (run_date in filter_dates) or (
         datetime.strptime(run_date, "%Y-%m-%d").isoweekday() > 5
     ):
         context.log.info(
-            f"{run_date} is weekend or holyday. Uploading empty file: {filename}"
+            f"{run_date} is weekend, holyday or exception. Uploading empty file: {filename}"
         )
         content = {
             "permissao": "",
