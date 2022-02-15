@@ -33,48 +33,36 @@ def query_data(context):
     run_date = context.resources.schedule_run_date["date"]
     filename = f"{run_date}/multas{run_date.replace('-','')}.csv"
 
-    ### Filtering weekends & holidays (todo: change this filter to the view)
-    filter_dates = ["2022-02-14"]
+    context.log.info(
+        f"Fetching data from {project}.{context.solid_config['query_table']}"
+    )
 
-    if (run_date in filter_dates) or (
-        datetime.strptime(run_date, "%Y-%m-%d").isoweekday() > 5
-    ):
-        context.log.info(
-            f"{run_date} is weekend, holyday or exception. Uploading empty file: {filename}"
-        )
-        content = {
-            "permissao": "",
-            "placa": "",
-            "ordem": "",
-            "linha": "",
-            "codigo_infracao": "",
-            "data_infracao": "",
-        }
-        Path(filename).parent.mkdir(parents=True, exist_ok=True)
-        pd.DataFrame(columns=content.keys()).to_csv(filename, sep=";", index=False)
-
+    # Exception: Methodology changed version to v1.1 after 2022-02-14,
+    # only deployed on 2022-02-15.
+    if run_date == "2022-02-15":
+        query = f"""
+            SELECT * except(data)
+            FROM {context.solid_config['query_table']}
+            WHERE data IN ('2022-02-15', '2022-02-14')
+        """
     else:
-        context.log.info(
-            f"Fetching data from {project}.{context.solid_config['query_table']}"
-        )
-
         query = f"""
             SELECT * except(data)
             FROM {context.solid_config['query_table']}
             WHERE data = '{run_date}'
         """
-        context.log.info(f"Running query\n {query}")
+    context.log.info(f"Running query\n {query}")
 
-        context.log.info(f"Downloading query results and saving as {filename}")
+    context.log.info(f"Downloading query results and saving as {filename}")
 
-        bd.download(
-            savepath=filename,
-            query=query,
-            billing_project_id=project,
-            from_file=True,
-            index=False,
-            sep=";",
-        )
+    bd.download(
+        savepath=filename,
+        query=query,
+        billing_project_id=project,
+        from_file=True,
+        index=False,
+        sep=";",
+    )
 
     return filename
 
