@@ -28,7 +28,7 @@ jobs:
           python-version: "3.8.x"
           architecture: "x64"
       - name: Install dependencies
-        run: pip install wheel && pip install --prefer-binary -r requirements.txt
+        run: pip install wheel && pip install --prefer-binary --use-deprecated=legacy-resolver -r requirements.txt
 
   tests:
     needs: before
