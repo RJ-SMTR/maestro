@@ -100,6 +100,7 @@ def pre_treatment_br_rj_riodejaneiro_onibus_gps(context, data, timestamp, prev_e
         context.log.info(f"Shape após a filtrage: {df_treated.shape}")
         if df_treated.shape[0] == 0:
             error = ValueError("After filtering, the dataframe is empty!")
+            log_critical(f'Failed to filter SPPO: \n {error}')
         df = df_treated
     except:
         err = traceback.format_exc()
