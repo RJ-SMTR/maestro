@@ -41,9 +41,12 @@ from repositories.libraries.basedosdados.solids import bq_upload, upload_to_bigq
     required_resource_keys={"basedosdados_config", "timezone_config"},
     output_defs=[
         OutputDefinition(name="treated_data", is_required=True),
-        OutputDefinition(name="error", is_required=False)],
+        OutputDefinition(name="error", is_required=False),
+    ],
 )
-def pre_treatment_br_rj_riodejaneiro_onibus_gps(context, data, timestamp, prev_error=None):
+def pre_treatment_br_rj_riodejaneiro_onibus_gps(
+    context, data, timestamp, prev_error=None
+):
 
     if prev_error is not None:
         yield Output(pd.DataFrame(), output_name="treated_data")
@@ -58,6 +61,8 @@ def pre_treatment_br_rj_riodejaneiro_onibus_gps(context, data, timestamp, prev_e
     df = pd.DataFrame(data)
     timestamp_captura = pd.to_datetime(timestamp)
     df["timestamp_captura"] = timestamp_captura
+    context.log.info(f"Before converting, datahora is: \n{df['datahora']}")
+
     # Remove timezone and force it to be config timezone
     df["datahora"] = (
         df["datahora"]
@@ -66,11 +71,12 @@ def pre_treatment_br_rj_riodejaneiro_onibus_gps(context, data, timestamp, prev_e
             lambda ms: pd.to_datetime(
                 pendulum.from_timestamp(ms / 1000.0)
                 .replace(tzinfo=None)
-                .set(tz=timezone)
+                .set(tz="UTC")
                 .isoformat()
             )
         )
     )
+    context.log.info(f"After converting the timezone, datahora is: \n{df['datahora']}")
 
     # Filter data for 0 <= time diff <= 1min
     try:
@@ -97,13 +103,14 @@ def pre_treatment_br_rj_riodejaneiro_onibus_gps(context, data, timestamp, prev_e
         )
         df_treated = df_treated[mask]
         context.log.info(f"Shape antes da filtragem: {df.shape}")
-        context.log.info(f"Shape após a filtrage: {df_treated.shape}")
+        context.log.info(f"Shape após a filtragem: {df_treated.shape}")
         if df_treated.shape[0] == 0:
             error = ValueError("After filtering, the dataframe is empty!")
+            log_critical(f"Failed to filter SPPO data: \n{error}")
         df = df_treated
     except:
         err = traceback.format_exc()
-        log_critical(f"Failed to filter STPL data: \n{err}")
+        log_critical(f"Failed to filter SPPO data: \n{err}")
 
     yield Output(df, output_name="treated_data")
     yield Output(error, output_name="error")
@@ -147,10 +154,13 @@ def br_rj_riodejaneiro_onibus_gps_registros():
     raw_file_path = save_raw_local(data, file_path)
 
     treated_data, error = pre_treatment_br_rj_riodejaneiro_onibus_gps(
-        data, timestamp, prev_error=error)
+        data, timestamp, prev_error=error
+    )
 
     upload_logs_to_bq(timestamp, error)
 
     treated_file_path = save_treated_local(treated_data, file_path)
 
-    bq_upload(raw_filepath=raw_file_path, filepath=treated_file_path, partitions=partitions)
+    bq_upload(
+        raw_filepath=raw_file_path, filepath=treated_file_path, partitions=partitions
+    )
