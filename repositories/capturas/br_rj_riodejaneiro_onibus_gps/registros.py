@@ -66,7 +66,7 @@ def pre_treatment_br_rj_riodejaneiro_onibus_gps(context, data, timestamp, prev_e
             lambda ms: pd.to_datetime(
                 pendulum.from_timestamp(ms / 1000.0)
                 .replace(tzinfo=None)
-                .set(tz=timezone)
+                .set(tz="UTC")
                 .isoformat()
             )
         )
