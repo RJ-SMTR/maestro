@@ -17,6 +17,7 @@ from repositories.capturas.resources import (
     keepalive_key,
     timezone_config,
     discord_webhook,
+    # version
 )
 from repositories.libraries.basedosdados.resources import basedosdados_config
 from repositories.helpers.hooks import (
@@ -129,6 +130,7 @@ def pre_treatment_br_rj_riodejaneiro_onibus_gps(
                 "timezone_config": timezone_config,
                 "discord_webhook": discord_webhook,
                 "keepalive_key": keepalive_key,
+                # "version": version,
             },
         ),
     ],
