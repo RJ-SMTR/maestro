@@ -23,5 +23,5 @@ CREATE VIEW rj-smtr.br_rj_riodejaneiro_sigmob.shapes AS
 SELECT 
 SAFE_CAST(shape_id AS STRING) shape_id,
 REPLACE(content, "None", '') content,
-SAFE_CAST(data_versao AS STRING) data_versao
+SAFE_CAST(data_versao AS DATE) data_versao
 from rj-smtr-staging.br_rj_riodejaneiro_sigmob_staging.shapes as t
