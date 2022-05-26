@@ -2,7 +2,10 @@ solids:
   get_raw:
     inputs:
       url:
-        value: http://ccomobility.com.br/WebServices/Binder/WSConecta/EnvioInformacoesIplan?guidIdentificacao=994142d7-2223-4044-931e-be3421ea02ff
+        value: http://ccomobility.com.br/WebServices/Binder/WSConecta/EnvioInformacoesIplan
+      headers:
+        value:
+          guidIdentificacao: "{{ '' | env_override('SPPO_API_TOKEN') }}"
 resources:
   basedosdados_config:
     config:
