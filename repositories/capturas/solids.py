@@ -144,11 +144,16 @@ def upload_logs_to_bq(context, timestamp, error):
         OutputDefinition(name="error", is_required=False)],
     required_resource_keys={"basedosdados_config", "timezone_config"},
 )
-def get_raw(context, url, headers=None):
+def get_raw(context, url, headers=None, kind=None):
 
     data = None
     error = None
     timestamp = pendulum.now(context.resources.timezone_config["timezone"])
+
+    if kind == "sppo":
+        url = url + "?" +"".join([k + "=" + v for k, v in headers.items()])
+        headers = None
+
     try:
         data = requests.get(url, headers=headers, timeout=60)
     except requests.exceptions.ReadTimeout as e:

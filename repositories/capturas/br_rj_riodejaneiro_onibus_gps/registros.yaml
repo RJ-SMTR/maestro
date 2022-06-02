@@ -6,6 +6,8 @@ solids:
       headers:
         value:
           guidIdentificacao: "{{ '' | env_override('SPPO_API_TOKEN') }}"
+      kind:
+        value: "sppo"
 resources:
   basedosdados_config:
     config:
