@@ -35,6 +35,7 @@ services:
       GTFS_BLOBS_PREFIX: "${GTFS_BLOBS_PREFIX}"
       VIEWS_PREFIX: "${VIEWS_PREFIX}"
       MATERIALIZED_VIEWS_PREFIX: "${MATERIALIZED_VIEWS_PREFIX}"
+      SPPO_API_TOKEN: "${SPPO_API_TOKEN}"
     networks:
       - dagster_network
     volumes:
@@ -85,6 +86,7 @@ services:
       GTFS_BLOBS_PREFIX: "${GTFS_BLOBS_PREFIX}"
       VIEWS_PREFIX: "${VIEWS_PREFIX}"
       MATERIALIZED_VIEWS_PREFIX: "${MATERIALIZED_VIEWS_PREFIX}"
+      SPPO_API_TOKEN: "${SPPO_API_TOKEN}"
     networks:
       - dagster_network
     depends_on:
@@ -122,6 +124,7 @@ services:
       GTFS_BLOBS_PREFIX: "${GTFS_BLOBS_PREFIX}"
       VIEWS_PREFIX: "${VIEWS_PREFIX}"
       MATERIALIZED_VIEWS_PREFIX: "${MATERIALIZED_VIEWS_PREFIX}"
+      SPPO_API_TOKEN: "${SPPO_API_TOKEN}"
     volumes: # Make docker client accessible so we can launch containers using host docker
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
