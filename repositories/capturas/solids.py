@@ -159,10 +159,11 @@ def get_raw(context, url, headers=None, kind=None):
         context.log.info(f"Data requested from API - Status: {data.status_code}")
         context.log.info(f"Data requested from API - Content: {data.json()}")
     except requests.exceptions.ReadTimeout as e:
+        context.log.info("Error: {}".format(e))
         error = e
     except Exception as e:
         error = f"Unknown exception while trying to fetch data from {url}: {e}"
-
+        context.log.info(error)
 
     if error:
         yield Output(timestamp.isoformat(), output_name="timestamp")
