@@ -156,24 +156,20 @@ def get_raw(context, url, headers=None, kind=None):
 
     try:
         data = requests.get(url, headers=headers, timeout=60)
+        context.log.info(f"Data requested from API - Status: {data.status_code}")
+        context.log.info(f"Data requested from API - Content: {data.json()}")
     except requests.exceptions.ReadTimeout as e:
         error = e
     except Exception as e:
         error = f"Unknown exception while trying to fetch data from {url}: {e}"
 
-    if data is None:
-        if error is None:
-            error = "Data from API is none!"
 
     if error:
         yield Output(timestamp.isoformat(), output_name="timestamp")
         yield Output(error, output_name="error")
+        yield Output(dict(), output_name="data")
     elif data.ok:
         yield Output(data, output_name="data")
-        yield Output(timestamp.isoformat(), output_name="timestamp")
-        yield Output(error, output_name="error")
-    else:
-        error = f"Requests failed with error {data.status_code}"
         yield Output(timestamp.isoformat(), output_name="timestamp")
         yield Output(error, output_name="error")
 
@@ -183,7 +179,10 @@ def save_raw_local(context, data, file_path, mode="raw"):
 
     _file_path = file_path.format(mode=mode, filetype="json")
     Path(_file_path).parent.mkdir(parents=True, exist_ok=True)
-    json.dump(data.json(), Path(_file_path).open("w"))
+    try:
+        json.dump(data.json(), Path(_file_path).open("w"))
+    except Exception as e:
+        context.log.error(f"Error while trying to save data to {_file_path}: {e}")
 
     return _file_path
 
