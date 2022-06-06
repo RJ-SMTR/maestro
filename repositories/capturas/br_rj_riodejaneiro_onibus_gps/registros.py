@@ -49,71 +49,72 @@ def pre_treatment_br_rj_riodejaneiro_onibus_gps(
 ):
 
     if prev_error is not None:
+        context.log.info(f"==> prev_error: \n{prev_error}")
         yield Output(pd.DataFrame(), output_name="treated_data")
         yield Output(prev_error, output_name="error")
 
-    error = None
+    else:
+        error = None
+        timezone = context.resources.timezone_config["timezone"]
 
-    timezone = context.resources.timezone_config["timezone"]
+        context.log.info(f"data={data.json()}")
+        data = data.json()
+        df = pd.DataFrame(data)
+        timestamp_captura = pd.to_datetime(timestamp)
+        df["timestamp_captura"] = timestamp_captura
+        context.log.info(f"Before converting, datahora is: \n{df['datahora']}")
 
-    context.log.info(f"data={data.json()}")
-    data = data.json()
-    df = pd.DataFrame(data)
-    timestamp_captura = pd.to_datetime(timestamp)
-    df["timestamp_captura"] = timestamp_captura
-    context.log.info(f"Before converting, datahora is: \n{df['datahora']}")
-
-    # Remove timezone and force it to be config timezone
-    df["datahora"] = (
-        df["datahora"]
-        .astype(float)
-        .apply(
-            lambda ms: pd.to_datetime(
-                pendulum.from_timestamp(ms / 1000.0)
-                .replace(tzinfo=None)
-                .set(tz="UTC")
-                .isoformat()
+        # Remove timezone and force it to be config timezone
+        df["datahora"] = (
+            df["datahora"]
+            .astype(float)
+            .apply(
+                lambda ms: pd.to_datetime(
+                    pendulum.from_timestamp(ms / 1000.0)
+                    .replace(tzinfo=None)
+                    .set(tz="UTC")
+                    .isoformat()
+                )
             )
         )
-    )
-    context.log.info(f"After converting the timezone, datahora is: \n{df['datahora']}")
+        context.log.info(f"After converting the timezone, datahora is: \n{df['datahora']}")
 
-    # Filter data for 0 <= time diff <= 1min
-    try:
-        datahora_col = "datahora"
-        df_treated = df
+        # Filter data for 0 <= time diff <= 1min
         try:
-            df_treated[datahora_col] = df_treated[datahora_col].apply(
-                lambda x: x.tz_convert(timezone)
+            datahora_col = "datahora"
+            df_treated = df
+            try:
+                df_treated[datahora_col] = df_treated[datahora_col].apply(
+                    lambda x: x.tz_convert(timezone)
+                )
+            except TypeError:
+                df_treated[datahora_col] = df_treated[datahora_col].apply(
+                    lambda x: x.tz_localize(timezone)
+                )
+            try:
+                df_treated["timestamp_captura"] = df_treated["timestamp_captura"].apply(
+                    lambda x: x.tz_convert(timezone)
+                )
+            except TypeError:
+                df_treated["timestamp_captura"] = df_treated["timestamp_captura"].apply(
+                    lambda x: x.tz_localize(timezone)
+                )
+            mask = (df_treated["timestamp_captura"] - df_treated[datahora_col]).apply(
+                lambda x: timedelta(seconds=0) <= x <= timedelta(minutes=1)
             )
-        except TypeError:
-            df_treated[datahora_col] = df_treated[datahora_col].apply(
-                lambda x: x.tz_localize(timezone)
-            )
-        try:
-            df_treated["timestamp_captura"] = df_treated["timestamp_captura"].apply(
-                lambda x: x.tz_convert(timezone)
-            )
-        except TypeError:
-            df_treated["timestamp_captura"] = df_treated["timestamp_captura"].apply(
-                lambda x: x.tz_localize(timezone)
-            )
-        mask = (df_treated["timestamp_captura"] - df_treated[datahora_col]).apply(
-            lambda x: timedelta(seconds=0) <= x <= timedelta(minutes=1)
-        )
-        df_treated = df_treated[mask]
-        context.log.info(f"Shape antes da filtragem: {df.shape}")
-        context.log.info(f"Shape após a filtragem: {df_treated.shape}")
-        if df_treated.shape[0] == 0:
-            error = ValueError("After filtering, the dataframe is empty!")
-            log_critical(f"Failed to filter SPPO data: \n{error}")
-        df = df_treated
-    except:
-        err = traceback.format_exc()
-        log_critical(f"Failed to filter SPPO data: \n{err}")
+            df_treated = df_treated[mask]
+            context.log.info(f"Shape antes da filtragem: {df.shape}")
+            context.log.info(f"Shape após a filtragem: {df_treated.shape}")
+            if df_treated.shape[0] == 0:
+                error = ValueError("After filtering, the dataframe is empty!")
+                log_critical(f"Failed to filter SPPO data: \n{error}")
+            df = df_treated
+        except:
+            err = traceback.format_exc()
+            log_critical(f"Failed to filter SPPO data: \n{err}")
 
-    yield Output(df, output_name="treated_data")
-    yield Output(error, output_name="error")
+        yield Output(df, output_name="treated_data")
+        yield Output(error, output_name="error")
 
 
 @discord_message_on_failure

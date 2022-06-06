@@ -159,10 +159,11 @@ def get_raw(context, url, headers=None, kind=None):
         context.log.info(f"Data requested from API - Status: {data.status_code}")
         context.log.info(f"Data requested from API - Content: {data.json()}")
     except requests.exceptions.ReadTimeout as e:
+        context.log.info("Error: {}".format(e))
         error = e
     except Exception as e:
         error = f"Unknown exception while trying to fetch data from {url}: {e}"
-
+        context.log.info(error)
 
     if error:
         yield Output(timestamp.isoformat(), output_name="timestamp")
@@ -182,6 +183,7 @@ def save_raw_local(context, data, file_path, mode="raw"):
     try:
         json.dump(data.json(), Path(_file_path).open("w"))
     except Exception as e:
+        json.dump(dict(), Path(_file_path).open("w"))
         context.log.error(f"Error while trying to save data to {_file_path}: {e}")
 
     return _file_path
