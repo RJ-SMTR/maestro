@@ -2,7 +2,7 @@ solids:
   get_raw:
     inputs:
       url:
-        value: http://citgisbrj.tacom.srv.br:9977/gtfs-realtime-exporter/findAll/json
+        value: http://brj.citgis.com.br:9977/gtfs-realtime-exporter/findAll/json
   pre_treatment_br_rj_riodejaneiro_brt_gps:
     inputs:
       key_column:
